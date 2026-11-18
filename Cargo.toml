@@ -7,6 +7,7 @@ members = [
     "crates/aegis-macos",
     "crates/aegis-windows",
     "services/linux-helper",
+    "services/macos-daemon",
     "services/windows-service",
     "apps/desktop/src-tauri",
 ]

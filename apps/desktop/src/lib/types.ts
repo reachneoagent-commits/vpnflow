@@ -2,7 +2,7 @@
 
 export type ProfileId = string;
 export type RouteKind = "full" | "full_ipv4_only" | "full_ipv6_only" | "split";
-export type BackendKind = "mock" | "network_manager" | "windows_service" | "none";
+export type BackendKind = "mock" | "network_manager" | "windows_service" | "macos_daemon" | "none";
 export type Support = { status: "supported" } | { status: "unsupported"; detail: string };
 export type PeerState = "pending" | "confirmed" | "no_response";
 export type Level = "info" | "warn" | "error";

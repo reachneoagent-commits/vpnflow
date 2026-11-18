@@ -114,6 +114,7 @@ pub enum BackendKind {
     Mock,
     NetworkManager,
     WindowsService,
+    MacosDaemon,
     /// No usable backend detected.
     None,
 }

@@ -17,7 +17,9 @@ export function About() {
               ? `NetworkManager ${caps.backend_version ?? ""}`
               : caps?.backend === "windows_service"
                 ? "WireGuard tunnel service"
-                : caps?.backend === "mock"
+                : caps?.backend === "macos_daemon"
+                  ? "VPNFlow macOS daemon"
+                  : caps?.backend === "mock"
                   ? "Simulated (no real tunnels)"
                   : "None available"}
           </Row>
