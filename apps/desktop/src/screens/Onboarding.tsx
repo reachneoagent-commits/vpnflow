@@ -204,9 +204,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
           </p>
           <Checklist
             items={[
-              "Click the button below. Proton opens its WireGuard page.",
-              "Choose Platform: Router or WireGuard (not Android or iOS), and leave other options as they are.",
-              "Under Free servers, press Create next to each country you want, then Download.",
+              "Click the button below. Proton opens its WireGuard page. Sign in if asked.",
+              'Step 1, name: type a name such as "VPNFlow". Use the same name for every server.',
+              "Step 2, platform: pick the one for this computer (macOS, Windows or GNU/Linux).",
+              "Step 3, options: leave NAT-PMP and VPN Accelerator as they are.",
+              'Step 4, server: click the "Free server configs" tab. Each country is a button.',
+              "Click a country you want, then Create, then Download. Repeat for each country (the free ones are Canada, Japan, Mexico, Netherlands, Norway, Poland, Romania, Singapore, Switzerland and the United States).",
               "Return here. Your servers appear below within a few seconds.",
             ]}
           />
