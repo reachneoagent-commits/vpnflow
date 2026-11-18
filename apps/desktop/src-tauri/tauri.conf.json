@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Aegis VPN",
+        "title": "VPNFlow",
         "width": 1280,
         "height": 840,
         "minWidth": 768,
@@ -40,7 +40,7 @@
     "shortDescription": "VPNFlow — WireGuard VPN client",
     "longDescription": "VPNFlow is a lightweight open-source WireGuard VPN client for Linux, Windows, and macOS.",
     "license": "MIT OR Apache-2.0",
-    "copyright": "Aegis VPN contributors",
+    "copyright": "VPNFlow contributors",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

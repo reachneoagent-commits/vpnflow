@@ -1,35 +1,22 @@
 [package]
 name = "aegis-windows"
-description = "Windows tunnel backend for VPNFlow — WireGuard over Wintun, kill switch via Windows Filtering Platform"
+description = "Windows tunnel-service backend for Aegis VPN (client side and service protocol)"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 rust-version.workspace = true
 publish = false
 
-# Portable protocol and naming rules are unit-tested on any host.
-# Windows-only tunnel/kill-switch code is behind #[cfg(windows)] in src/.
+# The protocol and naming rules are portable so they are unit-tested on any host.
 [dependencies]
 aegis-core.workspace = true
 aegis-config.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
-tokio = { workspace = true, features = ["io-util", "net", "rt", "macros", "sync", "time"] }
+tokio = { workspace = true, features = ["io-util", "net"] }
 uuid.workspace = true
 zeroize = { workspace = true, features = ["serde"] }
-
-# Windows-only dependencies (compile only on Windows targets)
-wintun-rs = { version = "0.0.6", optional = true }
-defguard-wireguard-rs = { version = "0.12", optional = true, package = "defguard_wireguard_rs" }
-windows-wfp = { version = "0.2", optional = true }
-windows-sys = { version = "0.59", optional = true }
-
-[target.'cfg(windows)'.dependencies]
-wintun-rs = { version = "0.0.6" }
-defguard-wireguard-rs = { version = "0.12", package = "defguard_wireguard_rs" }
-windows-wfp = { version = "0.2" }
-windows-sys = { version = "0.59" }
 
 [lints]
 workspace = true

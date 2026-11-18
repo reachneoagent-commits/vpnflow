@@ -25,17 +25,17 @@ export function About() {
           <Row label="Source">
             <a
               className="text-focus underline-offset-2 hover:underline"
-              href="https://github.com/mikeholp87/aegis-vpn"
+              href="https://github.com/reachneoagent-commits/vpnflow"
               target="_blank"
               rel="noreferrer"
             >
-              github.com/mikeholp87/aegis-vpn
+              github.com/reachneoagent-commits/vpnflow
             </a>
           </Row>
           <Row label="Security policy">
             <a
               className="text-focus underline-offset-2 hover:underline"
-              href="https://github.com/mikeholp87/aegis-vpn/blob/main/SECURITY.md"
+              href="https://github.com/reachneoagent-commits/vpnflow/blob/main/SECURITY.md"
               target="_blank"
               rel="noreferrer"
             >
