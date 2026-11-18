@@ -39,7 +39,7 @@ function Checklist({ items }: { items: string[] }) {
 }
 
 export function Onboarding({ onDone }: { onDone: () => void }) {
-  const { profiles, countries, settings, saveSettings, refreshProfiles, run } = useStore();
+  const { profiles, countries, settings, saveSettings, refreshProfiles, run, caps } = useStore();
   const [step, setStep] = useState(savedStep);
   const startedAt = useRef(Date.now() - 10 * 60_000);
   const [imported, setImported] = useState<string[]>([]);
@@ -54,6 +54,16 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       /* remembering the step is optional */
     }
   }, []);
+
+  // Recommended protection starts on at the last step; the user can still turn it off.
+  const protectionSeeded = useRef(false);
+  useEffect(() => {
+    if (step !== 4 || protectionSeeded.current || !settings || !caps) return;
+    protectionSeeded.current = true;
+    if (caps.kill_switch.status !== "supported") return;
+    if (settings.kill_switch && settings.kill_switch_allow_lan) return;
+    void saveSettings({ ...settings, kill_switch: true, kill_switch_allow_lan: true });
+  }, [step, settings, caps, saveSettings]);
 
   // Watch Downloads for new server files while that step is showing.
   useEffect(() => {
@@ -298,6 +308,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               description="Blocks the internet if the VPN drops, so nothing leaks. Recommended."
               checked={settings.kill_switch}
               onChange={(v) => void saveSettings({ ...settings, kill_switch: v })}
+            />
+            <Switch
+              label="Allow local network"
+              description="Keeps printers, your router and apps on your own network working while the VPN is on."
+              checked={settings.kill_switch_allow_lan}
+              disabled={!settings.kill_switch}
+              onChange={(v) => void saveSettings({ ...settings, kill_switch_allow_lan: v })}
             />
             <Switch
               label="Connect when VPNFlow starts"
