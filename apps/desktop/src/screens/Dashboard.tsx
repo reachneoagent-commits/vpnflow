@@ -137,7 +137,7 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
                 : state.peer === "confirmed"
                   ? "Server answered"
                   : state.peer === "no_response"
-                    ? "No reply from the server. If this just started, the network may be down or switched; Aegis confirms again when the server answers. If it never connected, check the endpoint, keys and firewall."
+                    ? "No reply from the server. If this just started, the network may be down or switched; VPNFlow confirms again when the server answers. If it never connected, check the endpoint, keys and firewall."
                     : "Waiting for data from the server"
             }
           />

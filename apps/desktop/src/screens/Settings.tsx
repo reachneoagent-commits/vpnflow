@@ -41,7 +41,7 @@ export function SettingsScreen() {
 
       <Panel title="Startup and window">
         <Switch
-          label="Start Aegis VPN when you sign in"
+          label="Start VPNFlow when you sign in"
           checked={settings.launch_on_login}
           onChange={(v) => set({ launch_on_login: v })}
         />
@@ -71,7 +71,7 @@ export function SettingsScreen() {
           </select>
         </div>
         <Switch
-          label="Closing the window keeps Aegis VPN in the tray"
+          label="Closing the window keeps VPNFlow in the tray"
           description={
             info?.tray_available
               ? "Closing the window never disconnects the VPN. Use Disconnect or Quit from the tray menu."
@@ -111,7 +111,7 @@ export function SettingsScreen() {
           label="Kill switch"
           description={
             ksUnsupported
-              ? `${supportNote(caps?.kill_switch, "The kill switch")}. While this is on, Aegis refuses to connect rather than connect without it.`
+              ? `${supportNote(caps?.kill_switch, "The kill switch")}. While this is on, VPNFlow refuses to connect rather than connect without it.`
               : "Blocks all traffic outside the tunnel from Connect until you press Disconnect, also while reconnecting or if the app crashes. Server endpoints must be IP addresses. Change it while disconnected."
           }
           checked={settings.kill_switch}
@@ -128,7 +128,7 @@ export function SettingsScreen() {
           <div className="font-medium">DNS and IPv6</div>
           <p className="mt-0.5 max-w-[65ch] text-muted">
             {caps?.dns_protection.status === "supported"
-              ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. Aegis re-checks this every few seconds; the dashboard shows the result."
+              ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. VPNFlow re-checks this every few seconds; the dashboard shows the result."
               : (supportNote(caps?.dns_protection, "DNS protection") ?? "")}
           </p>
         </div>
@@ -148,11 +148,11 @@ export function SettingsScreen() {
           description="Desktop alerts for connect, disconnect, and failure events when the system supports them."
         />
         <p className="border-t border-line py-3 text-[13px] text-muted">
-          Automatic updates are not available yet — release signing has not been set up, so Aegis makes no
+          Automatic updates are not available yet — release signing has not been set up, so VPNFlow makes no
           update requests.
         </p>
         <p className="border-t border-line py-3 text-[13px] text-muted">
-          Aegis VPN collects no analytics and needs no account. Connectivity checks contact only the tunnel's
+          VPNFlow collects no analytics and needs no account. Connectivity checks contact only the tunnel's
           configured DNS resolver (example.com reachability and whoami for public IP). Idle VPN servers are
           never probed.
         </p>

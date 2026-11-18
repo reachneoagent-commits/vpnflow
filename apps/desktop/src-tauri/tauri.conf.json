@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Aegis VPN",
+  "productName": "VPNFlow",
   "version": "0.1.0",
-  "identifier": "org.aegisvpn.desktop",
+  "identifier": "org.vpnflow.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://127.0.0.1:1420",
@@ -37,8 +37,8 @@
       "nsis"
     ],
     "category": "Utility",
-    "shortDescription": "WireGuard VPN client",
-    "longDescription": "Lightweight open-source WireGuard client for Linux and Windows.",
+    "shortDescription": "VPNFlow — WireGuard VPN client",
+    "longDescription": "VPNFlow is a lightweight open-source WireGuard VPN client for Linux, Windows, and macOS.",
     "license": "MIT OR Apache-2.0",
     "copyright": "Aegis VPN contributors",
     "icon": [

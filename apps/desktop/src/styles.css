@@ -1,11 +1,24 @@
 @import "tailwindcss";
-@import "@fontsource-variable/atkinson-hyperlegible-next";
-@import "@fontsource-variable/atkinson-hyperlegible-mono";
+
+@font-face {
+  font-family: "Firjar Variable";
+  src: url("../../../../brand/Firjar/Firjar-VariableFont_wdth,wght.ttf") format("truetype-variations");
+  font-weight: 1 999;
+  font-stretch: 25% 151%;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Firjar Mono";
+  src: url("../../../../brand/Firjar/static/Firjar-Regular.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
 
 /*
- * Colour rule: chrome is ink on mist. Green, amber and red are reserved for
- * connection truth (confirmed / waiting / failed), so an idle window never
- * looks "safe". Interactive accent = ink, focus = blue.
+ * Colour rule: chrome is ink on mist. Teal (#54e6d4) is VPNFlow brand accent.
+ * Green, amber and red are reserved for connection truth (confirmed / waiting / failed),
+ * so an idle window never looks "safe". Interactive accent = ink, focus = teal.
  */
 :root {
   --bg: #e8ecef;
@@ -16,7 +29,7 @@
   --muted: #55626f;
   --accent: #15212c;
   --accent-fg: #f6f8f9;
-  --focus: #2f6fdb;
+  --focus: #54e6d4;
   --ok: #1d7a4c;
   --ok-soft: #d5eadf;
   --pending: #9c5f07;
@@ -36,7 +49,7 @@
     --muted: #95a2ae;
     --accent: #e3e8ec;
     --accent-fg: #141c24;
-    --focus: #7aa7f5;
+    --focus: #54e6d4;
     --ok: #5bc893;
     --ok-soft: #17352a;
     --pending: #e3a84b;
@@ -55,7 +68,7 @@
   --muted: #95a2ae;
   --accent: #e3e8ec;
   --accent-fg: #141c24;
-  --focus: #7aa7f5;
+  --focus: #54e6d4;
   --ok: #5bc893;
   --ok-soft: #17352a;
   --pending: #e3a84b;
@@ -81,9 +94,9 @@
   --color-pending-soft: var(--pending-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --font-sans: "Atkinson Hyperlegible Next Variable", system-ui, "Segoe UI Variable", "Noto Sans", sans-serif;
+  --font-sans: "Firjar Variable", system-ui, "Segoe UI Variable", "Noto Sans", sans-serif;
   --font-mono:
-    "Atkinson Hyperlegible Mono Variable", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+    "Firjar Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
 }
 
 html,

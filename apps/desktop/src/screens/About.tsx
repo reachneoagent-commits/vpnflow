@@ -5,7 +5,7 @@ export function About() {
   const { info, caps } = useStore();
   return (
     <div className="flex max-w-3xl flex-col gap-7">
-      <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">About Aegis VPN</h1>
+      <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">About VPNFlow</h1>
       <Panel>
         <dl>
           <Row label="Version">{info?.version}</Row>
@@ -47,7 +47,7 @@ export function About() {
       <Panel title="Acknowledgments">
         <div className="max-w-[70ch] space-y-2 py-3 text-[13px] leading-relaxed text-muted">
           <p>
-            WireGuard® is a registered trademark of Jason A. Donenfeld. Aegis VPN is not affiliated with or
+            WireGuard® is a registered trademark of Jason A. Donenfeld. VPNFlow is not affiliated with or
             endorsed by the WireGuard project. It uses the WireGuard implementation built into Linux and
             NetworkManager, and on Windows the official WireGuard embeddable tunnel service and WireGuardNT.
           </p>
@@ -56,7 +56,7 @@ export function About() {
             notify-rust, ipnet and x25519-dalek. The full dependency and license inventory ships with each
             release.
           </p>
-          <p>Aegis VPN has not been independently security-audited.</p>
+          <p>VPNFlow has not been independently security-audited.</p>
         </div>
       </Panel>
       {caps && caps.notes.length > 0 && (

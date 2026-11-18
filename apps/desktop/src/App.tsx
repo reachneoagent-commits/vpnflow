@@ -67,7 +67,7 @@ function Shell() {
           <div className="flex items-center gap-3 px-5 pt-6 pb-7 max-[720px]:justify-center max-[720px]:px-0">
             <Shield confirmed={tone === "ok"} />
             <div className="min-w-0 max-[720px]:hidden">
-              <p className="text-[19px] leading-none font-bold tracking-[-0.02em]">Aegis</p>
+              <p className="text-[19px] leading-none font-bold tracking-[-0.02em]">VPNFlow</p>
               <p className="mt-0.5 text-[11px] tracking-[0.04em] text-muted uppercase">VPN</p>
             </div>
           </div>

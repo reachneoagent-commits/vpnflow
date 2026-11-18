@@ -104,7 +104,7 @@ export function Locations() {
         <div>
           <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.015em]">VPN Locations</h1>
           <p className="mt-1.5 max-w-[54ch] text-muted">
-            Pick a server you configure. Aegis connects with the WireGuard profile you imported or created.
+            Pick a server you configure. VPNFlow connects with the WireGuard profile you imported or created.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
