@@ -33,6 +33,9 @@ notify-rust = { version = "4.19", default-features = false, features = ["z-with-
 [target.'cfg(target_os = "linux")'.dependencies]
 aegis-linux.workspace = true
 
+[target.'cfg(target_os = "macos")'.dependencies]
+aegis-macos.workspace = true
+
 [target.'cfg(windows)'.dependencies]
 aegis-windows.workspace = true
 

@@ -1,0 +1,18 @@
+[package]
+name = "aegis-macos"
+description = "macOS backend for VPNFlow: client for the root launchd daemon, plus the pf kill-switch ruleset"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+rust-version.workspace = true
+publish = false
+
+[dependencies]
+aegis-core.workspace = true
+aegis-config.workspace = true
+# Wire protocol shared with the Windows service (extract to its own crate later).
+aegis-windows.workspace = true
+tokio = { workspace = true, features = ["io-util", "net", "rt", "macros", "sync", "time"] }
+
+[lints]
+workspace = true

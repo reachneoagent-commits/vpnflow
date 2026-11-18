@@ -14,6 +14,8 @@ pub enum AnyBackend {
     Mock(Box<MockBackend>),
     #[cfg(target_os = "linux")]
     Nm(aegis_linux::NmBackend),
+    #[cfg(target_os = "macos")]
+    Mac(aegis_macos::ServiceBackend),
     #[cfg(windows)]
     Win(aegis_windows::ServiceBackend),
     Unavailable(String),
@@ -31,6 +33,13 @@ pub async fn select() -> AnyBackend {
             Err(e) => AnyBackend::Unavailable(e.to_string()),
         }
     }
+    #[cfg(target_os = "macos")]
+    {
+        match aegis_macos::ServiceBackend::connect().await {
+            Ok(b) => AnyBackend::Mac(b),
+            Err(e) => AnyBackend::Unavailable(e.to_string()),
+        }
+    }
     #[cfg(windows)]
     {
         match aegis_windows::ServiceBackend::connect().await {
@@ -38,7 +47,7 @@ pub async fn select() -> AnyBackend {
             Err(e) => AnyBackend::Unavailable(e.to_string()),
         }
     }
-    #[cfg(not(any(target_os = "linux", windows)))]
+    #[cfg(not(any(target_os = "linux", target_os = "macos", windows)))]
     {
         AnyBackend::Unavailable("this operating system is not supported".into())
     }
@@ -54,6 +63,8 @@ macro_rules! delegate {
             AnyBackend::Mock($b) => $call,
             #[cfg(target_os = "linux")]
             AnyBackend::Nm($b) => $call,
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac($b) => $call,
             #[cfg(windows)]
             AnyBackend::Win($b) => $call,
             AnyBackend::Unavailable(r) => Err(unavailable(r)),
@@ -111,6 +122,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.protection(profile, settings),
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.protection(profile, settings),
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.protection(profile, settings),
             #[cfg(windows)]
             AnyBackend::Win(b) => b.protection(profile, settings),
             AnyBackend::Unavailable(_) => Protection::off(),
@@ -126,6 +139,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.check_reachability(profile, status).await,
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.check_reachability(profile, status).await,
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.check_reachability(profile, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.check_reachability(profile, status).await,
             AnyBackend::Unavailable(_) => aegis_core::Feature::Off,
@@ -142,6 +157,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.verify_protection(profile, settings, status).await,
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.verify_protection(profile, settings, status).await,
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.verify_protection(profile, settings, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.verify_protection(profile, settings, status).await,
             AnyBackend::Unavailable(_) => Protection::off(),
@@ -153,6 +170,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.system_events(),
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.system_events(),
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.system_events(),
             #[cfg(windows)]
             AnyBackend::Win(b) => b.system_events(),
             AnyBackend::Unavailable(_) => None,
@@ -181,6 +200,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.kill_switch_active().await,
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.kill_switch_active().await,
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.kill_switch_active().await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.kill_switch_active().await,
             AnyBackend::Unavailable(_) => Ok(false),
@@ -192,6 +213,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mock(b) => b.check_public_ip(profile, status).await,
             #[cfg(target_os = "linux")]
             AnyBackend::Nm(b) => b.check_public_ip(profile, status).await,
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.check_public_ip(profile, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.check_public_ip(profile, status).await,
             AnyBackend::Unavailable(_) => Feature::Off,

@@ -4,6 +4,7 @@ members = [
     "crates/aegis-config",
     "crates/aegis-core",
     "crates/aegis-linux",
+    "crates/aegis-macos",
     "crates/aegis-windows",
     "services/linux-helper",
     "services/windows-service",
@@ -21,6 +22,7 @@ rust-version = "1.88"
 aegis-config = { path = "crates/aegis-config" }
 aegis-core = { path = "crates/aegis-core" }
 aegis-linux = { path = "crates/aegis-linux" }
+aegis-macos = { path = "crates/aegis-macos" }
 aegis-windows = { path = "crates/aegis-windows" }
 
 base64 = "0.23"
