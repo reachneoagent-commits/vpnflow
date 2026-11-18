@@ -337,3 +337,46 @@ pub async fn export_diagnostics(app: AppHandle, st: State<'_, AppState>) -> R<bo
     aegis_core::store::write_private_atomic(&path, text.as_bytes())?;
     Ok(true)
 }
+
+/// Runs only when the user presses "Test speed". Contacts Cloudflare's public
+/// speed endpoint; nothing is sent automatically.
+#[tauri::command]
+pub async fn speed_test() -> R<crate::speed::SpeedResult> {
+    tokio::task::spawn_blocking(crate::speed::run)
+        .await
+        .map_err(|e| UiError {
+            kind: "backend",
+            message: format!("the speed test stopped unexpectedly: {e}"),
+            issues: vec![],
+        })
+}
+
+/// Opens one of the fixed onboarding links in the user's browser.
+#[tauri::command]
+pub fn open_link(which: String) -> R<()> {
+    let url = crate::onboarding::link(&which)
+        .ok_or_else(|| UiError::msg("unknown link"))?;
+    crate::onboarding::open_in_browser(url).map_err(|_| UiError::msg("could not open your browser"))
+}
+
+#[derive(Serialize)]
+pub struct ScanResult {
+    pub imported: Vec<String>,
+    pub failed: u32,
+}
+
+/// Imports new WireGuard `.conf` files from the Downloads folder.
+#[tauri::command]
+pub async fn scan_downloads(st: State<'_, AppState>, since_ms: u64) -> R<ScanResult> {
+    let mut res = ScanResult { imported: vec![], failed: 0 };
+    let Some(dir) = crate::onboarding::downloads_dir() else {
+        return Ok(res);
+    };
+    for p in crate::onboarding::new_conf_files(&dir, since_ms) {
+        match st.engine.import_file(&p).await {
+            Ok(v) => res.imported.push(v.meta.name.clone()),
+            Err(_) => res.failed += 1,
+        }
+    }
+    Ok(res)
+}

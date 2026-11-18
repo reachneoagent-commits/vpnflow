@@ -32,6 +32,9 @@
     "allow-delete-profile",
     "allow-export-profile",
     "allow-diagnostics",
-    "allow-export-diagnostics"
+    "allow-export-diagnostics",
+    "allow-speed-test",
+    "allow-open-link",
+    "allow-scan-downloads"
   ]
 }

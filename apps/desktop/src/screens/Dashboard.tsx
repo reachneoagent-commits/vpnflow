@@ -1,12 +1,12 @@
 import { type ReactNode, useEffect, useId, useState } from "react";
 import type { ScreenId } from "../App";
 import { Button, Dot, Panel, Row, type Tone } from "../components/ui";
-import { api } from "../lib/api";
+import { api, asUiError } from "../lib/api";
 import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago, bytes, clock, duration, rate, routeLabel } from "../lib/format";
 import { locationLabel } from "../lib/locations";
 import { useStore } from "../lib/store";
-import type { Feature, ProfileView } from "../lib/types";
+import type { Feature, ProfileView, SpeedResult } from "../lib/types";
 import { CountryFlag } from "./Locations";
 
 function useNow(active: boolean) {
@@ -249,6 +249,8 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
         )}
       </Panel>
 
+      <SpeedPanel connected={connected} />
+
       <Panel
         title="Recent events"
         actions={
@@ -420,5 +422,80 @@ function PublicIpRow({ connected, f }: { connected: boolean; f?: Feature }) {
     <Row label="DNS resolver egress IPv4" state={state}>
       {body}
     </Row>
+  );
+}
+
+const mbps = (n: number | null) => (n === null ? "Not measured" : `${n.toFixed(1)} Mbps`);
+const ms = (n: number | null) => (n === null ? "Not measured" : `${Math.round(n)} ms`);
+
+/** Runs only when pressed: it downloads and uploads test data and contacts Cloudflare. */
+function SpeedPanel({ connected }: { connected: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<(SpeedResult & { at: number }) | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // A result belongs to the connection it was measured on.
+  useEffect(() => {
+    if (!connected) {
+      setResult(null);
+      setError(null);
+    }
+  }, [connected]);
+
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setResult({ ...(await api.speedTest()), at: Date.now() });
+    } catch (e) {
+      setError(asUiError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Panel
+      title="Connection speed"
+      actions={
+        <Button onClick={start} disabled={!connected || busy}>
+          {busy ? "Testing…" : result ? "Test again" : "Test speed"}
+        </Button>
+      }
+    >
+      {!connected ? (
+        <p className="py-2 text-[13px] text-muted">Connect to a server to test its speed.</p>
+      ) : (
+        <dl>
+          <Row label="Download" state={result ? "confirmed" : "unavailable"}>
+            {result ? mbps(result.download_mbps) : undefined}
+          </Row>
+          <Row label="Upload" state={result ? "confirmed" : "unavailable"}>
+            {result ? mbps(result.upload_mbps) : undefined}
+          </Row>
+          <Row label="Latency" state={result ? "confirmed" : "unavailable"}>
+            {result ? ms(result.latency_ms) : undefined}
+          </Row>
+          <Row label="Jitter" state={result ? "confirmed" : "unavailable"}>
+            {result ? ms(result.jitter_ms) : undefined}
+          </Row>
+        </dl>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-[13px] text-danger">
+          {error}
+        </p>
+      )}
+      {result?.notes.map((n) => (
+        <p key={n} className="mt-2 text-[13px] text-pending">
+          {n}
+        </p>
+      ))}
+      <p className="mt-2 text-[12px] text-muted">
+        {result
+          ? `Measured through your VPN with ${result.provider} at ${clock(result.at)}. Results vary by server and time of day.`
+          : "Uses about 30 MB of data and contacts Cloudflare's speed server only when you press the button."}
+      </p>
+    </Panel>
   );
 }

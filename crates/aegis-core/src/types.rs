@@ -340,6 +340,8 @@ pub struct Settings {
     /// User-controllable DNS checks through the configured tunnel resolver.
     pub connectivity_check: bool,
     pub check_updates: bool,
+    /// First-run setup finished or skipped.
+    pub onboarded: bool,
 }
 
 impl Default for Settings {
@@ -359,6 +361,7 @@ impl Default for Settings {
             notifications: true,
             connectivity_check: true,
             check_updates: false,
+            onboarded: false,
         }
     }
 }

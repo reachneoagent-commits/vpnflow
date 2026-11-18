@@ -8,6 +8,7 @@ import { About } from "./screens/About";
 import { ActivityScreen } from "./screens/Activity";
 import { Dashboard } from "./screens/Dashboard";
 import { Locations } from "./screens/Locations";
+import { Onboarding } from "./screens/Onboarding";
 import { Profiles } from "./screens/Profiles";
 import { SettingsScreen } from "./screens/Settings";
 
@@ -33,6 +34,13 @@ export function App() {
 function Shell() {
   const store = useStore();
   const [screen, setScreen] = useState<ScreenId>("dashboard");
+  const [onboardingDone, setOnboardingDone] = useState(false);
+  const [setupOpen, setSetupOpen] = useState(false);
+  useEffect(() => {
+    const open = () => setSetupOpen(true);
+    window.addEventListener("vpnflow:setup", open);
+    return () => window.removeEventListener("vpnflow:setup", open);
+  }, []);
   useEffect(() => {
     const p = listen<ScreenId>("navigate", (e) => setScreen(e.payload));
     return () => void p.then((u) => u());
@@ -42,6 +50,20 @@ function Shell() {
     return (
       <div className="grid h-full place-items-center text-muted" role="status">
         Starting…
+        <Notices />
+      </div>
+    );
+  }
+  // First run only: nothing set up yet and setup not finished or skipped.
+  if (setupOpen || (!store.settings?.onboarded && !onboardingDone && store.profiles.length === 0)) {
+    return (
+      <div className="h-full overflow-y-auto">
+        <Onboarding
+          onDone={() => {
+            setOnboardingDone(true);
+            setSetupOpen(false);
+          }}
+        />
         <Notices />
       </div>
     );
@@ -62,13 +84,13 @@ function Shell() {
       <div className="flex min-h-0 flex-1">
         <nav
           aria-label="Main"
-          className="flex w-[13.5rem] shrink-0 flex-col border-r border-line/70 max-[720px]:w-16"
+          className="flex w-[13.5rem] shrink-0 flex-col border-r border-white/5 bg-ink text-mist max-[720px]:w-16"
         >
           <div className="flex items-center gap-3 px-5 pt-6 pb-7 max-[720px]:justify-center max-[720px]:px-0">
             <Shield confirmed={tone === "ok"} />
             <div className="min-w-0 max-[720px]:hidden">
               <p className="text-[19px] leading-none font-bold tracking-[-0.02em]">VPNFlow</p>
-              <p className="mt-0.5 text-[11px] tracking-[0.04em] text-muted uppercase">VPN</p>
+              <p className="mt-0.5 text-[11px] tracking-[0.04em] text-mist/60 uppercase">VPN</p>
             </div>
           </div>
           <ul className="flex flex-col gap-0.5 px-3">
@@ -85,10 +107,10 @@ function Shell() {
                       subordinate ? "text-[12.5px]" : "text-[14px]"
                     } ${
                       screen === s.id
-                        ? "bg-surface font-semibold text-fg ring-1 ring-line"
+                        ? "bg-brand/15 font-semibold text-brand"
                         : subordinate
-                          ? "text-muted/90 hover:bg-surface/50 hover:text-fg"
-                          : "text-muted hover:bg-surface/60 hover:text-fg"
+                          ? "text-mist/60 hover:bg-white/5 hover:text-mist"
+                          : "text-mist/70 hover:bg-white/5 hover:text-mist"
                     }`}
                   >
                     <s.icon
@@ -167,32 +189,21 @@ function Notices() {
   );
 }
 
-/** Brand mark doubles as status: the check appears only once the server has answered. */
+/** Brand mark doubles as status: it turns green only once the server has answered. */
 function Shield({ confirmed }: { confirmed: boolean }) {
   return (
     <svg
-      width="28"
+      width="34"
       height="28"
-      viewBox="0 0 24 24"
+      viewBox="0 0 44.89 37.23"
       aria-hidden
-      className={`shrink-0 transition-colors duration-[420ms] ${confirmed ? "text-ok" : "text-fg"}`}
+      className={`shrink-0 transition-colors duration-[420ms] ${confirmed ? "text-ok" : "text-brand"}`}
     >
+      <polygon fill="currentColor" points="0 17.22 8.65 18.04 8.65 16.39 0 17.22" />
       <path
-        d="M12 2.5 4 5.5v6.2c0 4.9 3.4 8.6 8 9.8 4.6-1.2 8-4.9 8-9.8V5.5l-8-3Z"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
+        fill="currentColor"
+        d="M44.89,18.08l-7.21-.69h0c.53-4.21.71-8.21.76-9.56.01-.28-.18-.54-.45-.61C30.13,4.99,22.29,0,22.29,0l.02.11s0,0,0,0l-.02,2.45c-2.06,1.7-4.9,3-7.39,3.87-1.25.44-2.55.83-3.84,1.18l-1.94.51c-.27.07-.47.33-.47.62v7.65s1.1-.1,1.1-.1c6.31-.6,11.86-5.6,12.46-11.9l.08-.85-.19,30.72-.45-4.2c-.6-6.31-5.6-11.3-11.9-11.9l-1.09-.1v.69c0,5.16,2.57,9.96,6.86,12.82,0,0,6.19,4.08,6.57,4.41.02.01-.03,1.26-.03,1.26.17-.05,9.91-4.57,12.76-8.96,1.29-1.99,2.13-5.72,2.68-9.48,0,0,0,0,0,0l7.39-.71ZM36.03,9.72c-.12,2.27-.33,4.9-.66,7.44,0,0,0,0,0,0h-.02s-.21-.02-.21-.02c-6.31-.6-11.3-5.6-11.9-11.9l-.16-1.69v-.04c2.48,1.47,7.06,3.87,12.52,5.59.27.08.44.33.43.61ZM32.85,27.19c-1.6,2.45-7.72,5.82-9.92,6.97l.31-3.24c.61-6.29,5.57-11.28,11.86-11.9,0,0,.02,0,.02,0h0c-.53,3.52-1.28,6.66-2.27,8.18Z"
       />
-      {confirmed && (
-        <path
-          d="M8.5 12.2 11 14.6l4.6-5"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.8"
-          strokeLinecap="round"
-        />
-      )}
     </svg>
   );
 }

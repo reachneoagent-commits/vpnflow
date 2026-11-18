@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { Panel, Switch } from "../components/ui";
+import { Button, Panel, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
@@ -131,6 +131,15 @@ export function SettingsScreen() {
               ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. VPNFlow re-checks this every few seconds; the dashboard shows the result."
               : (supportNote(caps?.dns_protection, "DNS protection") ?? "")}
           </p>
+        </div>
+      </Panel>
+
+      <Panel title="Setup">
+        <div className="flex items-center justify-between gap-4 py-3">
+          <p className="text-[13px] text-muted">
+            Walk through account, server files and country choices again. Your current servers stay.
+          </p>
+          <Button onClick={() => window.dispatchEvent(new Event("vpnflow:setup"))}>Run setup again</Button>
         </div>
       </Panel>
 

@@ -146,6 +146,7 @@ export interface Settings {
   notifications: boolean;
   connectivity_check: boolean;
   check_updates: boolean;
+  onboarded: boolean;
 }
 
 export type KeyAction = "keep" | "generate" | "remove";
@@ -203,3 +204,12 @@ export type EngineEvent =
   | { type: "log"; data: LogEntry }
   | { type: "profiles_changed" }
   | { type: "settings_changed"; data: Settings };
+
+export interface SpeedResult {
+  latency_ms: number | null;
+  jitter_ms: number | null;
+  download_mbps: number | null;
+  upload_mbps: number | null;
+  provider: string;
+  notes: string[];
+}

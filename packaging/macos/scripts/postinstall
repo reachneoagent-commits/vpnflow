@@ -1,0 +1,20 @@
+#!/bin/bash
+# Runs as root after the VPNFlow .pkg payload is laid down.
+set -eu
+
+LIBEXEC=/usr/local/libexec/vpnflow
+PLIST=/Library/LaunchDaemons/com.vpnflow.daemon.plist
+LABEL=com.vpnflow.daemon
+
+# The daemon refuses a wireguard-go that is not root-owned; enforce it here
+# whatever the installer's payload ownership ended up as.
+chown -R root:wheel "$LIBEXEC"
+chmod 0755 "$LIBEXEC" "$LIBEXEC/vpnflow-daemon" "$LIBEXEC/wireguard-go"
+chown root:wheel "$PLIST"
+chmod 0644 "$PLIST"
+install -d -o root -g wheel -m 0700 /var/db/vpnflow
+
+# Upgrade-safe: replace a running copy.
+launchctl bootout "system/$LABEL" 2>/dev/null || true
+launchctl bootstrap system "$PLIST"
+exit 0

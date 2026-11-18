@@ -17,6 +17,7 @@ import type {
   ServerUpdate,
   Settings,
   Snapshot,
+  SpeedResult,
   UiError,
 } from "./types";
 
@@ -46,6 +47,10 @@ export const api = {
   exportProfile: (id: ProfileId) => invoke<boolean>("export_profile", { id }),
   diagnostics: () => invoke<Check[]>("diagnostics"),
   exportDiagnostics: () => invoke<boolean>("export_diagnostics"),
+  openLink: (which: string) => invoke<void>("open_link", { which }),
+  scanDownloads: (sinceMs: number) =>
+    invoke<{ imported: string[]; failed: number }>("scan_downloads", { sinceMs }),
+  speedTest: () => invoke<SpeedResult>("speed_test"),
 };
 
 export function onEngineEvent(cb: (e: EngineEvent) => void): Promise<UnlistenFn> {

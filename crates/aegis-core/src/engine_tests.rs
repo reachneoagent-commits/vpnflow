@@ -1385,3 +1385,15 @@ async fn profile_edit_restores_backend_if_metadata_write_fails() {
     assert_eq!(e.backend().load(id).await.unwrap(), original);
     assert_eq!(e.profiles()[0].meta.name, "Original");
 }
+
+#[tokio::test(start_paused = true)]
+async fn import_reads_provider_label_into_location() {
+    let (e, _d) = engine().await;
+    let conf = CONF.replacen("[Peer]", "[Peer]\n# NL-FREE#1", 1);
+    let p = e.import_text("file-name", &conf).await.unwrap();
+    assert_eq!(p.meta.name, "NL-FREE#1");
+    assert_eq!(p.meta.server.location.unwrap().country_code, "NL");
+    let plain = e.import_text("Plain", CONF).await.unwrap();
+    assert_eq!(plain.meta.name, "Plain");
+    assert!(plain.meta.server.location.is_none());
+}

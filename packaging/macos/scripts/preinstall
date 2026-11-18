@@ -1,0 +1,4 @@
+#!/bin/bash
+# Stop a running daemon so its files can be replaced during an upgrade.
+launchctl bootout system/com.vpnflow.daemon 2>/dev/null || true
+exit 0

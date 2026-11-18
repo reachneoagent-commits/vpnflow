@@ -52,6 +52,7 @@ const settings: Settings = {
   notifications: false,
   connectivity_check: true,
   check_updates: false,
+  onboarded: true,
 };
 const health = (id: string, observed_ms: number): ServerHealth => ({
   id,

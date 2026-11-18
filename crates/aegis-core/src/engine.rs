@@ -34,7 +34,7 @@ const SETTLE_AFTER_EVENT: Duration = Duration::from_secs(3);
 /// Network events this soon after our own activation are the tunnel's own noise.
 const OWN_ACTIVATION_NOISE: Duration = Duration::from_secs(15);
 /// One small DNS lookup through the tunnel per minute while connected.
-const REACHABILITY_EVERY: Duration = Duration::from_secs(60);
+const REACHABILITY_EVERY: Duration = Duration::from_secs(10);
 
 struct Live {
     state: ConnectionState,
@@ -329,7 +329,17 @@ impl<B: VpnBackend> Engine<B> {
     pub async fn import_text(&self, name: &str, text: &str) -> Result<ProfileView> {
         let _g = self.op_lock.lock().await;
         let cfg = aegis_config::parse(text)?;
-        self.add(name, &cfg, ServerMetadata::default()).await
+        let (name, server) = match registry::provider_label(text) {
+            Some((label, location)) => (
+                label,
+                ServerMetadata {
+                    location: Some(location),
+                    ..Default::default()
+                },
+            ),
+            None => (name.to_owned(), ServerMetadata::default()),
+        };
+        self.add(&name, &cfg, server).await
     }
 
     /// Import a user-selected file. The path must come from a native file
@@ -1261,7 +1271,8 @@ impl<B: VpnBackend> Engine<B> {
                 ..
             }
         );
-        if settings.connectivity_check && confirmed {
+        let rechecking = self.live().reachability.is_some();
+        if settings.connectivity_check && (confirmed || rechecking) {
             self.check_reachability(&summary, status).await;
             self.check_public_ip(&summary, status).await;
         }

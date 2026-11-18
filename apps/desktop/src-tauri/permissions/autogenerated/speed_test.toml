@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-speed-test"
+description = "Enables the speed_test command without any pre-configured scope."
+commands.allow = ["speed_test"]
+
+[[permission]]
+identifier = "deny-speed-test"
+description = "Denies the speed_test command without any pre-configured scope."
+commands.deny = ["speed_test"]

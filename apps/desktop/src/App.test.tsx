@@ -65,6 +65,7 @@ const settings: Settings = {
   notifications: true,
   connectivity_check: true,
   check_updates: false,
+  onboarded: true,
 };
 
 const off = { status: "off" } as const;

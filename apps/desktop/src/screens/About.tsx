@@ -20,8 +20,8 @@ export function About() {
                 : caps?.backend === "macos_daemon"
                   ? "VPNFlow macOS daemon"
                   : caps?.backend === "mock"
-                  ? "Simulated (no real tunnels)"
-                  : "None available"}
+                    ? "Simulated (no real tunnels)"
+                    : "None available"}
           </Row>
           <Row label="License">MIT or Apache-2.0</Row>
           <Row label="Source">

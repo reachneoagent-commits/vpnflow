@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.vpnflow.daemon</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/libexec/vpnflow/vpnflow-daemon</string>
+		<string>run</string>
+	</array>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
+	<key>ProcessType</key>
+	<string>Interactive</string>
+	<!-- The daemon never logs requests (they can hold configs); this only
+	     captures startup errors and panics. -->
+	<key>StandardErrorPath</key>
+	<string>/var/log/vpnflow-daemon.log</string>
+	<key>StandardOutPath</key>
+	<string>/dev/null</string>
+</dict>
+</plist>

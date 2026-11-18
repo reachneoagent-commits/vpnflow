@@ -56,6 +56,43 @@ impl Location {
     }
 }
 
+/// Proton VPN writes the server label (`# NL-FREE#1`, `# US#42`) as a comment
+/// above the peer. Read it so an imported config lands under its country's
+/// full name. The label is a hint from the file, not verified geography.
+pub fn provider_label(text: &str) -> Option<(String, Location)> {
+    let mut in_peer = false;
+    for line in text.lines().map(str::trim) {
+        if line.eq_ignore_ascii_case("[peer]") {
+            in_peer = true;
+            continue;
+        }
+        if !in_peer {
+            continue;
+        }
+        let Some(label) = line.strip_prefix('#').map(str::trim) else {
+            continue;
+        };
+        let (cc, rest) = label.split_once(['-', '#'])?;
+        let valid_rest = rest
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '#' | '-'))
+            && rest.chars().any(|c| c.is_ascii_digit())
+            && label.len() <= 24;
+        if cc.len() == 2 && cc.chars().all(|c| c.is_ascii_uppercase()) && valid_rest {
+            country(cc)?;
+            let location = Location {
+                country_code: cc.to_owned(),
+                city: None,
+                region: None,
+                time_zone: None,
+            };
+            return Some((label.to_owned(), location));
+        }
+        return None;
+    }
+    None
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct ServerMetadata {
@@ -188,6 +225,18 @@ pub fn quick_connect(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn reads_provider_label() {
+        let conf =
+            "[Interface]\n# Key for x\nPrivateKey = a\n\n[Peer]\n# NL-FREE#1\nPublicKey = b\n";
+        let (label, loc) = provider_label(conf).unwrap();
+        assert_eq!(label, "NL-FREE#1");
+        assert_eq!(loc.country_code, "NL");
+        assert!(provider_label("[Interface]\n# US-FREE#155\n[Peer]\nPublicKey = b\n").is_none());
+        assert!(provider_label("[Peer]\n# ZZ-FREE#1\n").is_none());
+        assert!(provider_label("[Peer]\n# hello world\n").is_none());
+    }
 
     #[test]
     fn iso_dataset_and_validation() {

@@ -26,6 +26,9 @@ const COMMANDS: &[&str] = &[
     "export_profile",
     "diagnostics",
     "export_diagnostics",
+    "speed_test",
+    "open_link",
+    "scan_downloads",
 ];
 
 fn main() {

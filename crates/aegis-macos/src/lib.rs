@@ -1,14 +1,15 @@
 //! macOS backend. Like Windows, the app never touches the network stack: it
-//! talks to a root launchd daemon (`services/macos-daemon`, not written yet)
+//! talks to a root launchd daemon (`services/macos-daemon`)
 //! over a Unix socket using the same framed-JSON protocol as the Windows
 //! service. The daemon will run `wireguard-go` on a `utun`, set routes and DNS,
 //! and own the `pf` kill switch (`pf` module). See DECISIONS D17.
 //!
-//! Status: the client and the pf ruleset exist and are unit-tested; the daemon
-//! does not, so `connect()` reports the backend unsupported until the daemon
-//! is installed. Nothing here has run against a real tunnel.
+//! Status: client, daemon and pf kill switch run against a real tunnel (see
+//! docs/testing/TEST_RESULTS.md). `verify` checks DNS and IPv6 live.
 
+pub mod events;
 pub mod pf;
+pub mod verify;
 
 /// Socket the daemon listens on. `/var/run` is root-owned, so only root can
 /// have created it; the client still checks ownership before connecting.
@@ -22,7 +23,7 @@ mod imp {
 
     use aegis_config::WgConfig;
     use aegis_core::{
-        Capabilities, CoreError, ProfileId, ProfileSummary, Protection, Result, Settings,
+        Capabilities, CoreError, Feature, ProfileId, ProfileSummary, Protection, Result, Settings,
         TunnelStatus, VpnBackend,
     };
     use aegis_windows::proto::{self, Request, Response, SecretText};
@@ -34,8 +35,50 @@ mod imp {
 
     pub struct ServiceBackend(());
 
-    /// The socket must be a socket, owned by root and not writable by others,
-    /// otherwise a local user could impersonate the daemon and read configs.
+    fn run(cmd: &str, args: &[&str]) -> String {
+        std::process::Command::new(cmd)
+            .args(args)
+            .output()
+            .map(|o| String::from_utf8_lossy(&o.stdout).into_owned())
+            .unwrap_or_default()
+    }
+
+    fn probe(iface: &str, route: aegis_config::RouteKind) -> Protection {
+        use crate::verify::*;
+        let servers: Vec<_> = parse_resolvers(&run("/usr/sbin/scutil", &["--dns"]))
+            .into_iter()
+            .map(|ip| {
+                let i = route_interface(&run("/sbin/route", &["-n", "get", &ip.to_string()]));
+                (ip, i)
+            })
+            .collect();
+        let v6 = route_interface(&run(
+            "/sbin/route",
+            &["-n", "get", "-inet6", "2606:4700:4700::1111"],
+        ));
+        let native = has_native_ipv6(&run("/sbin/ifconfig", &[]));
+        // No DNS server at all means the network is down: say so instead of
+        // reporting a route that carries nothing.
+        let ipv6 = if servers.is_empty()
+            && matches!(
+                route,
+                aegis_config::RouteKind::Full | aegis_config::RouteKind::FullIpv4Only
+            ) {
+            Feature::Configured(NO_NETWORK.into())
+        } else {
+            judge_ipv6(route, v6.as_deref(), native, iface)
+        };
+        Protection {
+            kill_switch: Feature::Off,
+            dns: judge_dns(&servers, iface),
+            ipv6,
+        }
+    }
+
+    /// The socket must be a socket owned by root, otherwise a local user could
+    /// impersonate the daemon and read configs. Its mode is 0666 by design (the
+    /// daemon authorizes by peer uid), and only root can create or replace
+    /// entries in `/var/run`, so the mode is not checked here.
     fn verify_socket(path: &str) -> Result<()> {
         let md = std::fs::symlink_metadata(path).map_err(|_| {
             CoreError::unsupported(
@@ -43,7 +86,7 @@ mod imp {
                  installer (it needs administrator approval once)",
             )
         })?;
-        if !md.file_type().is_socket() || md.uid() != 0 || md.mode() & 0o002 != 0 {
+        if !md.file_type().is_socket() || md.uid() != 0 {
             return Err(CoreError::unsupported(
                 "the VPNFlow service socket has unsafe ownership or permissions; reinstall VPNFlow",
             ));
@@ -132,9 +175,64 @@ mod imp {
                 _ => Err(CoreError::backend(UNEXPECTED)),
             }
         }
-        /// Nothing is reported as protected until the daemon verifies it.
+        /// Nothing is reported as protected until it has been checked.
         fn protection(&self, _: &ProfileSummary, _: &Settings) -> Protection {
             Protection::off()
+        }
+        /// Live checks of the running tunnel: where the system's DNS servers
+        /// and the IPv6 internet route right now. The kill switch field is
+        /// replaced by the engine from the real firewall state.
+        async fn verify_protection(
+            &self,
+            profile: &ProfileSummary,
+            _: &Settings,
+            status: &TunnelStatus,
+        ) -> Protection {
+            let Some(iface) = status.interface.clone() else {
+                return Protection::off();
+            };
+            let route = profile.route_kind;
+            tokio::task::spawn_blocking(move || probe(&iface, route))
+                .await
+                .unwrap_or_else(|_| Protection::off())
+        }
+        /// A DNS lookup sent to the profile's tunnel DNS server. Run every few
+        /// seconds, so a dropped connection shows up as Failed quickly.
+        async fn check_reachability(
+            &self,
+            profile: &ProfileSummary,
+            status: &TunnelStatus,
+        ) -> Feature {
+            let Some(iface) = status.interface.clone() else {
+                return Feature::Off;
+            };
+            let Some(server) = profile
+                .dns
+                .iter()
+                .find_map(|d| d.parse::<std::net::IpAddr>().ok())
+            else {
+                return Feature::Unsupported(
+                    "the profile has no DNS server inside the tunnel".into(),
+                );
+            };
+            tokio::task::spawn_blocking(move || {
+                let via = crate::verify::route_interface(&run(
+                    "/sbin/route",
+                    &["-n", "get", &server.to_string()],
+                ));
+                if via.as_deref() != Some(iface.as_str()) {
+                    return Feature::Failed(format!(
+                        "the tunnel's DNS server is reached via {}, not the tunnel",
+                        via.as_deref().unwrap_or("no route")
+                    ));
+                }
+                crate::verify::judge_reachability(crate::verify::lookup(server))
+            })
+            .await
+            .unwrap_or(Feature::Off)
+        }
+        fn system_events(&self) -> Option<tokio::sync::mpsc::Receiver<aegis_core::SystemEvent>> {
+            Some(crate::events::spawn())
         }
         async fn apply_kill_switch(
             &self,

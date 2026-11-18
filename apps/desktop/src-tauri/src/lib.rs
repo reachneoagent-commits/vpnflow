@@ -1,5 +1,7 @@
 mod backend;
 mod commands;
+mod onboarding;
+mod speed;
 mod tray;
 
 use std::sync::Arc;
@@ -120,6 +122,9 @@ pub fn run() {
             commands::export_profile,
             commands::diagnostics,
             commands::export_diagnostics,
+            commands::speed_test,
+            commands::open_link,
+            commands::scan_downloads,
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

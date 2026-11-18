@@ -16,19 +16,19 @@
 }
 
 /*
- * Colour rule: chrome is ink on mist. Teal (#54e6d4) is VPNFlow brand accent.
+ * Brand palette (brand/band color.png): ink #101516, teal #54e6d4, mist #f2fcfa, #f4f5f7, #dce1e1, white. Chrome is ink on mist. Teal (#54e6d4) is VPNFlow brand accent.
  * Green, amber and red are reserved for connection truth (confirmed / waiting / failed),
- * so an idle window never looks "safe". Interactive accent = ink, focus = teal.
+ * so an idle window never looks "safe". Interactive accent = teal on ink text; sidebar is always ink; dark is the default theme.
  */
 :root {
-  --bg: #e8ecef;
-  --surface: #f6f8f9;
-  --raised: #dde3e8;
-  --line: #c9d1d8;
-  --fg: #15212c;
-  --muted: #55626f;
-  --accent: #15212c;
-  --accent-fg: #f6f8f9;
+  --bg: #f2fcfa;
+  --surface: #ffffff;
+  --raised: #eaeeee;
+  --line: #dce1e1;
+  --fg: #101516;
+  --muted: #4d5a5c;
+  --accent: #54e6d4;
+  --accent-fg: #101516;
   --focus: #54e6d4;
   --ok: #1d7a4c;
   --ok-soft: #d5eadf;
@@ -39,16 +39,16 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
+@media all {
   :root:not([data-theme="light"]) {
-    --bg: #141c24;
-    --surface: #1b252f;
-    --raised: #24303c;
-    --line: #31404d;
-    --fg: #e3e8ec;
-    --muted: #95a2ae;
-    --accent: #e3e8ec;
-    --accent-fg: #141c24;
+    --bg: #101516;
+    --surface: #171d1e;
+    --raised: #1f2728;
+    --line: #2c3638;
+    --fg: #f2fcfa;
+    --muted: #9aa9a9;
+    --accent: #54e6d4;
+    --accent-fg: #101516;
     --focus: #54e6d4;
     --ok: #5bc893;
     --ok-soft: #17352a;
@@ -60,14 +60,14 @@
   }
 }
 :root[data-theme="dark"] {
-  --bg: #141c24;
-  --surface: #1b252f;
-  --raised: #24303c;
-  --line: #31404d;
-  --fg: #e3e8ec;
-  --muted: #95a2ae;
-  --accent: #e3e8ec;
-  --accent-fg: #141c24;
+  --bg: #101516;
+  --surface: #171d1e;
+  --raised: #1f2728;
+  --line: #2c3638;
+  --fg: #f2fcfa;
+  --muted: #9aa9a9;
+  --accent: #54e6d4;
+  --accent-fg: #101516;
   --focus: #54e6d4;
   --ok: #5bc893;
   --ok-soft: #17352a;
@@ -88,6 +88,9 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-focus: var(--focus);
+  --color-brand: #54e6d4;
+  --color-ink: #101516;
+  --color-mist: #f2fcfa;
   --color-ok: var(--ok);
   --color-ok-soft: var(--ok-soft);
   --color-pending: var(--pending);
@@ -95,8 +98,7 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --font-sans: "Firjar Variable", system-ui, "Segoe UI Variable", "Noto Sans", sans-serif;
-  --font-mono:
-    "Firjar Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+  --font-mono: "Firjar Mono", ui-monospace, "Cascadia Mono", "DejaVu Sans Mono", monospace;
 }
 
 html,

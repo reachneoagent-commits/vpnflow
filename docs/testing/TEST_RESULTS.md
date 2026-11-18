@@ -858,3 +858,79 @@ Not run: live tunnel test (still needs root for the netns peer).
 - Tray on GNOME/KDE, notifications, autostart, packaging (deb/rpm/nsis).
 - Any DNS/IPv6 leak, kill-switch, suspend, reboot or network-change test.
 - cargo-deny (not installed locally).
+
+## 2026-11-17 — macOS installer, branding (Apple silicon, macOS 26, no root)
+
+- `scripts/macos/build-pkg.sh` built `dist/VPNFlow-0.1.0.pkg` (arm64, unsigned): payload lists the app,
+  `vpnflow-daemon`, `wireguard-go` (built from source) and the launchd plist.
+- `plutil -lint` passes for the plist; `bash -n` passes for the scripts.
+- `pnpm lint`, `pnpm typecheck`, `pnpm test` (30) pass after the palette/logo change.
+- **Not run:** installing the pkg, starting the daemon, any tunnel, route, DNS or pf behaviour, x86_64/universal build.
+
+## 2026-11-17 (later) — macOS live tunnel on the developer's Mac (Apple silicon, macOS 26)
+
+Installed pkg, root daemon running, Proton free WireGuard configs (US-FREE-155, Tokyo/JP-FREE-2 seen).
+Manual checks:
+- Connected: public IP 37.19.205.196 (AS212238 Datacamp, Tokyo). Disconnected: real ISP IP returned.
+- `scutil --dns` while connected: only 10.2.0.1. `utun8` MTU 1420.
+- Kill switch ON: `pfctl -a com.apple/vpnflow -sr` shows endpoint/DHCP/utun allow rules, then `block drop quick all`.
+  (Kill switch is off by default, so the anchor does not exist until enabled in Settings.)
+- Cloudflare WARP conflicts with VPNFlow (both full-tunnel); WARP must be off.
+
+`scripts/macos/verify-vpn.sh`, report `verify-report-20261117-222333.txt`: 10 passed, 2 failed.
+- PASS: tunnel up, single DNS server, name lookups work, IPv4-only fallback (no IPv6 leak seen),
+  kill-switch rules loaded, pf enabled, `pkill wireguard-go`: 2 probes blocked, 0 leaked, app reconnected in 6s.
+- The 2 FAILs were a script bug (it looked for interface `utun`; the real one is `utun8`), not a product failure.
+  Fixed in the script (finds the utun with an IPv4 address); the DNS-route and default-route checks need a re-run.
+- **Not verified:** DNS route / default route checks (pending re-run), ipleak.net DNS result,
+  behaviour on disconnect with kill switch on, server switch while connected, x86_64/universal build, Windows.
+
+`verify-vpn.sh` re-run after the interface fix, report `verify-report-20261117-222445.txt`: **12 passed, 0 failed, 0 warnings.**
+- DNS server 10.2.0.1 and the default route both go via utun8. Tunnel kill: 2 probes blocked, 0 leaked, auto-reconnect in 5s.
+- Still **not verified:** ipleak.net browser DNS result, IPv6 on a network that has native IPv6 (this run fell back to IPv4),
+  disconnect behaviour with kill switch on, server switch while connected, x86_64/universal build, Windows.
+
+## 2026-11-17 (later) — live DNS and IPv6 protection status (macOS)
+
+Added `crates/aegis-macos/src/verify.rs` and `verify_protection` in the macOS backend. On every status poll while connected it reads `scutil --dns`, `route -n get` and `ifconfig` and reports:
+- DNS: Verified only if every non-scoped system DNS server routes through the tunnel interface; Failed (naming the server) otherwise.
+- IPv6: Verified if the IPv6 route goes into the tunnel, there is no IPv6 route, or the network has no global IPv6 address; Failed if IPv6 routes outside the tunnel on a network that has it. Off for split or IPv6-only profiles.
+- Disconnected: the engine already reports Off.
+
+Run: `cargo test -p aegis-macos` 10 passed (5 new parser/judge tests), `cargo clippy -p aegis-macos --all-targets` clean, `cargo test --workspace` all passed.
+Spot check of the inputs on the developer's Mac while connected: DNS 10.2.0.1, IPv6 route via utun8.
+Not yet verified: the badges in the running app (needs a rebuilt and reinstalled app), and a Failed case on a native-IPv6 network.
+
+## 2026-11-17 (later) — live reachability and network-drop statuses (macOS)
+
+Cause of "Internet reachability: Checking" never resolving: the macOS backend did not implement `check_reachability`, so the engine kept the default (Off) while connected.
+
+Changes: macOS now sends one DNS lookup (example.com) to the profile's tunnel DNS server and reports Verified/Failed; the route to that server must go through the tunnel. Engine re-checks every 10 s (was 60 s) and keeps re-checking after the peer stops answering. With no system DNS server (Wi-Fi off) the DNS and IPv6 badges show a neutral "waiting for the network" (Configured) instead of Failed.
+
+Tests: aegis-macos 11 passed, aegis-core 69 passed, clippy clean. 3 aegis-helper (Linux) tests fail on macOS; unrelated, not touched.
+Not yet verified live: Wi-Fi off/on with the new build.
+
+## 2026-11-17 (later) — Wi-Fi drop test and speed panel
+
+User confirmed on the rebuilt macOS app (their report, not a scripted run): all statuses correct when healthy; Wi-Fi off showed the right non-working statuses; Wi-Fi on returned everything to the proper status.
+
+Added a Connection speed panel (Dashboard) and `speed_test` command: TCP connect latency/jitter to 1.1.1.1:443, 25 MB download (10 s cap) and 6 MB upload against speed.cloudflare.com. Runs only on button press.
+Tests: speed math unit test, aegis-desktop 4 passed incl. IPC permissions, vitest 30 passed, tsc clean.
+Not yet verified live: the speed test itself against a real tunnel (numbers, timeouts, error notes).
+
+## 2026-11-17 (later) — speed panel live check (macOS)
+
+Installed build matches the built binary (cmp). User ran Test speed once connected to JP-FREE#2 and sent a screenshot: download 80.4 Mbps, upload 16.1 Mbps, latency 183 ms, jitter 3 ms, no notes. Single run, one server; latency includes the path through the VPN server to Cloudflare, so it is not the Mac-to-server ping. Timeout and failure paths not exercised live.
+
+## 2026-11-17: macOS sleep/wake and network-change events
+
+- Added `crates/aegis-macos/src/events.rs`: polls every 2s; sleep = wall clock jumps ahead of monotonic clock (>=5s); network change = different non-tunnel addresses/default routes. Feeds the engine's existing `Resumed`/`NetworkChanged` reconnect handling (previously macOS emitted none).
+- Ran: `cargo test -p aegis-macos` (13 pass, incl. 2 new), `cargo clippy -p aegis-macos` clean, release app built.
+- NOT yet run live: sleep/wake reconnect, switching Wi-Fi networks while connected.
+
+## 2026-11-17: first-run onboarding (built, not yet run live)
+
+- Added `Onboarding.tsx` (5 steps: Welcome, Proton account, server files, countries, finish), `onboarding.rs` (fixed link allowlist; Downloads `.conf` watcher, each file offered once, only files newer than the step start), commands `open_link` and `scan_downloads`, setting `onboarded`.
+- Shown only when `onboarded` is false and no profiles exist, so existing installs skip it.
+- Ran: aegis-desktop tests (7 pass, 3 new), aegis-core tests (69 pass), clippy clean, tsc clean, vitest 30 pass, release app built.
+- NOT verified: the screens in the running app; Proton link URLs (account.proton.me paths are from memory, check each opens the right page); macOS may ask permission to read Downloads on first scan.

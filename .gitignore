@@ -7,3 +7,7 @@ apps/desktop/src-tauri/gen/schemas/
 # Never commit real WireGuard profiles; fixtures use RFC test vectors / throwaway keys.
 *.conf
 !tests/fixtures/**/*.conf
+
+# WireGuard configs contain private keys
+*.conf
+vpnflow-configs/
