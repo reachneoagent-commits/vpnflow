@@ -1,5 +1,5 @@
 import { type ButtonHTMLAttributes, type ReactNode, useEffect, useId, useRef, useState } from "react";
-import { HELP, type HelpKey } from "../lib/help";
+import { HELP, type HelpKey, type HelpTopic } from "../lib/help";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -26,7 +26,7 @@ export function Button({
 
 /** Small "?" button that opens a card: what it is, why, and an example. */
 export function InfoTip({ topic }: { topic: HelpKey }) {
-  const h = HELP[topic];
+  const h: HelpTopic = HELP[topic];
   const id = useId();
   const btn = useRef<HTMLButtonElement>(null);
   const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
@@ -77,6 +77,23 @@ export function InfoTip({ topic }: { topic: HelpKey }) {
             <b className="font-semibold text-fg">Good to know: </b>
             {h.tradeoff}
           </span>
+          {h.options && (
+            <span className="mt-1.5 block text-muted">
+              <b className="font-semibold text-fg">The choices: </b>
+              {h.options.map((o) => (
+                <span key={o.name} className="mt-0.5 block">
+                  <b className="font-semibold text-fg">{o.name}: </b>
+                  {o.text}
+                </span>
+              ))}
+            </span>
+          )}
+          {h.pick && (
+            <span className="mt-1.5 block text-muted">
+              <b className="font-semibold text-fg">Which to pick: </b>
+              {h.pick}
+            </span>
+          )}
         </span>
       )}
     </span>

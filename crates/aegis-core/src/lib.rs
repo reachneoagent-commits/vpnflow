@@ -7,6 +7,7 @@ pub mod backend;
 pub mod diagnostics;
 pub mod draft;
 pub mod engine;
+pub mod environment;
 pub mod error;
 pub mod mock;
 pub mod registry;

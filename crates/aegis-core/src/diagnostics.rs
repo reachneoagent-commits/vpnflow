@@ -203,6 +203,70 @@ pub(crate) async fn run<B: VpnBackend>(e: &Engine<B>) -> Vec<Check> {
         Feature::Failed(m) => (Fail, m.clone()),
     };
     out.push(check("public_ip", "Public IP", st, d));
+
+    // Things on this computer that can bypass the VPN.
+    let vpns = tokio::task::spawn_blocking(crate::environment::other_vpns_running)
+        .await
+        .ok()
+        .flatten();
+    out.push(match vpns {
+        None => check(
+            "other_vpn",
+            "Other VPN apps",
+            Skipped,
+            "could not read the list of running programs",
+        ),
+        Some(v) if v.is_empty() => check(
+            "other_vpn",
+            "Other VPN apps",
+            Pass,
+            "no other VPN app found running",
+        ),
+        Some(v) => check(
+            "other_vpn",
+            "Other VPN apps",
+            Warn,
+            format!(
+                "{} is running. Two VPNs at once can bypass each other or change your DNS, so some traffic may not go through VPNFlow. Quit it while you use VPNFlow.",
+                v.join(", ")
+            ),
+        ),
+    });
+
+    let browsers = tokio::task::spawn_blocking(crate::environment::browser_dns)
+        .await
+        .unwrap_or_default();
+    use crate::environment::BrowserDns;
+    let own: Vec<&str> = browsers
+        .iter()
+        .filter(|(_, s)| *s == BrowserDns::OwnService)
+        .map(|(n, _)| *n)
+        .collect();
+    out.push(if !own.is_empty() {
+        check(
+            "browser_dns",
+            "Browser DNS",
+            Warn,
+            format!(
+                "{} uses its own secure DNS, so it ignores the DNS service you chose here (and ad blocking). Turn it off: Chrome and Edge, Settings > Privacy and security > Security > Use secure DNS. Firefox, Settings > Privacy & Security > DNS over HTTPS > Off.",
+                own.join(" and ")
+            ),
+        )
+    } else if browsers.is_empty() {
+        check(
+            "browser_dns",
+            "Browser DNS",
+            Skipped,
+            "no Chrome, Edge or Firefox settings found",
+        )
+    } else {
+        check(
+            "browser_dns",
+            "Browser DNS",
+            Pass,
+            "no browser found that forces its own DNS service",
+        )
+    });
     out
 }
 

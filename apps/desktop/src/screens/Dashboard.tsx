@@ -535,7 +535,7 @@ function SpeedPanel({ connected }: { connected: boolean }) {
   );
 }
 
-const LEAK_IDS = ["kill_switch", "dns", "ipv6", "reachability", "public_ip"];
+const LEAK_IDS = ["kill_switch", "dns", "ipv6", "reachability", "public_ip", "other_vpn", "browser_dns"];
 const leakTone: Record<CheckStatus, Tone> = { pass: "ok", warn: "pending", fail: "bad", skipped: "none" };
 const leakText: Record<CheckStatus, string> = {
   pass: "Protected",

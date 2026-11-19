@@ -8,6 +8,8 @@ import { CountryFlag } from "./Locations";
 
 const STEPS = ["Welcome", "Account", "Server files", "Countries", "Finish"] as const;
 const KEY = "vpnflow.onboarding.step";
+// AdGuard DNS: blocks ads and trackers. Same servers as the Settings preset.
+const ADGUARD_DNS = ["94.140.14.14", "94.140.15.15"];
 
 function savedStep(): number {
   try {
@@ -60,9 +62,15 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
   useEffect(() => {
     if (step !== 4 || protectionSeeded.current || !settings || !caps) return;
     protectionSeeded.current = true;
-    if (caps.kill_switch.status !== "supported") return;
-    if (settings.kill_switch && settings.kill_switch_allow_lan) return;
-    void saveSettings({ ...settings, kill_switch: true, kill_switch_allow_lan: true });
+    const next = { ...settings };
+    if (caps.kill_switch.status === "supported") {
+      next.kill_switch = true;
+      next.kill_switch_allow_lan = true;
+    }
+    if (caps.backend === "macos_daemon" && settings.dns_servers.length === 0) {
+      next.dns_servers = ADGUARD_DNS;
+    }
+    if (JSON.stringify(next) !== JSON.stringify(settings)) void saveSettings(next);
   }, [step, settings, caps, saveSettings]);
 
   // Watch Downloads for new server files while that step is showing.
@@ -326,9 +334,18 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
         <section>
           <h1 className="text-[22px] font-bold">Almost done</h1>
           <p className="mt-2 text-[14px] text-muted">
-            Two optional choices. You can change both later in Settings.
+            We switched on the settings we recommend. Turn any of them off here, or change them later in
+            Settings.
           </p>
           <Panel className="mt-4">
+            {caps?.backend === "macos_daemon" && (
+              <Switch
+                label="Block ads and trackers"
+                description="Uses AdGuard to stop most ads and trackers before they load, in every app. It cannot catch every ad. More choices in Settings. Recommended."
+                checked={settings.dns_servers.length > 0}
+                onChange={(v) => void saveSettings({ ...settings, dns_servers: v ? ADGUARD_DNS : [] })}
+              />
+            )}
             <Switch
               label="Kill switch"
               description="Blocks the internet if the VPN drops, so nothing leaks. Recommended."

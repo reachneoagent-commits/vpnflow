@@ -976,3 +976,18 @@ Unit test `dns_outside_the_tunnel_is_blocked_even_with_local_network_allowed` pa
 
 Not run live. What ran: `parse_dns_server` unit test (accepts public IPv4, refuses private, loopback, link-local, CGNAT, multicast, IPv6 and names), `cargo clippy --workspace --all-targets -D warnings` clean, core 72, desktop 12, UI 30 tests pass, app and daemon release builds succeed.
 Not verified: that the daemon applies the chosen servers to the system, that lookups then go through the tunnel, that the DNS leak check still passes with them, and that ads are blocked. Needs the daemon reinstalled first.
+
+## 2026-11-18: Custom DNS and ad blocking (macOS), live result
+
+Run on the user's Mac with the reinstalled daemon, AdGuard selected, connected.
+`nslookup doubleclick.net` and `nslookup googleadservices.com`: server `94.140.14.14`, answer `0.0.0.0` (blocked). `nslookup ads.facebook.com`: same server, real Facebook address (not blocked; it is a CNAME to www.facebook.com, which AdGuard's list leaves alone).
+adblock-tester.com in Chrome: 46/100 (11 services, 22 checks). Expected for DNS-only blocking: it cannot hide ads served from a site's own domain or page-level ad elements. No baseline run with the VPN's own DNS, and Chrome's Secure DNS setting was not checked, so the score is not a clean comparison.
+Not verified: the DNS leak check with AdGuard selected.
+
+Onboarding now switches on recommended protection at the last step (kill switch, allow local network, and on macOS AdGuard ad blocking). Typecheck, lint and 30 UI tests pass; not exercised in the running app.
+
+## 2026-11-18: Outside-the-VPN checks and external leak sites
+
+Terminal on the user's Mac, VPNFlow connected (Proton Japan): public IP 37.19.205.193 Datacamp Tokyo; IPv6 request returned the same IPv4 (no IPv6 leak); system DNS 94.140.14.14 / 94.140.15.15 (AdGuard).
+Chrome driven by Claude (ipleak.net, adblock.turtlecute.org): showed Cloudflare addresses in Texas (104.28.255.27) and Cloudflare DNS, and turtlecute scored 6% (8 of 130). Cloudflare WARP was installed and its daemon (pid 551) kept running after the app was quit; the result did not change after quitting the WARP app. Cause not isolated, so these Chrome results are not a measure of VPNFlow. The user's own Chrome on the Surfshark DNS test showed Datacamp, Japan.
+New: `other_vpn` and `browser_dns` diagnostics (crates/aegis-core/src/environment.rs). Parsers unit-tested (3 tests); core 75, desktop 12, UI 30 pass, clippy clean. Not yet seen running in the app.

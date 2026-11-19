@@ -209,7 +209,7 @@ export function SettingsScreen() {
         </Panel>
       )}
 
-      <Panel title="Schedule">
+      <Panel title="Schedule" help="schedule">
         <Switch
           label="Connect and disconnect at set times"
           description="Uses your preferred profile, or Quick connect if none is set. It acts only at those times, so you can still switch manually in between."
@@ -266,7 +266,7 @@ export function SettingsScreen() {
       </Panel>
 
       {caps?.backend === "macos_daemon" && (
-        <Panel title="DNS and ad blocking">
+        <Panel title="DNS and ad blocking" help="dns">
           <div className="py-3 text-[13px]">
             <label htmlFor={dnsId} className="font-medium">
               Name lookup service
