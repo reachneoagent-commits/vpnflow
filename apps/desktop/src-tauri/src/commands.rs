@@ -209,20 +209,41 @@ async fn pick_conf_files(app: &AppHandle) -> Vec<PathBuf> {
 
 #[tauri::command]
 pub async fn import_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
+    // One bad file must not stop the rest: import what works, then report the skipped files together.
     let mut out = Vec::new();
+    let mut skipped = Vec::new();
     for path in pick_conf_files(&app).await {
-        out.push(st.engine.import_file(&path).await?);
+        match st.engine.import_file(&path).await {
+            Ok(p) => out.push(p),
+            Err(e) => {
+                let name = path
+                    .file_name()
+                    .map(|n| n.to_string_lossy().into_owned())
+                    .unwrap_or_default();
+                skipped.push(format!("{name}: {}", UiError::from(e).message));
+            }
+        }
+    }
+    if !skipped.is_empty() {
+        let _ = app.emit(
+            "import-result",
+            ImportResult {
+                name: format!("{} file(s) skipped, {} imported", skipped.len(), out.len()),
+                error: Some(UiError::msg(skipped.join(" | "))),
+            },
+        );
     }
     Ok(out)
 }
 
+#[derive(Serialize, Clone)]
+struct ImportResult {
+    name: String,
+    error: Option<UiError>,
+}
+
 /// Import files dropped onto the window (paths come from the OS, not web content).
 pub async fn import_dropped(app: AppHandle, engine: Arc<Engine<AnyBackend>>, paths: Vec<PathBuf>) {
-    #[derive(Serialize, Clone)]
-    struct ImportResult {
-        name: String,
-        error: Option<UiError>,
-    }
     for p in paths {
         let name = p
             .file_name()
