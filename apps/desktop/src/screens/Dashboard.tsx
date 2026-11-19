@@ -6,7 +6,7 @@ import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } 
 import { ago, bytes, clock, duration, rate, routeLabel } from "../lib/format";
 import { locationLabel } from "../lib/locations";
 import { useStore } from "../lib/store";
-import type { Feature, ProfileView, SpeedResult } from "../lib/types";
+import type { Check, CheckStatus, Feature, ProfileView, SpeedResult } from "../lib/types";
 import { CountryFlag } from "./Locations";
 
 function useNow(active: boolean) {
@@ -252,6 +252,8 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
           </ul>
         )}
       </Panel>
+
+      <LeakTestPanel connected={connected} />
 
       <SpeedPanel connected={connected} />
 
@@ -522,6 +524,97 @@ function SpeedPanel({ connected }: { connected: boolean }) {
         {result
           ? `Measured through your VPN with ${result.provider} at ${clock(result.at)}. Results vary by server and time of day.`
           : "Uses about 30 MB of data and contacts Cloudflare's speed server only when you press the button."}
+      </p>
+    </Panel>
+  );
+}
+
+const LEAK_IDS = ["kill_switch", "dns", "ipv6", "reachability", "public_ip"];
+const leakTone: Record<CheckStatus, Tone> = { pass: "ok", warn: "pending", fail: "bad", skipped: "none" };
+const leakText: Record<CheckStatus, string> = {
+  pass: "Protected",
+  warn: "Check this",
+  fail: "Leaking",
+  skipped: "Not tested",
+};
+
+function LeakTestPanel({ connected }: { connected: boolean }) {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<{ checks: Check[]; at: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  // A result belongs to the connection it was measured on.
+  useEffect(() => {
+    if (!connected) {
+      setResult(null);
+      setError(null);
+    }
+  }, [connected]);
+
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const all = await api.diagnostics();
+      setResult({ checks: all.filter((c) => LEAK_IDS.includes(c.id)), at: Date.now() });
+    } catch (e) {
+      setError(asUiError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const worst = result?.checks.some((c) => c.status === "fail")
+    ? "Something is leaking. See below."
+    : result?.checks.some((c) => c.status === "warn")
+      ? "No leak found, but one check needs a look."
+      : "No leaks found.";
+
+  return (
+    <Panel
+      title="Leak test"
+      actions={
+        <Button onClick={start} disabled={!connected || busy}>
+          {busy ? "Testing…" : result ? "Test again" : "Run leak test"}
+        </Button>
+      }
+    >
+      {!connected ? (
+        <p className="py-2 text-[13px] text-muted">Connect to a server to run a leak test.</p>
+      ) : result ? (
+        <>
+          <p className="pb-1 text-[13px] font-medium">{worst}</p>
+          <ul>
+            {result.checks.map((c) => (
+              <li key={c.id} className="flex items-start gap-3 border-b border-line py-2 last:border-b-0">
+                <span className="pt-1.5">
+                  <Dot tone={leakTone[c.status]} />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <div className="flex justify-between gap-3">
+                    <span className="font-medium">{c.title}</span>
+                    <span className="text-[12.5px] text-muted">{leakText[c.status]}</span>
+                  </div>
+                  <p className="text-[12.5px] break-words text-muted">{c.detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : (
+        <p className="py-2 text-[13px] text-muted">
+          Checks that your traffic, DNS and IPv6 all go through the VPN.
+        </p>
+      )}
+      {error && (
+        <p role="alert" className="mt-2 text-[13px] text-danger">
+          {error}
+        </p>
+      )}
+      <p className="mt-2 text-[12px] text-muted">
+        {result
+          ? `Checked at ${clock(result.at)}. Tests run on this device and contact no third-party site.`
+          : "Runs on this device and contacts no third-party site."}
       </p>
     </Panel>
   );
