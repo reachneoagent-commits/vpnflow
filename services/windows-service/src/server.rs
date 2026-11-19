@@ -34,6 +34,8 @@ fn command_name(req: &Request) -> &'static str {
         Request::ApplyKillSwitch { .. } => "apply_kill_switch",
         Request::RemoveKillSwitch => "remove_kill_switch",
         Request::KillSwitchActive => "kill_switch_active",
+        Request::SetBypass { .. } => "set_bypass",
+        Request::SetDns { .. } => "set_dns",
     }
 }
 
@@ -46,6 +48,8 @@ fn is_mutating(req: &Request) -> bool {
             | Request::Deactivate { .. }
             | Request::ApplyKillSwitch { .. }
             | Request::RemoveKillSwitch
+            | Request::SetBypass { .. }
+            | Request::SetDns { .. }
     )
 }
 
