@@ -327,6 +327,16 @@ pub struct TrustedNetwork {
     pub name: String,
 }
 
+/// Minutes after midnight for an `HH:MM` string, or None if malformed.
+pub fn parse_hhmm(s: &str) -> Option<u32> {
+    let (h, m) = s.trim().split_once(':')?;
+    if h.len() != 2 || m.len() != 2 {
+        return None;
+    }
+    let (h, m): (u32, u32) = (h.parse().ok()?, m.parse().ok()?);
+    (h < 24 && m < 60).then_some(h * 60 + m)
+}
+
 /// Most trusted networks a user may keep.
 pub const MAX_TRUSTED: usize = 20;
 
@@ -356,6 +366,14 @@ pub struct Settings {
     pub trusted_networks_enabled: bool,
     /// Networks the user marked as trusted, identified by the router.
     pub trusted_networks: Vec<TrustedNetwork>,
+    /// Connect and disconnect at set times of day.
+    pub schedule_enabled: bool,
+    /// Local time to connect, `HH:MM`.
+    pub schedule_connect: String,
+    /// Local time to disconnect, `HH:MM`.
+    pub schedule_disconnect: String,
+    /// Days the schedule runs, 1 = Monday to 7 = Sunday.
+    pub schedule_days: Vec<u8>,
     pub notifications: bool,
     /// User-controllable DNS checks through the configured tunnel resolver.
     pub connectivity_check: bool,
@@ -381,6 +399,10 @@ impl Default for Settings {
             bypass: vec![],
             trusted_networks_enabled: false,
             trusted_networks: vec![],
+            schedule_enabled: false,
+            schedule_connect: "09:00".into(),
+            schedule_disconnect: "17:00".into(),
+            schedule_days: vec![1, 2, 3, 4, 5],
             notifications: true,
             connectivity_check: true,
             check_updates: false,

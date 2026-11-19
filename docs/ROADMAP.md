@@ -16,6 +16,7 @@ Ordered by value to a non-technical user. Done items link to their test record i
 6. Fastest-server quick connect using measured speed and ping; show both in Locations.
 7. Public IP and country display on macOS (Linux has it).
 8. Real DNS/IPv6 firewall enforcement in the pf rules, not only route checks.
+9. (built, awaiting live test) Scheduled connect and disconnect at set times and days.
 
 ## Later
 - Developer ID signing and notarization (blocks wide distribution).

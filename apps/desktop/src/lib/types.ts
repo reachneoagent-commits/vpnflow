@@ -151,6 +151,10 @@ export interface Settings {
   bypass: string[];
   trusted_networks_enabled: boolean;
   trusted_networks: TrustedNetwork[];
+  schedule_enabled: boolean;
+  schedule_connect: string;
+  schedule_disconnect: string;
+  schedule_days: number[];
   notifications: boolean;
   connectivity_check: boolean;
   check_updates: boolean;

@@ -86,11 +86,10 @@ function Shell() {
           aria-label="Main"
           className="flex w-[13.5rem] shrink-0 flex-col border-r border-white/5 bg-ink text-mist max-[720px]:w-16"
         >
-          <div className="flex items-center gap-3 px-5 pt-6 pb-7 max-[720px]:justify-center max-[720px]:px-0">
+          <div className="flex items-center justify-center gap-3 px-3 pt-6 pb-7">
             <Shield confirmed={tone === "ok"} />
             <div className="min-w-0 max-[720px]:hidden">
               <p className="text-[19px] leading-none font-bold tracking-[-0.02em]">VPNFlow</p>
-              <p className="mt-0.5 text-[11px] tracking-[0.04em] text-mist/60 uppercase">VPN</p>
             </div>
           </div>
           <ul className="flex flex-col gap-0.5 px-3">

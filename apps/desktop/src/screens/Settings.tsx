@@ -4,6 +4,8 @@ import { api } from "../lib/api";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
 function supportNote(s: Support | undefined, what: string) {
   if (!s || s.status === "supported") return undefined;
   return `${what} is not available on this system: ${s.detail}`;
@@ -174,6 +176,62 @@ export function SettingsScreen() {
           </div>
         </Panel>
       )}
+
+      <Panel title="Schedule">
+        <Switch
+          label="Connect and disconnect at set times"
+          description="Uses your preferred profile, or Quick connect if none is set. It acts only at those times, so you can still switch manually in between."
+          checked={settings.schedule_enabled}
+          onChange={(v) => set({ schedule_enabled: v })}
+        />
+        {settings.schedule_enabled && (
+          <div className="flex flex-col gap-3 border-t border-line py-3 text-[13px]">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 font-medium">
+                Connect at
+                <input
+                  type="time"
+                  value={settings.schedule_connect}
+                  onChange={(e) => e.target.value && set({ schedule_connect: e.target.value })}
+                  className="rounded-md border border-line bg-surface px-2.5 py-1.5"
+                />
+              </label>
+              <label className="flex items-center gap-2 font-medium">
+                Disconnect at
+                <input
+                  type="time"
+                  value={settings.schedule_disconnect}
+                  onChange={(e) => e.target.value && set({ schedule_disconnect: e.target.value })}
+                  className="rounded-md border border-line bg-surface px-2.5 py-1.5"
+                />
+              </label>
+            </div>
+            <fieldset className="flex flex-wrap gap-3">
+              <legend className="sr-only">Days</legend>
+              {DAYS.map((name, i) => {
+                const day = i + 1;
+                const on = settings.schedule_days.includes(day);
+                return (
+                  <label key={name} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        set({
+                          schedule_days: on
+                            ? settings.schedule_days.filter((d) => d !== day)
+                            : [...settings.schedule_days, day],
+                        })
+                      }
+                    />
+                    {name}
+                  </label>
+                );
+              })}
+            </fieldset>
+          </div>
+        )}
+      </Panel>
 
       {caps?.backend === "macos_daemon" && (
         <Panel title="Skip the VPN" help="bypass">

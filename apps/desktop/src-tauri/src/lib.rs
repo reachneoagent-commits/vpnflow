@@ -1,6 +1,7 @@
 mod backend;
 mod commands;
 mod onboarding;
+mod schedule;
 mod speed;
 mod tray;
 mod trusted;
@@ -59,6 +60,7 @@ pub fn run() {
             });
             forward_events(app.handle().clone(), Arc::clone(&engine));
             trusted::spawn(Arc::clone(&engine));
+            schedule::spawn(Arc::clone(&engine));
 
             // Larger text for readability: the UI uses fixed px sizes, so scale the
             // whole page (text and spacing together) like browser zoom.

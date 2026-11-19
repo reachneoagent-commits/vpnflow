@@ -966,3 +966,8 @@ timed out (blocked); default lookups resolved via the tunnel DNS (10.2.0.1);
 `curl https://example.com` returned 200; ping to the router succeeded. Not
 covered: DNS/IPv6 leaks with the kill switch off, DNS-over-HTTPS in browsers.
 Unit test `dns_outside_the_tunnel_is_blocked_even_with_local_network_allowed` passes.
+
+## 2026-11-18: IPv6 check with the tunnel up (macOS), and scheduled connect
+
+- Live, tunnel connected, kill switch on: `curl -6 https://v6.ident.me` failed (no IPv6 path off the machine); the only global IPv6 address was the tunnel's own. One earlier `curl -6` to a dual-stack service returned the VPN's IPv4 address, so it proved nothing on its own. Not covered: IPv6 with the kill switch off, and a native-IPv6 network.
+- Scheduled connect: built. Unit tests only (`schedule::tests`, 2 pass); core 71, desktop 12, UI 30 pass; clippy clean. Not tested live (no connect/disconnect at a real scheduled time yet).

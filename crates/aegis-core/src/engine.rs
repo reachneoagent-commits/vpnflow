@@ -667,6 +667,15 @@ impl<B: VpnBackend> Engine<B> {
             }
         }
         s.trusted_networks.dedup_by(|a, b| a.id == b.id);
+        for t in [&mut s.schedule_connect, &mut s.schedule_disconnect] {
+            if crate::types::parse_hhmm(t).is_none() {
+                return Err(CoreError::invalid("schedule times look like 09:00"));
+            }
+            *t = t.trim().to_owned();
+        }
+        s.schedule_days.retain(|d| (1..=7).contains(d));
+        s.schedule_days.sort_unstable();
+        s.schedule_days.dedup();
         s.reconnect_max_attempts = s.reconnect_max_attempts.clamp(1, 50);
         let preferred_changed = self.live().settings.preferred_profile != s.preferred_profile;
         self.store.save_settings(&s)?;
