@@ -24,6 +24,7 @@ pub enum HelperStatus {
 }
 
 const DAEMON_SHA256: &str = env!("VPNFLOW_DAEMON_SHA256");
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 const WG_SHA256: &str = env!("VPNFLOW_WG_SHA256");
 
 fn is_hex64(s: &str) -> bool {
