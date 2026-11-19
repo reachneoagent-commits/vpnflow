@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { ScreenId } from "../App";
 import { Button, Dot, InfoTip, Panel, Row, type Tone } from "../components/ui";
 import { api, asUiError } from "../lib/api";
@@ -493,8 +493,20 @@ function SpeedPanel({ connected }: { connected: boolean }) {
       title="Connection speed"
       help="speedTest"
       actions={
-        <Button onClick={start} disabled={!connected || busy}>
-          {busy ? "Testing…" : result ? "Test again" : "Test speed"}
+        <Button className="min-w-28 whitespace-nowrap" onClick={start} disabled={!connected || busy}>
+          {busy ? (
+            <>
+              <span
+                aria-hidden
+                className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+              />
+              Testing
+            </>
+          ) : result ? (
+            "Test again"
+          ) : (
+            "Test speed"
+          )}
         </Button>
       }
     >
@@ -557,6 +569,34 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
     }
   }, [connected]);
 
+  // Check automatically a few seconds after connecting, so the user sees their
+  // protection without having to ask. "Test again" still reruns it by hand.
+  const startRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (!connected) return;
+    const t = setTimeout(() => startRef.current(), 4000);
+    return () => clearTimeout(t);
+  }, [connected]);
+
+  const [stopping, setStopping] = useState(false);
+  const [stopNote, setStopNote] = useState<string | null>(null);
+
+  const stopOthers = async () => {
+    setStopping(true);
+    setStopNote(null);
+    try {
+      const r = await api.stopOtherVpns();
+      setStopNote(r.map((x) => `${x.name}: ${x.message}`).join("; ") || "Nothing to stop.");
+      // Give the app a moment to quit, then check again.
+      await new Promise((ok) => setTimeout(ok, 1500));
+      await start();
+    } catch (e) {
+      setError(asUiError(e).message);
+    } finally {
+      setStopping(false);
+    }
+  };
+
   const start = async () => {
     setBusy(true);
     setError(null);
@@ -570,6 +610,10 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
     }
   };
 
+  startRef.current = () => {
+    void start();
+  };
+
   const worst = result?.checks.some((c) => c.status === "fail")
     ? "Something is leaking. See below."
     : result?.checks.some((c) => c.status === "warn")
@@ -581,8 +625,20 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
       title="Leak test"
       help="leakTest"
       actions={
-        <Button onClick={start} disabled={!connected || busy}>
-          {busy ? "Testing…" : result ? "Test again" : "Run leak test"}
+        <Button className="min-w-28 whitespace-nowrap" onClick={start} disabled={!connected || busy}>
+          {busy ? (
+            <>
+              <span
+                aria-hidden
+                className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+              />
+              Testing
+            </>
+          ) : result ? (
+            "Test again"
+          ) : (
+            "Run leak test"
+          )}
         </Button>
       }
     >
@@ -603,6 +659,14 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
                     <span className="text-[12.5px] text-muted">{leakText[c.status]}</span>
                   </div>
                   <p className="text-[12.5px] break-words text-muted">{c.detail}</p>
+                  {c.id === "other_vpn" && c.status === "warn" && (
+                    <div className="mt-1.5">
+                      <Button onClick={stopOthers} disabled={stopping || busy}>
+                        {stopping ? "Stopping…" : "Stop it"}
+                      </Button>
+                      {stopNote && <p className="mt-1 text-[12px] text-muted">{stopNote}</p>}
+                    </div>
+                  )}
                 </div>
               </li>
             ))}
@@ -610,7 +674,7 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
         </>
       ) : (
         <p className="py-2 text-[13px] text-muted">
-          Checks that your traffic, DNS and IPv6 all go through the VPN.
+          Checks run by themselves a few seconds after you connect.
         </p>
       )}
       {error && (

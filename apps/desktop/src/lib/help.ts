@@ -49,12 +49,12 @@ export const HELP = {
   },
   leakTest: {
     title: "Leak test",
-    what: "A quick check that nothing is escaping the VPN: the kill switch, DNS lookups, IPv6, whether the server is reachable, another VPN app running at the same time, and browsers that use their own DNS.",
+    what: "A quick check, run automatically a few seconds after you connect, that nothing is escaping the VPN: the kill switch, DNS lookups, IPv6, whether the server is reachable, another VPN app running at the same time, and browsers that use their own DNS.",
     why: "A VPN that looks connected can still leak. This shows you instead of leaving you to trust it.",
     example:
-      "Run it after connecting. Green checks mean no leak was found. A red or yellow one says what to fix, such as quitting Cloudflare WARP or turning off Chrome's secure DNS.",
+      "It runs by itself after you connect; press Test again to rerun it. Green checks mean no leak was found. A red or yellow one says what to fix, such as quitting Cloudflare WARP or turning off Chrome's secure DNS.",
     tradeoff:
-      "It checks this device's setup, not what the VPN provider logs. A pass means no leak was found now, not a guarantee for later.",
+      "If another VPN is on, the Stop it button disconnects it (Cloudflare WARP) or asks it to quit, like pressing Quit yourself. It never force-closes anything, and only acts when you press it. You can reconnect that VPN later. It checks this device's setup, not what the VPN provider logs. A pass means no leak was found now, not a guarantee for later.",
   },
   speedTest: {
     title: "Connection speed",

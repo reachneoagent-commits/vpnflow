@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-stop-other-vpns"
+description = "Enables the stop_other_vpns command without any pre-configured scope."
+commands.allow = ["stop_other_vpns"]
+
+[[permission]]
+identifier = "deny-stop-other-vpns"
+description = "Denies the stop_other_vpns command without any pre-configured scope."
+commands.deny = ["stop_other_vpns"]

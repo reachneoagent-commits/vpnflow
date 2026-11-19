@@ -338,6 +338,18 @@ pub async fn export_diagnostics(app: AppHandle, st: State<'_, AppState>) -> R<bo
     Ok(true)
 }
 
+/// Runs only when the user presses "Stop it" on the Other VPN apps row.
+#[tauri::command]
+pub async fn stop_other_vpns() -> R<Vec<aegis_core::environment::StopResult>> {
+    tokio::task::spawn_blocking(aegis_core::environment::stop_other_vpns)
+        .await
+        .map_err(|e| UiError {
+            kind: "backend",
+            message: format!("stopping the other VPN stopped unexpectedly: {e}"),
+            issues: vec![],
+        })
+}
+
 /// Runs only when the user presses "Test speed". Contacts Cloudflare's public
 /// speed endpoint; nothing is sent automatically.
 #[tauri::command]

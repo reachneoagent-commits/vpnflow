@@ -127,6 +127,7 @@ pub fn run() {
             commands::diagnostics,
             commands::export_diagnostics,
             commands::speed_test,
+            commands::stop_other_vpns,
             commands::open_link,
             commands::scan_downloads,
             commands::current_network,

@@ -227,8 +227,14 @@ pub(crate) async fn run<B: VpnBackend>(e: &Engine<B>) -> Vec<Check> {
             "Other VPN apps",
             Warn,
             format!(
-                "{} is running. Two VPNs at once can bypass each other or change your DNS, so some traffic may not go through VPNFlow. Quit it while you use VPNFlow.",
-                v.join(", ")
+                "{} {} running. Two VPNs at once can bypass each other or change your DNS, so some traffic may not go through VPNFlow. {}",
+                v.join(", "),
+                if v.len() > 1 { "are" } else { "is" },
+                if v.contains(&"Cloudflare WARP") {
+                    "For WARP: click its cloud icon in the menu bar and choose Disconnect (not Quit), or press the button below."
+                } else {
+                    "Quit it while you use VPNFlow, or press the button below."
+                }
             ),
         ),
     });

@@ -52,6 +52,7 @@ export const api = {
     invoke<{ imported: string[]; failed: number }>("scan_downloads", { sinceMs }),
   currentNetwork: () => invoke<string | null>("current_network"),
   speedTest: () => invoke<SpeedResult>("speed_test"),
+  stopOtherVpns: () => invoke<{ name: string; ok: boolean; message: string }[]>("stop_other_vpns"),
 };
 
 export function onEngineEvent(cb: (e: EngineEvent) => void): Promise<UnlistenFn> {

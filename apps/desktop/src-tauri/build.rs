@@ -27,6 +27,7 @@ const COMMANDS: &[&str] = &[
     "diagnostics",
     "export_diagnostics",
     "speed_test",
+    "stop_other_vpns",
     "open_link",
     "scan_downloads",
     "current_network",

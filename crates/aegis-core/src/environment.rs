@@ -57,9 +57,115 @@ fn process_list() -> Option<String> {
     Some(text.replace('"', ""))
 }
 
-/// Other VPN apps currently running, or `None` if the process list could not be read.
+/// Cloudflare WARP keeps a background service running even when its window is
+/// closed, so "running" alone says nothing. Ask it whether it is connected.
+/// `None` when its command-line tool is missing or unreadable.
+fn warp_cli() -> Option<PathBuf> {
+    [
+        "/usr/local/bin/warp-cli",
+        "/opt/homebrew/bin/warp-cli",
+        "/usr/bin/warp-cli",
+        r"C:\Program Files\Cloudflare\Cloudflare WARP\warp-cli.exe",
+    ]
+    .iter()
+    .map(PathBuf::from)
+    .find(|p| p.exists())
+}
+
+/// True when the status text from `warp-cli status` says it is connected.
+pub fn warp_status_connected(status: &str) -> bool {
+    status.contains("Status update: Connected")
+}
+
+fn warp_connected() -> Option<bool> {
+    let out = std::process::Command::new(warp_cli()?)
+        .arg("status")
+        .output()
+        .ok()?;
+    Some(warp_status_connected(&String::from_utf8_lossy(&out.stdout)))
+}
+
+/// Other VPN apps currently running, or `None` if the process list could not be
+/// read. A WARP service that is installed but disconnected is not counted.
 pub fn other_vpns_running() -> Option<Vec<&'static str>> {
-    process_list().map(|p| match_other_vpns(&p))
+    let mut v = process_list().map(|p| match_other_vpns(&p))?;
+    if v.contains(&"Cloudflare WARP") && warp_connected() == Some(false) {
+        v.retain(|n| *n != "Cloudflare WARP");
+    }
+    Some(v)
+}
+
+/// What happened when we asked one app to stop.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StopResult {
+    pub name: &'static str,
+    pub ok: bool,
+    pub message: String,
+}
+
+fn run_ok(cmd: &mut std::process::Command) -> Result<(), String> {
+    match cmd.output() {
+        Ok(o) if o.status.success() => Ok(()),
+        Ok(o) => Err(String::from_utf8_lossy(&o.stderr).trim().to_string()),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Asks each running VPN app to stop, politely. WARP is disconnected with its
+/// own tool; others are asked to quit like a normal Quit (never force-killed).
+/// Only called when the user presses the button.
+pub fn stop_other_vpns() -> Vec<StopResult> {
+    let mut out = Vec::new();
+    for name in other_vpns_running().unwrap_or_default() {
+        let res = if name == "Cloudflare WARP" {
+            match warp_cli() {
+                Some(cli) => run_ok(std::process::Command::new(cli).arg("disconnect")),
+                None => Err("its command-line tool was not found".into()),
+            }
+        } else if name == "OpenVPN" {
+            Err("OpenVPN has no app to quit; stop it where you started it".into())
+        } else {
+            quit_app(name)
+        };
+        out.push(match res {
+            Ok(()) => StopResult {
+                name,
+                ok: true,
+                message: if name == "Cloudflare WARP" {
+                    "disconnected".into()
+                } else {
+                    "asked to quit".into()
+                },
+            },
+            Err(m) => StopResult {
+                name,
+                ok: false,
+                message: m,
+            },
+        });
+    }
+    out
+}
+
+#[cfg(target_os = "macos")]
+fn quit_app(name: &str) -> Result<(), String> {
+    run_ok(
+        std::process::Command::new("osascript")
+            .arg("-e")
+            .arg(format!("tell application \"{name}\" to quit")),
+    )
+}
+
+#[cfg(windows)]
+fn quit_app(name: &str) -> Result<(), String> {
+    // Without /F this is the normal close request, not a force-kill.
+    let exe = name.replace(' ', "");
+    run_ok(std::process::Command::new("taskkill").args(["/IM", &format!("{exe}.exe")]))
+}
+
+#[cfg(not(any(target_os = "macos", windows)))]
+fn quit_app(_name: &str) -> Result<(), String> {
+    Err("quit it from its own menu".into())
 }
 
 /// How a browser resolves names.
@@ -192,6 +298,14 @@ mod tests {
             vec!["Cloudflare WARP", "OpenVPN", "NordVPN"]
         );
         assert!(match_other_vpns("/sbin/launchd\n/usr/bin/ssh\n").is_empty());
+    }
+
+    #[test]
+    fn reads_warp_status() {
+        assert!(warp_status_connected("Status update: Connected\n"));
+        assert!(!warp_status_connected(
+            "Status update: Disconnected\nReason: Settings Changed\n"
+        ));
     }
 
     #[test]
