@@ -1397,3 +1397,70 @@ async fn import_reads_provider_label_into_location() {
     assert_eq!(plain.meta.name, "Plain");
     assert!(plain.meta.server.location.is_none());
 }
+
+async fn two_nl_servers() -> (
+    Arc<Engine<MockBackend>>,
+    tempfile::TempDir,
+    ProfileId,
+    ProfileId,
+) {
+    let dir = tempfile::tempdir().unwrap();
+    let e = Engine::start(MockBackend::with_test_kill_switch(), dir.path())
+        .await
+        .unwrap();
+    let mk = |ip: &str, label: &str| {
+        CONF.replace("vpn.example.com", ip)
+            .replacen("[Peer]", &format!("[Peer]\n# {label}"), 1)
+    };
+    let a = e
+        .import_text("a", &mk("203.0.113.5", "NL-FREE#1"))
+        .await
+        .unwrap()
+        .meta
+        .id;
+    let b = e
+        .import_text("b", &mk("203.0.113.6", "NL-FREE#2"))
+        .await
+        .unwrap()
+        .meta
+        .id;
+    let mut s = e.settings();
+    s.kill_switch = true;
+    s.auto_reconnect = false;
+    e.set_settings(s).unwrap();
+    (e, dir, a, b)
+}
+
+#[tokio::test(start_paused = true)]
+async fn failed_connect_switches_to_same_country_server() {
+    let (e, _d, a, b) = two_nl_servers().await;
+    e.backend().fail_next_activate("no handshake");
+    e.connect(a).await.unwrap();
+    assert!(matches!(
+        e.snapshot().state,
+        ConnectionState::Connected { profile, .. } if profile == b
+    ));
+    let (owner, eps, _) = e.backend().blocking().expect("still protected");
+    assert_eq!(owner, b);
+    assert_eq!(eps, vec!["203.0.113.6:51820".parse().unwrap()]);
+    assert!(
+        e.events()
+            .iter()
+            .any(|ev| ev.message.contains("Switched from")),
+        "the switch must be visible in Activity"
+    );
+}
+
+#[tokio::test(start_paused = true)]
+async fn switching_off_keeps_the_original_failure() {
+    let (e, _d, a, _b) = two_nl_servers().await;
+    let mut s = e.settings();
+    s.auto_switch_server = false;
+    e.set_settings(s).unwrap();
+    e.backend().fail_next_activate("no handshake");
+    assert!(e.connect(a).await.is_err());
+    assert!(!matches!(
+        e.snapshot().state,
+        ConnectionState::Connected { .. }
+    ));
+}

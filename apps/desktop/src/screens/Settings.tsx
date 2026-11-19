@@ -158,6 +158,13 @@ export function SettingsScreen() {
           checked={settings.auto_reconnect}
           onChange={(v) => set({ auto_reconnect: v })}
         />
+        <Switch
+          label="Switch server automatically"
+          help="autoSwitchServer"
+          description="If a server stops responding, try another server in the same country. You'll see it in Activity. If none work, you'll be told to pick another country."
+          checked={settings.auto_switch_server}
+          onChange={(v) => set({ auto_switch_server: v })}
+        />
         <div className="flex items-center justify-between border-t border-line py-3">
           <label htmlFor={attemptsId} className="font-medium">
             Maximum attempts

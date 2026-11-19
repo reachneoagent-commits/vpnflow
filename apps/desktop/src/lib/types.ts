@@ -145,6 +145,7 @@ export interface Settings {
   favorite_countries: string[];
   quick_connect_country: string | null;
   auto_reconnect: boolean;
+  auto_switch_server: boolean;
   reconnect_max_attempts: number;
   kill_switch: boolean;
   kill_switch_chosen: boolean;

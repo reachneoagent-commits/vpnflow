@@ -150,6 +150,15 @@ export const HELP = {
     tradeoff:
       "While it retries, you may be briefly unprotected unless the kill switch is on. Pair the two for full coverage.",
   },
+  autoSwitchServer: {
+    title: "Switch server automatically",
+    what: "If your server stops responding, VPNFlow tries up to three other servers in the same country, one at a time.",
+    why: "Free servers go down or fill up. This keeps you connected without you doing anything, and you stay in the same country.",
+    example:
+      "Canada #1 stops answering. VPNFlow moves you to Canada #15 and logs it in Activity. If every Canada server fails, it tells you to choose another country in Locations.",
+    tradeoff:
+      "It only reacts to servers that stop responding, not ones that are merely slow, because the app can't measure speed or load. Your exit address changes when it switches. Recommendation: leave it on. With the kill switch on, nothing leaks while it switches.",
+  },
   preferredProfile: {
     title: "Preferred profile",
     what: "Your default server.",

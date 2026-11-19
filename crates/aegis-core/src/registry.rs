@@ -164,6 +164,55 @@ pub struct QuickConnectChoice {
     pub reason: String,
 }
 
+/// Most backup servers tried in one fallback round.
+pub const MAX_FALLBACKS: usize = 3;
+
+/// Other usable servers in the same country as `failed`, best first: recent
+/// authenticated response, then most recently connected, then by name.
+/// Servers that failed in the last five minutes are skipped.
+pub fn fallback_candidates(
+    profiles: &[ProfileMeta],
+    failed: ProfileId,
+    now: u64,
+) -> Vec<ProfileId> {
+    let Some(code) = profiles
+        .iter()
+        .find(|p| p.id == failed)
+        .and_then(|p| p.server.location.as_ref())
+        .map(|l| l.country_code.clone())
+    else {
+        return vec![];
+    };
+    let mut c: Vec<_> = profiles
+        .iter()
+        .filter(|p| {
+            p.id != failed
+                && eligible(p)
+                && p.server
+                    .location
+                    .as_ref()
+                    .is_some_and(|l| l.country_code == code)
+                && !p
+                    .server
+                    .last_failure_ms
+                    .is_some_and(|at| at > now || now - at < FAILURE_COOLDOWN_MS)
+        })
+        .collect();
+    c.sort_by(|a, b| {
+        let rank = |p: &ProfileMeta| {
+            (
+                recent(p.server.last_response_ms, now),
+                p.server.last_connected_ms.unwrap_or(0),
+            )
+        };
+        rank(b)
+            .cmp(&rank(a))
+            .then_with(|| a.name.to_lowercase().cmp(&b.name.to_lowercase()))
+            .then(a.id.cmp(&b.id))
+    });
+    c.into_iter().take(MAX_FALLBACKS).map(|p| p.id).collect()
+}
+
 /// No probes: recent authenticated responses, preferred profile, favorites,
 /// last successful connection, then stable name/id order. Failed attempts cool
 /// down for five minutes. RTT is unknown, so this never claims highest speed.

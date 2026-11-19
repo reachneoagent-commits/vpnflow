@@ -353,6 +353,9 @@ pub struct Settings {
     pub quick_connect_country: Option<String>,
     pub auto_reconnect: bool,
     pub reconnect_max_attempts: u32,
+    /// When a server stops responding, try other servers in the same
+    /// country automatically.
+    pub auto_switch_server: bool,
     /// Requested by the user. Connecting fails if it cannot be established.
     pub kill_switch: bool,
     /// The user has set the kill switch themselves. Until then it follows
@@ -401,6 +404,7 @@ impl Default for Settings {
             quick_connect_country: None,
             auto_reconnect: true,
             reconnect_max_attempts: 8,
+            auto_switch_server: true,
             kill_switch: false,
             kill_switch_chosen: false,
             kill_switch_allow_lan: false,

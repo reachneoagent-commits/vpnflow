@@ -75,6 +75,9 @@ pub struct Engine<B: VpnBackend> {
     caps: Capabilities,
 }
 
+/// Failed reconnect attempts on one server before trying backups.
+const FALLBACK_AFTER: u32 = 3;
+
 impl<B: VpnBackend> Engine<B> {
     /// Open the store, query the backend, and reconcile state left by a
     /// previous run (crash recovery).
@@ -935,6 +938,17 @@ impl<B: VpnBackend> Engine<B> {
                     let _ = self.end_block().await;
                     self.live().session = None;
                 } else {
+                    match self.try_fallback(id, &cancel).await {
+                        Ok(Some(_)) => return Ok(()),
+                        Err(CoreError::Cancelled) => {
+                            self.log(Level::Info, "Connection cancelled");
+                            self.set_state(ConnectionState::Disconnected);
+                            let _ = self.end_block().await;
+                            self.live().session = None;
+                            return Err(CoreError::Cancelled);
+                        }
+                        _ => {}
+                    }
                     self.log(
                         Level::Error,
                         format!("Connection to \"{}\" failed: {e}", meta.name),
@@ -947,6 +961,100 @@ impl<B: VpnBackend> Engine<B> {
                 Err(e)
             }
         }
+    }
+
+    /// The server stopped responding: try other servers in the same country,
+    /// one at a time. The kill switch block is replaced atomically for each
+    /// new endpoint, so nothing leaks while switching. Returns the server now
+    /// connected, or `None` when no backup worked (the block then points back
+    /// at the original server).
+    async fn try_fallback(
+        self: &Arc<Self>,
+        failed: ProfileId,
+        cancel: &CancellationToken,
+    ) -> Result<Option<ProfileId>> {
+        let settings = self.settings();
+        if !settings.auto_switch_server {
+            return Ok(None);
+        }
+        let candidates = {
+            let l = self.live();
+            registry::fallback_candidates(&l.profiles, failed, now_ms())
+        };
+        if candidates.is_empty() {
+            return Ok(None);
+        }
+        let from = self.meta(failed)?.name;
+        let mut moved = false;
+        let mut found = None;
+        for cand in candidates {
+            if cancel.is_cancelled() {
+                return Err(CoreError::Cancelled);
+            }
+            let Ok(meta) = self.meta(cand) else { continue };
+            let _ = self.backend.deactivate(failed).await;
+            let cfg = match tokio::time::timeout(CONNECT_TIMEOUT, self.backend.load(cand)).await {
+                Ok(Ok(cfg)) if aegis_config::validate(&cfg).is_empty() => cfg,
+                _ => continue,
+            };
+            if settings.kill_switch {
+                let Ok(endpoints) = kill_switch_endpoints(&cfg) else {
+                    continue;
+                };
+                if let Err(e) = self
+                    .backend
+                    .apply_kill_switch(cand, &endpoints, settings.kill_switch_allow_lan)
+                    .await
+                {
+                    self.log(
+                        Level::Warn,
+                        format!("Could not prepare a backup server: {e}"),
+                    );
+                    self.live().blocking = self.backend.kill_switch_active().await.ok();
+                    break;
+                }
+                self.live().blocking = Some(true);
+                moved = true;
+            }
+            self.log(
+                Level::Info,
+                format!(
+                    "\"{from}\" is not responding. Trying \"{}\" in the same country",
+                    meta.name
+                ),
+            );
+            self.record_server(cand, |s| s.last_attempt_ms = Some(now_ms()));
+            self.set_state(ConnectionState::Connecting { profile: cand });
+            match self.activate_once(cand, cancel).await {
+                Ok(()) => {
+                    self.log(
+                        Level::Warn,
+                        format!("Switched from \"{from}\" to \"{}\" because the first server stopped responding", meta.name),
+                    );
+                    self.on_connected(cand);
+                    found = Some(cand);
+                    break;
+                }
+                Err(CoreError::Cancelled) => return Err(CoreError::Cancelled),
+                Err(e) => {
+                    self.record_server(cand, |s| s.last_failure_ms = Some(now_ms()));
+                    let _ = self.backend.deactivate(cand).await;
+                    self.log(
+                        Level::Warn,
+                        format!("\"{}\" did not respond either: {e}", meta.name),
+                    );
+                }
+            }
+        }
+        if found.is_none() && moved && settings.kill_switch {
+            // Point the block back at the original server so retries can reach it.
+            let cfg = self.backend.load(failed).await?;
+            let endpoints = kill_switch_endpoints(&cfg)?;
+            self.backend
+                .apply_kill_switch(failed, &endpoints, settings.kill_switch_allow_lan)
+                .await?;
+        }
+        Ok(found)
     }
 
     async fn activate_once(&self, id: ProfileId, cancel: &CancellationToken) -> Result<()> {
@@ -1568,6 +1676,7 @@ impl<B: VpnBackend> Engine<B> {
         drop(guard);
         let policy = RetryPolicy::new(settings.reconnect_max_attempts);
         let mut attempt = 1;
+        let mut fallback_tried = false;
         while let Some(delay) = policy.delay(attempt) {
             let scheduling = self.op_lock.lock().await;
             if stop.is_cancelled() {
@@ -1625,6 +1734,23 @@ impl<B: VpnBackend> Engine<B> {
                         Level::Warn,
                         format!("Reconnect attempt {attempt} failed: {e}"),
                     );
+                    if attempt == FALLBACK_AFTER && !fallback_tried {
+                        fallback_tried = true;
+                        match self.try_fallback(id, &cancel).await {
+                            Ok(Some(_)) => return,
+                            Err(CoreError::Cancelled) => {
+                                if self.teardown(id).await.is_ok() {
+                                    let _ = self.end_block().await;
+                                    self.live().session = None;
+                                }
+                                return;
+                            }
+                            Err(e) => {
+                                self.log(Level::Warn, format!("Backup servers unavailable: {e}"))
+                            }
+                            Ok(None) => {}
+                        }
+                    }
                 }
             }
             attempt += 1;
@@ -1638,9 +1764,14 @@ impl<B: VpnBackend> Engine<B> {
             return;
         }
         self.log(Level::Error, "Giving up after repeated reconnect failures");
+        let reason = if fallback_tried && settings.auto_switch_server {
+            "this server and its backups did not respond; check your internet connection or choose a server in another country in Locations"
+        } else {
+            "reconnect attempts exhausted"
+        };
         self.set_state(ConnectionState::Failed {
             profile: Some(id),
-            reason: "reconnect attempts exhausted".into(),
+            reason: reason.into(),
         });
     }
 
