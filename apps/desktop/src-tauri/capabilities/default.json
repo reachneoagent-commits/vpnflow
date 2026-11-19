@@ -35,6 +35,8 @@
     "allow-export-diagnostics",
     "allow-speed-test",
     "allow-stop-other-vpns",
+    "allow-helper-status",
+    "allow-install-helper",
     "allow-open-link",
     "allow-scan-downloads",
     "allow-current-network"

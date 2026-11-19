@@ -12,6 +12,7 @@ name = "aegis_desktop_lib"
 
 [build-dependencies]
 tauri-build = { version = "2.7", features = [] }
+sha2 = "0.10"
 
 [dependencies]
 aegis-core.workspace = true
@@ -38,6 +39,7 @@ aegis-linux.workspace = true
 
 [target.'cfg(target_os = "macos")'.dependencies]
 aegis-macos.workspace = true
+sha2 = "0.10"
 
 [target.'cfg(windows)'.dependencies]
 aegis-windows.workspace = true

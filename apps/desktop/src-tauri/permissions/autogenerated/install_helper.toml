@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-install-helper"
+description = "Enables the install_helper command without any pre-configured scope."
+commands.allow = ["install_helper"]
+
+[[permission]]
+identifier = "deny-install-helper"
+description = "Denies the install_helper command without any pre-configured scope."
+commands.deny = ["install_helper"]

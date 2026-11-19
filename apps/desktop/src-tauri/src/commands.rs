@@ -350,6 +350,18 @@ pub async fn stop_other_vpns() -> R<Vec<aegis_core::environment::StopResult>> {
         })
 }
 
+/// Whether the macOS background helper is installed and current.
+#[tauri::command]
+pub async fn helper_status() -> crate::helper::HelperStatus {
+    crate::helper::status().await
+}
+
+/// Runs only when the user presses "Set up" (macOS admin prompt, then restart).
+#[tauri::command]
+pub async fn install_helper(app: tauri::AppHandle) -> Result<(), String> {
+    crate::helper::install(app).await
+}
+
 /// Runs only when the user presses "Test speed". Contacts Cloudflare's public
 /// speed endpoint; nothing is sent automatically.
 #[tauri::command]

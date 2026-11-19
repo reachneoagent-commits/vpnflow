@@ -1,5 +1,6 @@
 mod backend;
 mod commands;
+mod helper;
 mod onboarding;
 mod schedule;
 mod speed;
@@ -131,6 +132,8 @@ pub fn run() {
             commands::open_link,
             commands::scan_downloads,
             commands::current_network,
+            commands::helper_status,
+            commands::install_helper,
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

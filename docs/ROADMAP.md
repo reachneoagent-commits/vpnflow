@@ -7,6 +7,8 @@ Ordered by value to a non-technical user. Done items link to their test record i
 - Live download/upload rate and totals.
 - Connection speed panel: download, upload, latency, jitter, on button press only (Cloudflare endpoint).
 
+- (built, awaiting visual check) Surfshark-style UI: hero with connection check and leak test, tabbed Locations + Advanced WireGuard, one ordered Settings page, light/dark toggle.
+
 ## Next
 1. Auto-connect on launch/login, and reconnect after sleep or a network change.
 2. (built, awaiting live test) Trusted networks: skip the VPN on home Wi-Fi, always connect on others. Networks are identified by router address because macOS hides Wi-Fi names.

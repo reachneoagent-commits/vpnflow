@@ -42,7 +42,7 @@ jobs:
           gh release create "$TAG" --repo "${{ github.repository }}" \
             --target "${{ github.sha }}" --prerelease \
             --title "VPNFlow ${{ inputs.confirm_version }} (preview)" \
-            --notes "Preview build. Unsigned. macOS: the app needs the VPNFlow background helper to connect. Windows: the tunnel service is not implemented yet, so Windows cannot connect. See docs/releases/RELEASE_CHECKLIST.md."
+            --notes "Preview build. Unsigned. macOS: the first launch asks for your Mac password once to set up the background helper. Windows: the tunnel service is not implemented yet, so Windows cannot connect. See docs/releases/RELEASE_CHECKLIST.md."
 
   macos:
     needs: create-release
@@ -67,6 +67,17 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+      - name: Build and stage the background helper
+        # The app installs these itself on first run (one admin prompt).
+        # Go is preinstalled on GitHub's macOS runners.
+        run: |
+          set -euo pipefail
+          go version
+          git clone --quiet --depth 1 --branch 0.0.20250522 https://git.zx2c4.com/wireguard-go "$RUNNER_TEMP/wg-src"
+          (cd "$RUNNER_TEMP/wg-src" && CGO_ENABLED=0 GOOS=darwin GOARCH="$(go env GOARCH)" \
+            go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/wireguard-go" .)
+          cargo build --release --locked -p vpnflow-daemon --target ${{ matrix.target }}
+          scripts/macos/stage-helper.sh "target/${{ matrix.target }}/release/vpnflow-daemon" "$RUNNER_TEMP/wireguard-go"
       - name: Build the disk image
         working-directory: apps/desktop
         run: |
