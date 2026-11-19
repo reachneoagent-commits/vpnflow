@@ -231,6 +231,40 @@ mod imp {
             .await
             .unwrap_or(Feature::Off)
         }
+        /// Egress IPv4 as the tunnel's DNS resolver sees it (whoami lookup).
+        async fn check_public_ip(
+            &self,
+            profile: &ProfileSummary,
+            status: &TunnelStatus,
+        ) -> Feature {
+            let Some(iface) = status.interface.clone() else {
+                return Feature::Off;
+            };
+            let Some(server) = profile
+                .dns
+                .iter()
+                .find_map(|d| d.parse::<std::net::IpAddr>().ok())
+            else {
+                return Feature::Unsupported(
+                    "the profile has no DNS server inside the tunnel".into(),
+                );
+            };
+            tokio::task::spawn_blocking(move || {
+                let via = crate::verify::route_interface(&run(
+                    "/sbin/route",
+                    &["-n", "get", &server.to_string()],
+                ));
+                if via.as_deref() != Some(iface.as_str()) {
+                    return Feature::Failed(format!(
+                        "the tunnel's DNS server is reached via {}, not the tunnel",
+                        via.as_deref().unwrap_or("no route")
+                    ));
+                }
+                crate::verify::judge_public_ip(crate::verify::lookup_public_ip(server))
+            })
+            .await
+            .unwrap_or(Feature::Off)
+        }
         fn system_events(&self) -> Option<tokio::sync::mpsc::Receiver<aegis_core::SystemEvent>> {
             Some(crate::events::spawn())
         }

@@ -4,7 +4,7 @@
 //! Nothing here reports a protection as in effect unless the system state
 //! says so right now.
 
-use std::net::IpAddr;
+use std::net::{IpAddr, Ipv4Addr};
 
 use aegis_config::RouteKind;
 use aegis_core::Feature;
@@ -130,9 +130,75 @@ pub fn judge_reachability(rcode: Option<u8>) -> Feature {
     }
 }
 
+/// Name whose authoritative answer is the querier's public IPv4. Queried only
+/// through the tunnel's own DNS server, like the reachability check.
+pub const WHOAMI_NAME: &str = "whoami.akamai.net";
+
+fn skip_name(buf: &[u8], mut i: usize) -> Option<usize> {
+    loop {
+        let len = *buf.get(i)?;
+        if len == 0 {
+            return Some(i + 1);
+        }
+        if len & 0xc0 == 0xc0 {
+            return Some(i + 2);
+        }
+        i = i.checked_add(1 + usize::from(len))?;
+        if i > buf.len() {
+            return None;
+        }
+    }
+}
+
+/// IPv4 addresses from the A answers in a reply to query `id`.
+pub fn dns_a_records(id: u16, reply: &[u8]) -> Option<Vec<Ipv4Addr>> {
+    if dns_rcode(id, reply)? != 0 {
+        return Some(vec![]);
+    }
+    let ancount = u16::from_be_bytes([*reply.get(6)?, *reply.get(7)?]);
+    let mut i = skip_name(reply, 12)?.checked_add(4)?;
+    let mut out = Vec::new();
+    for _ in 0..ancount {
+        i = skip_name(reply, i)?;
+        let rtype = u16::from_be_bytes([*reply.get(i)?, *reply.get(i + 1)?]);
+        let rdlen = u16::from_be_bytes([*reply.get(i + 8)?, *reply.get(i + 9)?]) as usize;
+        i = i.checked_add(10)?;
+        let end = i.checked_add(rdlen)?;
+        let rdata = reply.get(i..end)?;
+        if rtype == 1 && rdata.len() == 4 {
+            out.push(Ipv4Addr::new(rdata[0], rdata[1], rdata[2], rdata[3]));
+        }
+        i = end;
+    }
+    Some(out)
+}
+
+pub fn judge_public_ip(addrs: Option<Vec<Ipv4Addr>>) -> Feature {
+    match addrs {
+        Some(list) if !list.is_empty() => Feature::Verified(list[0].to_string()),
+        Some(_) => {
+            Feature::Failed("the tunnel DNS answered whoami but returned no IPv4 address".into())
+        }
+        None => {
+            Feature::Failed("no whoami answer from the tunnel's DNS server within 3 seconds".into())
+        }
+    }
+}
+
 /// One query to `server`, waiting up to 3 s. Blocking. The kernel routes it,
 /// so the caller must first check the route goes through the tunnel.
 pub fn lookup(server: IpAddr) -> Option<u8> {
+    let (id, reply) = exchange(server, REACH_NAME)?;
+    dns_rcode(id, &reply)
+}
+
+/// Ask `server` for [`WHOAMI_NAME`] and return its A records. Blocking.
+pub fn lookup_public_ip(server: IpAddr) -> Option<Vec<Ipv4Addr>> {
+    let (id, reply) = exchange(server, WHOAMI_NAME)?;
+    dns_a_records(id, &reply)
+}
+
+fn exchange(server: IpAddr, name: &str) -> Option<(u16, Vec<u8>)> {
     use std::net::UdpSocket;
     use std::time::Duration;
     let id = (std::time::SystemTime::now()
@@ -148,10 +214,11 @@ pub fn lookup(server: IpAddr) -> Option<u8> {
     .ok()?;
     sock.set_read_timeout(Some(Duration::from_secs(3))).ok()?;
     sock.connect((server, 53)).ok()?;
-    sock.send(&dns_query(id, REACH_NAME)).ok()?;
+    sock.send(&dns_query(id, name)).ok()?;
     let mut buf = [0u8; 512];
     let n = sock.recv(&mut buf).ok()?;
-    dns_rcode(id, &buf[..n])
+    dns_rcode(id, &buf[..n])?;
+    Some((id, buf[..n].to_vec()))
 }
 
 /// `servers`: each system DNS server with the interface the kernel would use
@@ -208,6 +275,29 @@ pub fn judge_ipv6(
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn whoami_answer_is_parsed_and_judged() {
+        let mut reply = super::dns_query(0x1111, "whoami.akamai.net");
+        reply[2] |= 0x80;
+        reply[3] = 0x80;
+        reply[7] = 1;
+        reply.extend_from_slice(&[0xc0, 0x0c, 0, 1, 0, 1, 0, 0, 0, 60, 0, 4, 203, 0, 113, 50]);
+        let a = super::dns_a_records(0x1111, &reply);
+        assert_eq!(a, Some(vec![std::net::Ipv4Addr::new(203, 0, 113, 50)]));
+        assert!(
+            matches!(super::judge_public_ip(a), aegis_core::Feature::Verified(s) if s == "203.0.113.50")
+        );
+        assert!(matches!(
+            super::judge_public_ip(Some(vec![])),
+            aegis_core::Feature::Failed(_)
+        ));
+        assert!(matches!(
+            super::judge_public_ip(None),
+            aegis_core::Feature::Failed(_)
+        ));
+        assert_eq!(super::dns_a_records(0x2222, &reply), None);
+    }
+
     use super::*;
 
     const SCUTIL: &str = "DNS configuration\n\nresolver #1\n  nameserver[0] : 10.2.0.1\n  flags    : Request A records\n\nresolver #2\n  domain   : local\n  options  : mdns\n\nDNS configuration (for scoped queries)\n\nresolver #1\n  nameserver[0] : 192.168.1.1\n  if_index : 14 (en0)\n  flags    : Scoped, Request A records\n";

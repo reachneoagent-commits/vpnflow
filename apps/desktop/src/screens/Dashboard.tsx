@@ -220,7 +220,11 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
                       : "Waiting for the server"
                   : undefined}
             </Row>
-            <PublicIpRow connected={connected} f={snapshot?.public_ip} />
+            <PublicIpRow
+              connected={connected}
+              f={snapshot?.public_ip}
+              countryCode={selected?.server.location?.country_code}
+            />
           </div>
           <div>
             <Row label="Received" state={stats ? "confirmed" : "unavailable"}>
@@ -402,13 +406,36 @@ function Guard({ title, f }: { title: string; f?: Feature }) {
   );
 }
 
-function PublicIpRow({ connected, f }: { connected: boolean; f?: Feature }) {
+function countryName(code: string | undefined) {
+  if (!code) return undefined;
+  try {
+    return new Intl.DisplayNames(undefined, { type: "region" }).of(code.toUpperCase());
+  } catch {
+    return undefined;
+  }
+}
+
+function PublicIpRow({
+  connected,
+  f,
+  countryCode,
+}: {
+  connected: boolean;
+  f?: Feature;
+  countryCode?: string;
+}) {
   const feature = f ?? { status: "off" as const };
   const state =
     feature.status === "verified" ? "confirmed" : feature.status === "configured" ? "pending" : "unavailable";
   let body: ReactNode;
   if (feature.status === "verified") {
-    body = <span className="font-mono text-[13px]">{feature.detail}</span>;
+    const country = countryName(countryCode);
+    body = (
+      <span>
+        <span className="font-mono text-[13px]">{feature.detail}</span>
+        {country ? <span className="text-muted"> · {country} (server's listed country)</span> : null}
+      </span>
+    );
   } else if (feature.status === "configured") {
     body = feature.detail;
   } else if (feature.status === "failed" || feature.status === "unsupported") {
