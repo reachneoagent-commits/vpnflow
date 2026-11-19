@@ -47,6 +47,7 @@ const settings: Settings = {
   quick_connect_country: null,
   auto_reconnect: true,
   auto_switch_server: true,
+  auto_speed_test: true,
   reconnect_max_attempts: 8,
   kill_switch: false,
   kill_switch_chosen: false,

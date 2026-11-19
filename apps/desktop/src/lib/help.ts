@@ -66,11 +66,11 @@ export const HELP = {
   },
   speedTest: {
     title: "Connection speed",
-    what: "Measures how fast data moves through the VPN right now.",
+    what: "Measures how fast data moves through the VPN right now. By default it runs once on its own, a few seconds after each connection is stable, and shows the result in Connection details.",
     why: "Servers differ in speed. This helps you decide whether to switch location.",
     example: "If downloads feel slow, test, then try another location and test again to compare.",
     tradeoff:
-      "Any VPN is slower than your direct connection because traffic takes a detour and is encrypted. The test uses some of your data.",
+      "Any VPN is slower than your direct connection because traffic takes a detour and is encrypted. Each test uses about 30 MB and contacts Cloudflare's speed server (no identifiers sent). Recommendation: leave it on to compare servers; turn it off in Settings if you're on a metered connection.",
   },
   quickConnect: {
     title: "Quick Connect",

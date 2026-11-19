@@ -37,12 +37,67 @@ function useNow(active: boolean) {
   return now;
 }
 
+type SpeedRun = {
+  busy: boolean;
+  result: (SpeedResult & { at: number }) | null;
+  error: string | null;
+  start: () => Promise<void>;
+};
+
+/** One speed test per connection: runs by itself once the link is stable (if allowed), or on demand. */
+function useSpeedTest(
+  connected: boolean,
+  stable: boolean,
+  auto: boolean,
+  session: number | undefined,
+): SpeedRun {
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<(SpeedResult & { at: number }) | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const autoRanFor = useRef<number | undefined>(undefined);
+
+  // A result belongs to the connection it was measured on.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new session clears the old result
+  useEffect(() => {
+    setResult(null);
+    setError(null);
+  }, [connected, session]);
+
+  const start = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      setResult({ ...(await api.speedTest()), at: Date.now() });
+    } catch (e) {
+      setError(asUiError(e).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: start is stable enough; trigger is the session
+  useEffect(() => {
+    if (auto && connected && stable && session !== undefined && autoRanFor.current !== session) {
+      autoRanFor.current = session;
+      void start();
+    }
+  }, [auto, connected, stable, session]);
+
+  return { busy, result, error, start };
+}
+
 export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
   const { snapshot, profiles, settings, events, run, caps } = useStore();
   const headId = useId();
   const state = snapshot?.state ?? { state: "disconnected" as const };
   const active = isActive(state);
   const now = useNow(state.state === "connected");
+  const speed = useSpeedTest(
+    state.state === "connected",
+    state.state === "connected" && state.peer === "confirmed" && now - state.since_ms >= 8000,
+    settings?.auto_speed_test ?? false,
+    state.state === "connected" ? state.since_ms : undefined,
+  );
   const lastUsed = profiles
     .filter((p) => p.server.last_connected_ms !== null)
     .sort((a, b) => (b.server.last_connected_ms ?? 0) - (a.server.last_connected_ms ?? 0))[0];
@@ -271,11 +326,39 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
                 <Detail label="Sent" state={stats ? "confirmed" : "unavailable"}>
                   {stats ? bytes(stats.tx_bytes) : undefined}
                 </Detail>
-                <Detail label="Download" state={stats ? "confirmed" : "unavailable"}>
+                <Detail label="Current traffic in" state={stats ? "confirmed" : "unavailable"}>
                   {stats ? rate(stats.rx_rate_bps) : undefined}
                 </Detail>
-                <Detail label="Upload" state={stats ? "confirmed" : "unavailable"}>
+                <Detail label="Current traffic out" state={stats ? "confirmed" : "unavailable"}>
                   {stats ? rate(stats.tx_rate_bps) : undefined}
+                </Detail>
+                <Detail
+                  label="Server download speed"
+                  state={speed.result ? "confirmed" : connected ? "pending" : "unavailable"}
+                >
+                  {speed.result
+                    ? mbps(speed.result.download_mbps)
+                    : speed.busy
+                      ? "Measuring…"
+                      : connected
+                        ? settings?.auto_speed_test
+                          ? "Measured once stable"
+                          : "Press Test speed below"
+                        : undefined}
+                </Detail>
+                <Detail
+                  label="Server upload speed"
+                  state={speed.result ? "confirmed" : connected ? "pending" : "unavailable"}
+                >
+                  {speed.result
+                    ? mbps(speed.result.upload_mbps)
+                    : speed.busy
+                      ? "Measuring…"
+                      : connected
+                        ? settings?.auto_speed_test
+                          ? "Measured once stable"
+                          : "Press Test speed below"
+                        : undefined}
                 </Detail>
                 <Detail label="Duration" state={connected ? "confirmed" : "unavailable"}>
                   {connected ? duration(now - state.since_ms) : "Not connected"}
@@ -294,7 +377,7 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
         <LeakSection connected={connected} protection={snapshot?.protection} goTo={goTo} />
       </section>
 
-      <SpeedPanel connected={connected} />
+      <SpeedPanel connected={connected} speed={speed} auto={settings?.auto_speed_test ?? false} />
 
       <Panel
         title="Recent events"
@@ -563,31 +646,9 @@ function PublicIpRow({
 const mbps = (n: number | null) => (n === null ? "Not measured" : `${n.toFixed(1)} Mbps`);
 const ms = (n: number | null) => (n === null ? "Not measured" : `${Math.round(n)} ms`);
 
-/** Runs only when pressed: it downloads and uploads test data and contacts Cloudflare. */
-function SpeedPanel({ connected }: { connected: boolean }) {
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState<(SpeedResult & { at: number }) | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // A result belongs to the connection it was measured on.
-  useEffect(() => {
-    if (!connected) {
-      setResult(null);
-      setError(null);
-    }
-  }, [connected]);
-
-  const start = async () => {
-    setBusy(true);
-    setError(null);
-    try {
-      setResult({ ...(await api.speedTest()), at: Date.now() });
-    } catch (e) {
-      setError(asUiError(e).message);
-    } finally {
-      setBusy(false);
-    }
-  };
+/** Shows the connection's speed test; it runs by itself when allowed, or when pressed. */
+function SpeedPanel({ connected, speed, auto }: { connected: boolean; speed: SpeedRun; auto: boolean }) {
+  const { busy, result, error, start } = speed;
 
   return (
     <Panel
@@ -642,7 +703,9 @@ function SpeedPanel({ connected }: { connected: boolean }) {
       <p className="mt-2 text-[12px] text-muted">
         {result
           ? `Measured through your VPN with ${result.provider} at ${clock(result.at)}. Results vary by server and time of day.`
-          : "Uses about 30 MB of data and contacts Cloudflare's speed server only when you press the button."}
+          : auto
+            ? "Starts by itself a few seconds after the connection is stable. Uses about 30 MB of data and contacts Cloudflare's speed server. Turn this off in Settings."
+            : "Uses about 30 MB of data and contacts Cloudflare's speed server only when you press the button."}
       </p>
     </Panel>
   );

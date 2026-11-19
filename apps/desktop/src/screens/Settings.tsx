@@ -165,6 +165,13 @@ export function SettingsScreen() {
           checked={settings.auto_switch_server}
           onChange={(v) => set({ auto_switch_server: v })}
         />
+        <Switch
+          label="Measure speed automatically"
+          help="speedTest"
+          description="Once a connection is stable, test download and upload speed and show it in Connection details. Uses about 30 MB per connection and contacts Cloudflare."
+          checked={settings.auto_speed_test}
+          onChange={(v) => set({ auto_speed_test: v })}
+        />
         <div className="flex items-center justify-between border-t border-line py-3">
           <label htmlFor={attemptsId} className="font-medium">
             Maximum attempts

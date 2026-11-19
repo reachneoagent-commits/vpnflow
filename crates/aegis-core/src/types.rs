@@ -356,6 +356,8 @@ pub struct Settings {
     /// When a server stops responding, try other servers in the same
     /// country automatically.
     pub auto_switch_server: bool,
+    /// Measure download and upload speed once each connection is stable.
+    pub auto_speed_test: bool,
     /// Requested by the user. Connecting fails if it cannot be established.
     pub kill_switch: bool,
     /// The user has set the kill switch themselves. Until then it follows
@@ -405,6 +407,7 @@ impl Default for Settings {
             auto_reconnect: true,
             reconnect_max_attempts: 8,
             auto_switch_server: true,
+            auto_speed_test: true,
             kill_switch: false,
             kill_switch_chosen: false,
             kill_switch_allow_lan: false,
