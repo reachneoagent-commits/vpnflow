@@ -40,7 +40,7 @@ function supportNote(s: Support | undefined, what: string) {
 }
 
 export function SettingsScreen() {
-  const { settings, saveSettings, caps, profiles, info } = useStore();
+  const { settings, saveSettings, caps, profiles, info, snapshot } = useStore();
   const themeId = useId();
   const prefId = useId();
   const attemptsId = useId();
@@ -55,6 +55,9 @@ export function SettingsScreen() {
   if (!settings) return null;
   const set = (patch: Partial<Settings>) => saveSettings({ ...settings, ...patch });
   const ksUnsupported = caps?.kill_switch.status !== "supported";
+  // The kill switch can only change while fully disconnected.
+  const link = snapshot?.state.state;
+  const ksLocked = link !== undefined && link !== "disconnected" && link !== "failed";
 
   return (
     <div className="flex flex-col gap-7">
@@ -70,14 +73,21 @@ export function SettingsScreen() {
               : "Blocks all traffic outside the tunnel from Connect until you press Disconnect, also while reconnecting or if the app crashes. Server endpoints must be IP addresses. Change it while disconnected."
           }
           checked={settings.kill_switch}
+          disabled={ksLocked}
           onChange={(v) => set({ kill_switch: v })}
         />
+        {ksLocked && (
+          <p role="note" className="-mt-1 mb-2 rounded-lg bg-chip px-3 py-2 text-[12.5px] text-muted">
+            Locked while the VPN is on. To change the kill switch or local network access, press Disconnect on
+            the Dashboard first. The new setting applies the next time you connect.
+          </p>
+        )}
         <Switch
           label="Allow local network"
           help="allowLan"
           description="While the kill switch blocks, devices on your local network (printers, file shares, your router) stay reachable."
           checked={settings.kill_switch_allow_lan}
-          disabled={!settings.kill_switch || ksUnsupported}
+          disabled={!settings.kill_switch || ksUnsupported || ksLocked}
           onChange={(v) => set({ kill_switch_allow_lan: v })}
         />
         <div className="border-t border-line py-3 text-[13px]">
