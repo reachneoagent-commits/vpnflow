@@ -57,7 +57,7 @@ export function SettingsScreen() {
   const ksUnsupported = caps?.kill_switch.status !== "supported";
 
   return (
-    <div className="flex max-w-3xl flex-col gap-7">
+    <div className="flex flex-col gap-7">
       <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">Settings</h1>
 
       <Panel title="Protection">

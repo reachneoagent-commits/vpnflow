@@ -102,7 +102,6 @@ function Shell() {
           protected.
         </div>
       )}
-      <HelperBanner />
       <div className="flex min-h-0 flex-1">
         <nav
           aria-label="Main"
@@ -146,6 +145,7 @@ function Shell() {
           <TopBar />
           <main className="min-w-0 flex-1 overflow-y-auto">
             <div className="mx-auto max-w-[940px] px-8 pt-7 pb-12 max-[720px]:px-4 max-[720px]:pt-5">
+              <HelperBanner />
               {screen === "dashboard" && <Dashboard goTo={setScreen} />}
               {(screen === "locations" || screen === "profiles") && (
                 <LocationsPage initialTab={screen === "profiles" ? "advanced" : "locations"} />
