@@ -24,7 +24,7 @@ Or download an installer yourself:
 | Platform | Installer |
 |---|---|
 | macOS Intel | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_x64.dmg) |
-| macOS Apple Silicon (M1 or newer) | Coming soon |
+| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_aarch64.dmg) |
 | Windows x64 | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_x64_en-US.msi) (preview, cannot connect yet) |
 | Linux | [Build from source](#build-from-source) |
 
@@ -195,7 +195,7 @@ resolving until you set it back to `true`).
 |---|---|
 | Linux with NetworkManager ≥ 1.16 (Ubuntu, Debian, Fedora; GNOME/KDE) | Split-route live test passed on Debian/KDE; full tunnel, DNS and IPv6 leak tests passed in a Debian 13 VM; full tunnel with commercial servers checked by hand on one Debian/KDE desktop alongside Tailscale. Rest of the matrix pending. |
 | Linux without NetworkManager | Not supported yet (shown as unavailable) |
-| macOS (Intel; Apple Silicon coming) | Preview, unsigned |
+| macOS (Intel and Apple Silicon) | Preview, unsigned |
 | Windows 11 x64 | Preview installer; the tunnel service is not implemented yet, so it cannot connect |
 
 ## Build from source
