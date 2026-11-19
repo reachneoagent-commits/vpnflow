@@ -143,7 +143,7 @@ function Shell() {
         </nav>
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar />
-          <main className="min-w-0 flex-1 overflow-y-auto">
+          <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]">
             <div className="mx-auto max-w-[940px] px-8 pt-7 pb-12 max-[720px]:px-4 max-[720px]:pt-5">
               <HelperBanner />
               {screen === "dashboard" && <Dashboard goTo={setScreen} />}
