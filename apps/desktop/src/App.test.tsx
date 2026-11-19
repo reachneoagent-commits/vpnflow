@@ -188,6 +188,13 @@ describe("App", () => {
     expect(screen.queryByRole("region", { name: "One-time setup" })).not.toBeInTheDocument();
   });
 
+  it("shows the desk illustration and import actions when there is nothing to connect", async () => {
+    const { container } = setup({ profiles: [] });
+    await screen.findByRole("heading", { name: "Import a WireGuard file to get started" });
+    expect(screen.getByRole("button", { name: "Import profile" })).toBeInTheDocument();
+    expect(container.querySelector(".ill svg")).not.toBeNull();
+  });
+
   it("shows no simulated banner for a real backend", async () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });

@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { ScreenId } from "../App";
+import deskArt from "../assets/empty-desk.svg?raw";
 import { Button, InfoTip, Panel, Row, type Tone } from "../components/ui";
 import { api, asUiError } from "../lib/api";
 import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
@@ -52,20 +53,32 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
 
   if (profiles.length === 0) {
     return (
-      <div className="max-w-[46ch] py-14">
-        <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.015em]">
-          Import a WireGuard file to get started
-        </h1>
-        <p className="mt-3 text-[15px] text-muted">
-          Drop a <span className="font-mono">.conf</span> onto this window, or import one from your VPN
-          provider or server.
-        </p>
-        <div className="mt-7 flex gap-2">
-          <Button variant="primary" onClick={() => run(api.importDialog)}>
-            Import profile
-          </Button>
-          <Button onClick={() => goTo("locations")}>Add server</Button>
+      <div className="flex items-center gap-10 py-10">
+        <div className="max-w-[46ch] flex-1">
+          <h1 className="text-[34px] leading-[1.1] font-semibold tracking-[-0.015em]">
+            Import a WireGuard file to get started
+          </h1>
+          <p className="mt-3 text-[15px] text-muted">
+            Drop a <span className="font-mono">.conf</span> onto this window, or import one from your VPN
+            provider or server.
+          </p>
+          <div className="mt-7 flex gap-2">
+            <Button variant="primary" onClick={() => run(api.importDialog)}>
+              Import profile
+            </Button>
+            <Button onClick={() => goTo("locations")}>Add server</Button>
+          </div>
         </div>
+        <aside aria-hidden className="hidden shrink-0 flex-col items-center gap-3 min-[760px]:flex">
+          <div
+            className="ill w-full max-w-[280px]"
+            // biome-ignore lint/security/noDangerouslySetInnerHtml: bundled static SVG file, no user input
+            dangerouslySetInnerHTML={{ __html: deskArt }}
+          />
+          <p className="max-w-[24ch] text-center text-[13px] leading-snug text-muted">
+            Nothing here yet. Add a server file and you are ready.
+          </p>
+        </aside>
       </div>
     );
   }
