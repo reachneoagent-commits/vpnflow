@@ -312,7 +312,7 @@ function PrimaryAction({ selected }: { selected?: ProfileView }) {
   const state = snapshot?.state ?? { state: "disconnected" as const };
   if (state.state === "connecting" || state.state === "preparing" || state.state === "reconnecting") {
     return (
-      <Button className={big} onClick={() => run(api.cancel)}>
+      <Button className={big} onClick={() => run(api.disconnect)}>
         Cancel
       </Button>
     );

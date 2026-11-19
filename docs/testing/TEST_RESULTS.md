@@ -934,3 +934,12 @@ Installed build matches the built binary (cmp). User ran Test speed once connect
 - Shown only when `onboarded` is false and no profiles exist, so existing installs skip it.
 - Ran: aegis-desktop tests (7 pass, 3 new), aegis-core tests (69 pass), clippy clean, tsc clean, vitest 30 pass, release app built.
 - NOT verified: the screens in the running app; Proton link URLs (account.proton.me paths are from memory, check each opens the right page); macOS may ask permission to read Downloads on first scan.
+
+## 2026-11-18: leak test, exit IP, daemon update (macOS, live)
+
+User connected to JP-FREE#2 on the rebuilt app and sent a screenshot (their report, not a scripted run):
+- Leak test panel: "No leaks found". Kill switch, DNS, IPv6, reachability and public IP all Protected. Public IP check showed egress IPv4 37.19.205.194; the connection details showed it as Japan (server's listed country).
+- Kill switch, DNS and IPv6 protection all read Verified while connected; handshake and traffic counters were live.
+- Found and fixed: the installed root daemon was older than the app, so connecting failed with "malformed request" and the screen stuck on "Preparing". Reinstalling the daemon (`install-daemon.sh install <daemon> <wireguard-go>`) fixed it. wireguard-go is not in Homebrew on this Mac, so the installer needs it passed explicitly.
+- Found and fixed: a failed connection setup (bypass or firewall step) left the state at Preparing, and Cancel did nothing. The engine now reports Failed, and Cancel does a full disconnect. aegis-core 71 tests pass, tsc clean.
+- Not yet verified live: Skip-the-VPN bypass behaviour, tray Quick connect, the fixed Cancel button (the stuck state was not reproduced after the daemon update), a leak test with a deliberately leaking state.

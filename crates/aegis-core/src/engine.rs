@@ -802,6 +802,10 @@ impl<B: VpnBackend> Engine<B> {
             .collect::<Vec<_>>();
         if let Err(e) = self.backend.apply_bypass(&bypass).await {
             self.log(Level::Error, format!("Bypass list not applied: {e}"));
+            self.set_state(ConnectionState::Failed {
+                profile: Some(id),
+                reason: format!("could not prepare the connection: {e}"),
+            });
             return Err(e);
         }
         match &block {
@@ -840,7 +844,15 @@ impl<B: VpnBackend> Engine<B> {
                 );
             }
             // A block left from an earlier session ends when connecting without one.
-            None => self.end_block().await?,
+            None => {
+                if let Err(e) = self.end_block().await {
+                    self.set_state(ConnectionState::Failed {
+                        profile: Some(id),
+                        reason: format!("could not prepare the connection: {e}"),
+                    });
+                    return Err(e);
+                }
+            }
         }
         self.set_state(ConnectionState::Connecting { profile: id });
 
