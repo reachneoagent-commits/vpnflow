@@ -15,9 +15,11 @@ pub fn slept(wall: Duration, mono: Duration) -> bool {
 }
 
 fn is_tunnel_or_virtual(name: &str) -> bool {
-    ["utun", "lo", "awdl", "llw", "bridge", "gif", "stf", "ap", "anpi"]
-        .iter()
-        .any(|p| name.starts_with(p))
+    [
+        "utun", "lo", "awdl", "llw", "bridge", "gif", "stf", "ap", "anpi",
+    ]
+    .iter()
+    .any(|p| name.starts_with(p))
 }
 
 /// A fingerprint of how this Mac reaches the network, ignoring VPN tunnels.
@@ -116,8 +118,14 @@ mod tests {
         let tun_changed = a.replace("10.2.0.2", "10.2.0.9");
         let wifi_changed = a.replace("192.168.1.20", "172.20.10.4");
         let ns = "default 192.168.1.1 UGScg en0\ndefault link#25 UCSIg utun4\n";
-        assert_eq!(network_signature(a, ns), network_signature(&tun_changed, ns));
-        assert_ne!(network_signature(a, ns), network_signature(&wifi_changed, ns));
+        assert_eq!(
+            network_signature(a, ns),
+            network_signature(&tun_changed, ns)
+        );
+        assert_ne!(
+            network_signature(a, ns),
+            network_signature(&wifi_changed, ns)
+        );
         let off = a.replace("status: active", "status: inactive");
         assert_ne!(network_signature(a, ns), network_signature(&off, ns));
     }

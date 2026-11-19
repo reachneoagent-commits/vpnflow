@@ -131,6 +131,11 @@ export interface LogEntry {
   message: string;
 }
 
+export interface TrustedNetwork {
+  id: string;
+  name: string;
+}
+
 export interface Settings {
   theme: Theme;
   close_to_tray: boolean;
@@ -144,6 +149,8 @@ export interface Settings {
   kill_switch: boolean;
   kill_switch_allow_lan: boolean;
   bypass: string[];
+  trusted_networks_enabled: boolean;
+  trusted_networks: TrustedNetwork[];
   notifications: boolean;
   connectivity_check: boolean;
   check_updates: boolean;

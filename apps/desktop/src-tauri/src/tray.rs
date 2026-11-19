@@ -60,7 +60,9 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
         "quick",
         "Quick connect",
         idle && engine.capabilities().available.is_supported()
-            && profiles.iter().any(|p| aegis_core::registry::eligible(&p.meta)),
+            && profiles
+                .iter()
+                .any(|p| aegis_core::registry::eligible(&p.meta)),
         None::<&str>,
     )?;
     let blocking = matches!(

@@ -50,6 +50,8 @@ const settings: Settings = {
   kill_switch: false,
   kill_switch_allow_lan: false,
   bypass: [],
+  trusted_networks_enabled: false,
+  trusted_networks: [],
   notifications: false,
   connectivity_check: true,
   check_updates: false,

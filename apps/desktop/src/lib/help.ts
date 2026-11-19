@@ -67,6 +67,15 @@ export const HELP = {
     tradeoff:
       "It doesn't measure speed, so the server it picks may not be the fastest. Choose a location yourself if you need a specific country.",
   },
+  trustedNetworks: {
+    title: "Trusted networks",
+    what: "Marks networks you trust, like your home Wi-Fi. VPNFlow turns the VPN off on them and turns it on everywhere else.",
+    why: "At home you may not need the VPN, and it can slow things down or block devices like printers. On cafe, hotel or airport Wi-Fi you do want it.",
+    example:
+      "Trust your home network once. When you join it, the VPN disconnects. When you join a cafe network, VPNFlow connects for you.",
+    tradeoff:
+      "A network is recognised by its router, so someone could in theory copy your router's address on a fake network and make VPNFlow switch off. On a trusted network your internet provider and the sites you visit see your real address and traffic. It acts only when the network changes, so connecting by hand stays as you left it.",
+  },
   bypass: {
     title: "Skip the VPN",
     what: "A list of addresses that use your normal internet connection instead of the VPN.",

@@ -318,6 +318,18 @@ pub enum Theme {
     Dark,
 }
 
+/// A network the user trusts, such as home Wi-Fi. `id` is the router's
+/// hardware address (macOS hides Wi-Fi names from apps without a location
+/// permission, the router address needs none and also covers Ethernet).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TrustedNetwork {
+    pub id: String,
+    pub name: String,
+}
+
+/// Most trusted networks a user may keep.
+pub const MAX_TRUSTED: usize = 20;
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Settings {
@@ -339,6 +351,11 @@ pub struct Settings {
     /// Destinations (IP or CIDR) that skip the VPN and use the normal
     /// connection. Applies from the next connection. Empty by default.
     pub bypass: Vec<String>,
+    /// When on, the VPN switches itself off on a trusted network and on
+    /// everywhere else. Acts only when the network changes.
+    pub trusted_networks_enabled: bool,
+    /// Networks the user marked as trusted, identified by the router.
+    pub trusted_networks: Vec<TrustedNetwork>,
     pub notifications: bool,
     /// User-controllable DNS checks through the configured tunnel resolver.
     pub connectivity_check: bool,
@@ -362,6 +379,8 @@ impl Default for Settings {
             kill_switch: false,
             kill_switch_allow_lan: false,
             bypass: vec![],
+            trusted_networks_enabled: false,
+            trusted_networks: vec![],
             notifications: true,
             connectivity_check: true,
             check_updates: false,

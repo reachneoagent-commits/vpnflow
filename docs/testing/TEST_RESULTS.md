@@ -951,3 +951,10 @@ Added 1.1.1.1 to the bypass list, reconnected to JP-FREE#2, then checked the rou
 - `route get 8.8.8.8`: default via utun8 (still tunnelled).
 - Full-tunnel split routes 0/1 and 128.0/1 on utun8 remained in place; a plain HTTP request to 1.1.1.1 still answered (301).
 - Verified: IPv4 route behaviour for a single address. Not verified: CIDR ranges, DNS for bypassed names (still goes through the VPN DNS), bypass entries being removed on disconnect, a bypassed LAN device such as the Hermes host.
+
+## 2026-11-18: Trusted networks (macOS, built, not yet live-tested)
+
+- Network identity is the router's hardware address (`route -n get default -ifscope en0`, then `arp -n <gateway>`). On this Mac `networksetup`, `ipconfig getsummary` and `system_profiler` all return the Wi-Fi name as `<redacted>`, so SSID matching is not possible without a location permission.
+- Unit tests pass for arp/route parsing, MAC normalisation, and the decision table (trusted -> disconnect, untrusted idle -> connect, offline/disabled -> nothing). Clippy clean, UI tests 30 pass, release app rebuilt.
+- Not tested live: joining a trusted vs untrusted network with the feature on, the scoped route lookup while the VPN is connected, Ethernet, a router that does not answer ARP.
+- `cargo test --workspace` on macOS also runs the Linux-only `aegis-helper` tests; 3 of them fail here (not touched by this change).

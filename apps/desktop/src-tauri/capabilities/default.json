@@ -35,6 +35,7 @@
     "allow-export-diagnostics",
     "allow-speed-test",
     "allow-open-link",
-    "allow-scan-downloads"
+    "allow-scan-downloads",
+    "allow-current-network"
   ]
 }

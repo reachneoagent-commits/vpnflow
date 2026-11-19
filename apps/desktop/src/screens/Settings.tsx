@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
 import { Button, InfoTip, Panel, Switch } from "../components/ui";
+import { api } from "../lib/api";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
@@ -15,6 +16,8 @@ export function SettingsScreen() {
   const attemptsId = useId();
   const bypassId = useId();
   const [bypassDraft, setBypassDraft] = useState("");
+  const [trustDraft, setTrustDraft] = useState("");
+  const [trustMsg, setTrustMsg] = useState<string | null>(null);
   if (!settings) return null;
   const set = (patch: Partial<Settings>) => saveSettings({ ...settings, ...patch });
   const ksUnsupported = caps?.kill_switch.status !== "supported";
@@ -111,6 +114,66 @@ export function SettingsScreen() {
           />
         </div>
       </Panel>
+
+      {caps?.backend === "macos_daemon" && (
+        <Panel title="Trusted networks" help="trustedNetworks">
+          <Switch
+            label="Switch the VPN off on trusted networks, on elsewhere"
+            description="Acts when you join a different network. Uses your preferred profile, or Quick connect if none is set."
+            checked={settings.trusted_networks_enabled}
+            onChange={(v) => set({ trusted_networks_enabled: v })}
+          />
+          <div className="py-3 text-[13px]">
+            <form
+              className="flex gap-2"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const name = trustDraft.trim();
+                if (!name) return;
+                const id = await api.currentNetwork();
+                if (!id) {
+                  setTrustMsg("Could not tell which network this is. Connect to a network first.");
+                  return;
+                }
+                if (settings.trusted_networks.some((n) => n.id === id)) {
+                  setTrustMsg("This network is already trusted.");
+                  return;
+                }
+                setTrustMsg(null);
+                setTrustDraft("");
+                void saveSettings({
+                  ...settings,
+                  trusted_networks: [...settings.trusted_networks, { id, name }],
+                });
+              }}
+            >
+              <input
+                aria-label="Name for this network"
+                value={trustDraft}
+                onChange={(e) => setTrustDraft(e.target.value)}
+                placeholder="Name, such as Home"
+                className="w-64 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+              />
+              <Button type="submit">Trust this network</Button>
+            </form>
+            {trustMsg && <p className="mt-2 text-muted">{trustMsg}</p>}
+            <ul className="mt-2 flex flex-col gap-1">
+              {settings.trusted_networks.map((n) => (
+                <li key={n.id} className="flex items-center justify-between">
+                  <span>{n.name}</span>
+                  <Button
+                    onClick={() =>
+                      void set({ trusted_networks: settings.trusted_networks.filter((t) => t.id !== n.id) })
+                    }
+                  >
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Panel>
+      )}
 
       {caps?.backend === "macos_daemon" && (
         <Panel title="Skip the VPN" help="bypass">

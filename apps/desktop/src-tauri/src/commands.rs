@@ -351,11 +351,16 @@ pub async fn speed_test() -> R<crate::speed::SpeedResult> {
         })
 }
 
+/// The router address of the current network, for "Trust this network".
+#[tauri::command]
+pub fn current_network() -> Option<String> {
+    crate::trusted::current_network_id()
+}
+
 /// Opens one of the fixed onboarding links in the user's browser.
 #[tauri::command]
 pub fn open_link(which: String) -> R<()> {
-    let url = crate::onboarding::link(&which)
-        .ok_or_else(|| UiError::msg("unknown link"))?;
+    let url = crate::onboarding::link(&which).ok_or_else(|| UiError::msg("unknown link"))?;
     crate::onboarding::open_in_browser(url).map_err(|_| UiError::msg("could not open your browser"))
 }
 
@@ -368,7 +373,10 @@ pub struct ScanResult {
 /// Imports new WireGuard `.conf` files from the Downloads folder.
 #[tauri::command]
 pub async fn scan_downloads(st: State<'_, AppState>, since_ms: u64) -> R<ScanResult> {
-    let mut res = ScanResult { imported: vec![], failed: 0 };
+    let mut res = ScanResult {
+        imported: vec![],
+        failed: 0,
+    };
     let Some(dir) = crate::onboarding::downloads_dir() else {
         return Ok(res);
     };

@@ -50,6 +50,7 @@ export const api = {
   openLink: (which: string) => invoke<void>("open_link", { which }),
   scanDownloads: (sinceMs: number) =>
     invoke<{ imported: string[]; failed: number }>("scan_downloads", { sinceMs }),
+  currentNetwork: () => invoke<string | null>("current_network"),
   speedTest: () => invoke<SpeedResult>("speed_test"),
 };
 

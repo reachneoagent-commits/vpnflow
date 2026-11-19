@@ -114,6 +114,17 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
     onDone();
   };
 
+  // Leave setup at any step. Anything already imported or chosen stays.
+  const cancel = async () => {
+    if (!settings.onboarded) await saveSettings({ ...settings, onboarded: true });
+    try {
+      localStorage.removeItem(KEY);
+    } catch {
+      /* ignore */
+    }
+    onDone();
+  };
+
   const chooseFiles = async () => {
     await run(async () => {
       const added = await api.importDialog();
@@ -179,6 +190,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <Button variant="ghost" onClick={() => void skip()}>
               Skip, I already have server files
             </Button>
+            <Button variant="ghost" onClick={() => void cancel()}>
+              Cancel setup
+            </Button>
           </div>
         </section>
       )}
@@ -201,7 +215,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             <LinkButton which="signup">Open Proton sign-up</LinkButton>
             <LinkButton which="login">I already have an account: log in</LinkButton>
           </div>
-          <Nav back={() => go(0)} next={() => go(2)} nextLabel="I have an account" />
+          <Nav
+            cancel={() => void cancel()}
+            back={() => go(0)}
+            next={() => go(2)}
+            nextLabel="I have an account"
+          />
         </section>
       )}
 
@@ -251,6 +270,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
             </div>
           )}
           <Nav
+            cancel={() => void cancel()}
             back={() => go(1)}
             next={() => go(3)}
             nextLabel="Continue"
@@ -292,7 +312,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               })}
             </ul>
           </Panel>
-          <Nav back={() => go(2)} next={() => go(4)} nextLabel="Continue" nextDisabled={enabledCount === 0} />
+          <Nav
+            cancel={() => void cancel()}
+            back={() => go(2)}
+            next={() => go(4)}
+            nextLabel="Continue"
+            nextDisabled={enabledCount === 0}
+          />
         </section>
       )}
 
@@ -328,7 +354,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
               onChange={(v) => void saveSettings({ ...settings, launch_on_login: v })}
             />
           </Panel>
-          <Nav back={() => go(3)} next={() => void finish()} nextLabel="Finish setup" />
+          <Nav
+            cancel={() => void cancel()}
+            back={() => go(3)}
+            next={() => void finish()}
+            nextLabel="Finish setup"
+          />
         </section>
       )}
     </div>
@@ -336,11 +367,13 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 }
 
 function Nav({
+  cancel,
   back,
   next,
   nextLabel,
   nextDisabled,
 }: {
+  cancel: () => void;
   back: () => void;
   next: () => void;
   nextLabel: string;
@@ -353,6 +386,9 @@ function Nav({
       </Button>
       <Button variant="primary" onClick={next} disabled={nextDisabled}>
         {nextLabel}
+      </Button>
+      <Button variant="ghost" onClick={cancel}>
+        Cancel setup
       </Button>
     </div>
   );

@@ -656,6 +656,17 @@ impl<B: VpnBackend> Engine<B> {
         nets.sort();
         nets.dedup();
         s.bypass = nets.iter().map(ToString::to_string).collect();
+        if s.trusted_networks.len() > crate::types::MAX_TRUSTED {
+            return Err(CoreError::invalid("too many trusted networks"));
+        }
+        for n in &mut s.trusted_networks {
+            n.id = n.id.trim().to_ascii_lowercase();
+            n.name = n.name.trim().chars().take(40).collect();
+            if n.id.is_empty() || n.name.is_empty() {
+                return Err(CoreError::invalid("a trusted network needs a name"));
+            }
+        }
+        s.trusted_networks.dedup_by(|a, b| a.id == b.id);
         s.reconnect_max_attempts = s.reconnect_max_attempts.clamp(1, 50);
         let preferred_changed = self.live().settings.preferred_profile != s.preferred_profile;
         self.store.save_settings(&s)?;

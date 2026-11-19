@@ -3,6 +3,7 @@ mod commands;
 mod onboarding;
 mod speed;
 mod tray;
+mod trusted;
 
 use std::sync::Arc;
 
@@ -57,6 +58,7 @@ pub fn run() {
                 tray_available,
             });
             forward_events(app.handle().clone(), Arc::clone(&engine));
+            trusted::spawn(Arc::clone(&engine));
 
             // Larger text for readability: the UI uses fixed px sizes, so scale the
             // whole page (text and spacing together) like browser zoom.
@@ -125,6 +127,7 @@ pub fn run() {
             commands::speed_test,
             commands::open_link,
             commands::scan_downloads,
+            commands::current_network,
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {

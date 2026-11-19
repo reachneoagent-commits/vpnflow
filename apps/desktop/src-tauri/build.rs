@@ -29,6 +29,7 @@ const COMMANDS: &[&str] = &[
     "speed_test",
     "open_link",
     "scan_downloads",
+    "current_network",
 ];
 
 fn main() {

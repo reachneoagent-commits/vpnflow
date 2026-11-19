@@ -81,7 +81,11 @@ mod tests {
 
     #[test]
     fn only_known_links_open() {
-        assert!(link("signup").unwrap().starts_with("https://account.proton.me/"));
+        assert!(
+            link("signup")
+                .unwrap()
+                .starts_with("https://account.proton.me/")
+        );
         assert!(link("https://evil.example").is_none());
         assert!(link("").is_none());
     }

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-current-network"
+description = "Enables the current_network command without any pre-configured scope."
+commands.allow = ["current_network"]
+
+[[permission]]
+identifier = "deny-current-network"
+description = "Denies the current_network command without any pre-configured scope."
+commands.deny = ["current_network"]

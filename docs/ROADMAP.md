@@ -9,7 +9,7 @@ Ordered by value to a non-technical user. Done items link to their test record i
 
 ## Next
 1. Auto-connect on launch/login, and reconnect after sleep or a network change.
-2. Trusted networks: skip the VPN on home Wi-Fi, always connect on others.
+2. (built, awaiting live test) Trusted networks: skip the VPN on home Wi-Fi, always connect on others. Networks are identified by router address because macOS hides Wi-Fi names.
 3. Menu bar icon: status, one-click connect, quick server switch.
 4. Kill switch on by default, with clearer wording.
 5. (first-run screens built, awaiting live test) Folder auto-import of Proton configs and a first-run guide.
