@@ -6,7 +6,7 @@
 //! DECISIONS D16); nothing here is a security boundary on its own, but every
 //! decoder bounds its input before allocating.
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use aegis_core::{Capabilities, CoreError, ProfileId, TunnelStatus};
 use serde::{Deserialize, Serialize};
@@ -75,6 +75,11 @@ pub enum Request {
     /// Destinations (IP or CIDR) that skip the tunnel. Sent before `Activate`.
     SetBypass {
         nets: Vec<String>,
+    },
+    /// DNS servers to use inside the tunnel instead of the profile's. Empty
+    /// keeps the profile's. Sent before `Activate`.
+    SetDns {
+        servers: Vec<IpAddr>,
     },
 }
 

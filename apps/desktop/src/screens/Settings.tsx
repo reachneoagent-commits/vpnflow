@@ -4,6 +4,34 @@ import { api } from "../lib/api";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
+const DNS_PRESETS: { id: string; label: string; note: string; servers: string[] }[] = [
+  { id: "vpn", label: "The VPN's own (default)", note: "Private, no blocking.", servers: [] },
+  {
+    id: "adguard",
+    label: "AdGuard: blocks ads and trackers",
+    note: "Blocks most ads and trackers on every site and app.",
+    servers: ["94.140.14.14", "94.140.15.15"],
+  },
+  {
+    id: "cf-malware",
+    label: "Cloudflare: blocks malware",
+    note: "Blocks known malware sites. Does not block ads.",
+    servers: ["1.1.1.2", "1.0.0.2"],
+  },
+  {
+    id: "quad9",
+    label: "Quad9: blocks dangerous sites",
+    note: "Blocks known phishing and malware sites. Does not block ads.",
+    servers: ["9.9.9.9", "149.112.112.112"],
+  },
+  { id: "cf", label: "Cloudflare: fast, no blocking", note: "No blocking.", servers: ["1.1.1.1", "1.0.0.1"] },
+];
+
+function dnsPresetFor(servers: string[]) {
+  if (servers.length === 0) return "vpn";
+  return DNS_PRESETS.find((p) => p.servers.join() === servers.join())?.id ?? "custom";
+}
+
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
 function supportNote(s: Support | undefined, what: string) {
@@ -17,6 +45,10 @@ export function SettingsScreen() {
   const prefId = useId();
   const attemptsId = useId();
   const bypassId = useId();
+  const dnsId = useId();
+  const dnsCustomId = useId();
+  const [dnsCustom, setDnsCustom] = useState(false);
+  const [dnsDraft, setDnsDraft] = useState("");
   const [bypassDraft, setBypassDraft] = useState("");
   const [trustDraft, setTrustDraft] = useState("");
   const [trustMsg, setTrustMsg] = useState<string | null>(null);
@@ -232,6 +264,73 @@ export function SettingsScreen() {
           </div>
         )}
       </Panel>
+
+      {caps?.backend === "macos_daemon" && (
+        <Panel title="DNS and ad blocking">
+          <div className="py-3 text-[13px]">
+            <label htmlFor={dnsId} className="font-medium">
+              Name lookup service
+            </label>
+            <p className="mt-0.5 max-w-[65ch] text-muted">
+              Every website name is looked up by a DNS service. Choosing a blocking one stops ads, trackers or
+              dangerous sites before they load. The service you pick sees your lookups instead of the VPN
+              provider, and DNS blocking does not catch every ad. Lookups always travel through the VPN.
+              Applies from the next connection.
+            </p>
+            <select
+              id={dnsId}
+              value={dnsCustom ? "custom" : dnsPresetFor(settings.dns_servers)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "custom") {
+                  setDnsCustom(true);
+                  setDnsDraft(settings.dns_servers.join(", "));
+                  return;
+                }
+                setDnsCustom(false);
+                void set({ dns_servers: DNS_PRESETS.find((p) => p.id === v)?.servers ?? [] });
+              }}
+              className="mt-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+            >
+              {DNS_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.label}
+                </option>
+              ))}
+              <option value="custom">Your own servers…</option>
+            </select>
+            {!(dnsCustom || dnsPresetFor(settings.dns_servers) === "custom") && (
+              <p className="mt-1.5 text-muted">
+                {DNS_PRESETS.find((p) => p.id === dnsPresetFor(settings.dns_servers))?.note}
+              </p>
+            )}
+            {(dnsCustom || dnsPresetFor(settings.dns_servers) === "custom") && (
+              <form
+                className="mt-2 flex gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const list = dnsDraft
+                    .split(/[\s,]+/)
+                    .map((x) => x.trim())
+                    .filter(Boolean);
+                  // A rejected address shows up as an error toast and is not saved.
+                  void saveSettings({ ...settings, dns_servers: list });
+                }}
+              >
+                <input
+                  id={dnsCustomId}
+                  aria-label="DNS server addresses"
+                  value={dnsDraft}
+                  onChange={(e) => setDnsDraft(e.target.value)}
+                  placeholder="94.140.14.14, 94.140.15.15"
+                  className="w-72 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+                />
+                <Button type="submit">Save</Button>
+              </form>
+            )}
+          </div>
+        </Panel>
+      )}
 
       {caps?.backend === "macos_daemon" && (
         <Panel title="Skip the VPN" help="bypass">

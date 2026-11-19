@@ -88,6 +88,22 @@ pub trait VpnBackend: Send + Sync + 'static {
         }
     }
 
+    /// DNS servers to use inside the tunnel instead of the profile's. Sent
+    /// before `activate`; empty means the profile's own. Default: unsupported
+    /// when servers are given, so a backend cannot silently ignore them.
+    fn apply_dns(&self, servers: &[std::net::IpAddr]) -> impl Future<Output = Result<()>> + Send {
+        let empty = servers.is_empty();
+        async move {
+            if empty {
+                Ok(())
+            } else {
+                Err(CoreError::unsupported(
+                    "custom DNS is not available on this system yet",
+                ))
+            }
+        }
+    }
+
     /// Remove the kill switch block. Removing when none exists is not an error.
     fn remove_kill_switch(&self) -> impl Future<Output = Result<()>> + Send;
 

@@ -361,6 +361,10 @@ pub struct Settings {
     /// Destinations (IP or CIDR) that skip the VPN and use the normal
     /// connection. Applies from the next connection. Empty by default.
     pub bypass: Vec<String>,
+    /// Name servers to use inside the tunnel instead of the ones in the
+    /// profile (for example an ad-blocking resolver). Empty keeps the
+    /// profile's own. Applies from the next connection.
+    pub dns_servers: Vec<String>,
     /// When on, the VPN switches itself off on a trusted network and on
     /// everywhere else. Acts only when the network changes.
     pub trusted_networks_enabled: bool,
@@ -397,6 +401,7 @@ impl Default for Settings {
             kill_switch: false,
             kill_switch_allow_lan: false,
             bypass: vec![],
+            dns_servers: vec![],
             trusted_networks_enabled: false,
             trusted_networks: vec![],
             schedule_enabled: false,
@@ -453,6 +458,62 @@ pub fn parse_bypass(entry: &str) -> crate::error::Result<ipnet::IpNet> {
         ));
     }
     Ok(net.trunc())
+}
+
+/// Most custom DNS servers that may be set.
+pub const MAX_DNS_SERVERS: usize = 4;
+
+/// Parse a custom DNS server: a public IPv4 address. Private, loopback,
+/// link-local and similar addresses are refused because the lookups travel
+/// through the tunnel and could never reach them there.
+pub fn parse_dns_server(entry: &str) -> crate::error::Result<std::net::Ipv4Addr> {
+    let t = entry.trim();
+    let bad = |why: &str| {
+        crate::error::CoreError::invalid(format!("\"{t}\" cannot be used as a DNS server: {why}"))
+    };
+    let ip = t
+        .parse::<std::net::Ipv4Addr>()
+        .map_err(|_| bad("use an IPv4 address such as 94.140.14.14"))?;
+    let o = ip.octets();
+    let cgnat = o[0] == 100 && (64..128).contains(&o[1]);
+    if ip.is_private()
+        || ip.is_loopback()
+        || ip.is_link_local()
+        || ip.is_unspecified()
+        || ip.is_multicast()
+        || ip.is_broadcast()
+        || cgnat
+    {
+        return Err(bad("it must be a public address reachable through the VPN"));
+    }
+    Ok(ip)
+}
+
+#[cfg(test)]
+mod dns_tests {
+    use super::parse_dns_server;
+
+    #[test]
+    fn accepts_public_ipv4_only() {
+        assert_eq!(
+            parse_dns_server(" 94.140.14.14 ").unwrap().to_string(),
+            "94.140.14.14"
+        );
+        for bad in [
+            "10.2.0.1",
+            "192.168.1.1",
+            "127.0.0.1",
+            "0.0.0.0",
+            "169.254.1.1",
+            "100.64.0.1",
+            "224.0.0.1",
+            "2606:4700::1111",
+            "dns.google",
+            "",
+        ] {
+            assert!(parse_dns_server(bad).is_err(), "{bad}");
+        }
+    }
 }
 
 #[cfg(test)]

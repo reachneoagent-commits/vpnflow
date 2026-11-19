@@ -53,6 +53,7 @@ struct State {
     active: Option<Active>,
     kill: Option<KillSpec>,
     bypass: Vec<ipnet::IpNet>,
+    dns_override: Vec<IpAddr>,
     pf_token: Option<String>,
 }
 
@@ -303,6 +304,16 @@ impl TunnelManager {
         Ok(())
     }
 
+    /// Replace the custom DNS servers. Like the bypass list it takes effect
+    /// from the next `activate`.
+    pub async fn set_dns_override(&self, servers: &[IpAddr]) -> Result<()> {
+        if servers.len() > aegis_core::MAX_DNS_SERVERS {
+            return Err(CoreError::invalid("too many DNS servers"));
+        }
+        self.state.lock().await.dns_override = servers.to_vec();
+        Ok(())
+    }
+
     pub async fn remove_kill_switch(&self) -> Result<()> {
         let mut st = self.state.lock().await;
         run(
@@ -440,7 +451,12 @@ impl TunnelManager {
             }
         }
 
-        Self::set_dns(&cfg.interface.dns).await?;
+        if st.dns_override.is_empty() {
+            Self::set_dns(&cfg.interface.dns).await?;
+        } else {
+            let custom = st.dns_override.clone();
+            Self::set_dns(&custom).await?;
+        }
 
         // A kill switch asked for before the interface existed now learns its name.
         if let Some(spec) = st.kill.as_ref().filter(|k| k.id == id) {

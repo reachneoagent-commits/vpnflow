@@ -130,6 +130,7 @@ impl Handler for Daemon {
                     .await,
             ),
             Request::SetBypass { nets } => done(self.tunnel.set_bypass(&nets).await),
+            Request::SetDns { servers } => done(self.tunnel.set_dns_override(&servers).await),
             Request::RemoveKillSwitch => done(self.tunnel.remove_kill_switch().await),
             Request::KillSwitchActive => match self.tunnel.kill_switch_active().await {
                 Ok(active) => Response::Active { active },

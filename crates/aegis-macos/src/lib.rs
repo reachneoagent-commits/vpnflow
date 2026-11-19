@@ -287,6 +287,12 @@ mod imp {
             })
             .await
         }
+        async fn apply_dns(&self, servers: &[std::net::IpAddr]) -> Result<()> {
+            expect_ok(Request::SetDns {
+                servers: servers.to_vec(),
+            })
+            .await
+        }
         async fn remove_kill_switch(&self) -> Result<()> {
             expect_ok(Request::RemoveKillSwitch).await
         }

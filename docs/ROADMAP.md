@@ -17,6 +17,7 @@ Ordered by value to a non-technical user. Done items link to their test record i
 7. Public IP and country display on macOS (Linux has it).
 8. Real DNS/IPv6 firewall enforcement in the pf rules, not only route checks.
 9. (built, awaiting live test) Scheduled connect and disconnect at set times and days.
+10. (built, awaiting live test) Custom DNS and ad blocking: pick AdGuard, Cloudflare malware, Quad9 or your own servers (macOS; needs the updated daemon).
 
 ## Later
 - Developer ID signing and notarization (blocks wide distribution).

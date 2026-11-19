@@ -656,6 +656,16 @@ impl<B: VpnBackend> Engine<B> {
         nets.sort();
         nets.dedup();
         s.bypass = nets.iter().map(ToString::to_string).collect();
+        if s.dns_servers.len() > crate::types::MAX_DNS_SERVERS {
+            return Err(CoreError::invalid("too many DNS servers"));
+        }
+        let mut dns = s
+            .dns_servers
+            .iter()
+            .map(|e| crate::types::parse_dns_server(e))
+            .collect::<Result<Vec<_>>>()?;
+        dns.dedup();
+        s.dns_servers = dns.iter().map(ToString::to_string).collect();
         if s.trusted_networks.len() > crate::types::MAX_TRUSTED {
             return Err(CoreError::invalid("too many trusted networks"));
         }
@@ -822,6 +832,20 @@ impl<B: VpnBackend> Engine<B> {
             .collect::<Vec<_>>();
         if let Err(e) = self.backend.apply_bypass(&bypass).await {
             self.log(Level::Error, format!("Bypass list not applied: {e}"));
+            self.set_state(ConnectionState::Failed {
+                profile: Some(id),
+                reason: format!("could not prepare the connection: {e}"),
+            });
+            return Err(e);
+        }
+        let dns = settings
+            .dns_servers
+            .iter()
+            .filter_map(|e| crate::types::parse_dns_server(e).ok())
+            .map(std::net::IpAddr::V4)
+            .collect::<Vec<_>>();
+        if let Err(e) = self.backend.apply_dns(&dns).await {
+            self.log(Level::Error, format!("Custom DNS not applied: {e}"));
             self.set_state(ConnectionState::Failed {
                 profile: Some(id),
                 reason: format!("could not prepare the connection: {e}"),

@@ -63,6 +63,7 @@ const settings: Settings = {
   kill_switch: false,
   kill_switch_allow_lan: false,
   bypass: [],
+  dns_servers: [],
   trusted_networks_enabled: false,
   trusted_networks: [],
   schedule_enabled: false,

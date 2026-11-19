@@ -971,3 +971,8 @@ Unit test `dns_outside_the_tunnel_is_blocked_even_with_local_network_allowed` pa
 
 - Live, tunnel connected, kill switch on: `curl -6 https://v6.ident.me` failed (no IPv6 path off the machine); the only global IPv6 address was the tunnel's own. One earlier `curl -6` to a dual-stack service returned the VPN's IPv4 address, so it proved nothing on its own. Not covered: IPv6 with the kill switch off, and a native-IPv6 network.
 - Scheduled connect: built. Unit tests only (`schedule::tests`, 2 pass); core 71, desktop 12, UI 30 pass; clippy clean. Not tested live (no connect/disconnect at a real scheduled time yet).
+
+## 2026-11-18: Custom DNS and ad blocking (macOS), built only
+
+Not run live. What ran: `parse_dns_server` unit test (accepts public IPv4, refuses private, loopback, link-local, CGNAT, multicast, IPv6 and names), `cargo clippy --workspace --all-targets -D warnings` clean, core 72, desktop 12, UI 30 tests pass, app and daemon release builds succeed.
+Not verified: that the daemon applies the chosen servers to the system, that lookups then go through the tunnel, that the DNS leak check still passes with them, and that ads are blocked. Needs the daemon reinstalled first.

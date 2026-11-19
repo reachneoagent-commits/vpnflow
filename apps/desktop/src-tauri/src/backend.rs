@@ -191,6 +191,10 @@ impl VpnBackend for AnyBackend {
         delegate!(self, b => b.apply_bypass(nets).await)
     }
 
+    async fn apply_dns(&self, servers: &[std::net::IpAddr]) -> Result<()> {
+        delegate!(self, b => b.apply_dns(servers).await)
+    }
+
     async fn remove_kill_switch(&self) -> Result<()> {
         // Nothing was ever applied without a backend; removing is a no-op.
         if matches!(self, AnyBackend::Unavailable(_)) {

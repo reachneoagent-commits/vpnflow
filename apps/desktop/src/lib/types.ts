@@ -149,6 +149,7 @@ export interface Settings {
   kill_switch: boolean;
   kill_switch_allow_lan: boolean;
   bypass: string[];
+  dns_servers: string[];
   trusted_networks_enabled: boolean;
   trusted_networks: TrustedNetwork[];
   schedule_enabled: boolean;
