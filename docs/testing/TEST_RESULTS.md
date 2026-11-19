@@ -943,3 +943,11 @@ User connected to JP-FREE#2 on the rebuilt app and sent a screenshot (their repo
 - Found and fixed: the installed root daemon was older than the app, so connecting failed with "malformed request" and the screen stuck on "Preparing". Reinstalling the daemon (`install-daemon.sh install <daemon> <wireguard-go>`) fixed it. wireguard-go is not in Homebrew on this Mac, so the installer needs it passed explicitly.
 - Found and fixed: a failed connection setup (bypass or firewall step) left the state at Preparing, and Cancel did nothing. The engine now reports Failed, and Cancel does a full disconnect. aegis-core 71 tests pass, tsc clean.
 - Not yet verified live: Skip-the-VPN bypass behaviour, tray Quick connect, the fixed Cancel button (the stuck state was not reproduced after the daemon update), a leak test with a deliberately leaking state.
+
+## 2026-11-18: Skip-the-VPN bypass list (macOS, live)
+
+Added 1.1.1.1 to the bypass list, reconnected to JP-FREE#2, then checked the routing table from the shell:
+- `route get 1.1.1.1`: gateway 192.168.10.1 via en0 (bypassed, as intended). Host route `1.1.1.1/32 -> 192.168.10.1 (en0)` present.
+- `route get 8.8.8.8`: default via utun8 (still tunnelled).
+- Full-tunnel split routes 0/1 and 128.0/1 on utun8 remained in place; a plain HTTP request to 1.1.1.1 still answered (301).
+- Verified: IPv4 route behaviour for a single address. Not verified: CIDR ranges, DNS for bypassed names (still goes through the VPN DNS), bypass entries being removed on disconnect, a bypassed LAN device such as the Hermes host.
