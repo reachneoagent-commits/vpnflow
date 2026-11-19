@@ -90,6 +90,9 @@ function Shell() {
             <Shield confirmed={tone === "ok"} />
             <div className="min-w-0 max-[720px]:hidden">
               <p className="text-[19px] leading-none font-bold tracking-[-0.02em]">VPNFlow</p>
+              {store.info?.version && (
+                <p className="mt-1 text-[11.5px] leading-none text-mist/60">v{store.info.version}</p>
+              )}
             </div>
           </div>
           <ul className="flex flex-col gap-0.5 px-3">

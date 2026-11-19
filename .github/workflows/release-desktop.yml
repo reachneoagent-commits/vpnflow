@@ -1,0 +1,114 @@
+name: Desktop preview release (macOS + Windows)
+
+# Publishes a GitHub pre-release the FlowApps launcher can install from.
+# File names follow Tauri's `<Name>_<version>_<arch>` pattern, which the
+# launcher reads. Builds are PREVIEWS: unsigned, and the Windows service has
+# no tunnel support yet (see docs/releases/RELEASE_CHECKLIST.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_version:
+        description: "Version to publish, must equal Cargo.toml (for example 0.1.0)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  TAG: v${{ inputs.confirm_version }}
+
+jobs:
+  create-release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check the version matches the source
+        run: |
+          set -euo pipefail
+          cargo_v=$(grep -m1 '^version' Cargo.toml | cut -d'"' -f2)
+          pkg_v=$(grep -m1 '"version"' apps/desktop/package.json | cut -d'"' -f4)
+          tauri_v=$(grep -m1 '"version"' apps/desktop/src-tauri/tauri.conf.json | cut -d'"' -f4)
+          echo "Cargo $cargo_v, package.json $pkg_v, tauri.conf.json $tauri_v"
+          for v in "$cargo_v" "$pkg_v" "$tauri_v"; do
+            test "$v" = "${{ inputs.confirm_version }}"
+          done
+      - name: Create the pre-release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$TAG" --repo "${{ github.repository }}" \
+            --target "${{ github.sha }}" --prerelease \
+            --title "VPNFlow ${{ inputs.confirm_version }} (preview)" \
+            --notes "Preview build. Unsigned. macOS: the app needs the VPNFlow background helper to connect. Windows: the tunnel service is not implemented yet, so Windows cannot connect. See docs/releases/RELEASE_CHECKLIST.md."
+
+  macos:
+    needs: create-release
+    strategy:
+      matrix:
+        include:
+          - runner: macos-14
+            target: aarch64-apple-darwin
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Build the disk image
+        working-directory: apps/desktop
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm tauri build --ci --target ${{ matrix.target }} --bundles dmg -- --locked
+      - name: Upload with checksum
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd target/${{ matrix.target }}/release/bundle/dmg
+          test "$(ls *.dmg | wc -l)" -eq 1
+          shasum -a 256 *.dmg > "SHA256SUMS-${{ matrix.target }}.txt"
+          gh release upload "$TAG" --repo "${{ github.repository }}" *.dmg "SHA256SUMS-${{ matrix.target }}.txt"
+
+  windows:
+    needs: create-release
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@39008827e6b4319a349e9a42dfc90579dd25f1ca # stable
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          version: 12
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - name: Build the installer
+        working-directory: apps/desktop
+        shell: bash
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm tauri build --ci --bundles msi -- --locked
+      - name: Upload with checksum
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd target/release/bundle/msi
+          test "$(ls *.msi | wc -l)" -eq 1
+          sha256sum *.msi > SHA256SUMS-windows.txt
+          gh release upload "$TAG" --repo "${{ github.repository }}" *.msi SHA256SUMS-windows.txt

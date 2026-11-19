@@ -24,3 +24,9 @@ The manual GitHub Actions preview workflow prepares Linux DEB/RPM artifacts and
 an inventory. The packages bundle the helper and Polkit policy. Native Windows
 CI checks source and portable tests. Windows VPN installers
 await a functioning service. See [remaining gaps](../audits/REMAINING_GAPS.md).
+
+The manual `release-desktop.yml` workflow publishes an unsigned **preview**
+pre-release for the FlowApps launcher: macOS DMGs (Apple silicon and Intel) and a
+Windows MSI. The Windows build cannot connect until the service creates tunnels,
+and the macOS DMG does not install the root daemon (`scripts/macos/build-pkg.sh`
+does). Neither has been run on GitHub yet.
