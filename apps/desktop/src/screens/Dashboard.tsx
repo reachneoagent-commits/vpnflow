@@ -374,7 +374,12 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
             </div>
           </div>
         </div>
-        <LeakSection connected={connected} protection={snapshot?.protection} goTo={goTo} />
+        <LeakSection
+          connected={connected}
+          confirmed={peerConfirmed}
+          protection={snapshot?.protection}
+          goTo={goTo}
+        />
       </section>
 
       <SpeedPanel connected={connected} speed={speed} auto={settings?.auto_speed_test ?? false} />
@@ -762,10 +767,12 @@ const tagClass: Record<Tone, string> = {
 /** Attached under the hero. Before a test runs, the three protections show their live status. */
 function LeakSection({
   connected,
+  confirmed,
   protection,
   goTo,
 }: {
   connected: boolean;
+  confirmed: boolean;
   protection?: { kill_switch: Feature; dns: Feature; ipv6: Feature };
   goTo: (s: ScreenId) => void;
 }) {
@@ -781,13 +788,14 @@ function LeakSection({
     }
   }, [connected]);
 
-  // Check automatically a few seconds after connecting; "Test again" reruns by hand.
+  // Check automatically once the server has answered (testing earlier would
+  // find nothing to test); "Test again" reruns by hand.
   const startRef = useRef<() => void>(() => {});
   useEffect(() => {
-    if (!connected) return;
-    const t = setTimeout(() => startRef.current(), 4000);
+    if (!connected || !confirmed) return;
+    const t = setTimeout(() => startRef.current(), 1500);
     return () => clearTimeout(t);
-  }, [connected]);
+  }, [connected, confirmed]);
 
   const [stopping, setStopping] = useState(false);
   const [stopNote, setStopNote] = useState<string | null>(null);
@@ -812,7 +820,8 @@ function LeakSection({
     setBusy(true);
     setError(null);
     try {
-      const all = await api.diagnostics();
+      // Keep the "Checking" state visible long enough to notice, even when the checks are quick.
+      const [all] = await Promise.all([api.diagnostics(), new Promise((ok) => setTimeout(ok, 1200))]);
       setResult({ checks: all.filter((c) => LEAK_IDS.includes(c.id)), at: Date.now() });
     } catch (e) {
       setError(asUiError(e).message);
@@ -871,9 +880,13 @@ function LeakSection({
       <p className="px-6 pb-2 text-[13px] text-muted">
         {!connected
           ? "Connect to a server to run a leak test."
-          : result
-            ? worst
-            : "Checks run by themselves a few seconds after you connect."}
+          : busy
+            ? "Checking your connection now. This takes a few seconds."
+            : result
+              ? worst
+              : confirmed
+                ? "Checks start by themselves in a moment."
+                : "Checks start by themselves once the server answers."}
       </p>
       <ul aria-label="Leak checks">
         {LEAK_ROWS.map((row) => {
@@ -882,7 +895,10 @@ function LeakSection({
           let tone: Tone = "none";
           let tag = "Not run";
           let detail = "";
-          if (c) {
+          if (busy) {
+            tag = "Checking";
+            detail = c?.detail ?? "";
+          } else if (c) {
             tone = leakTone[c.status];
             tag = leakText[c.status];
             detail = c.detail;
@@ -914,7 +930,15 @@ function LeakSection({
                   </div>
                 )}
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${tagClass[tone]}`}>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${tagClass[tone]}`}
+              >
+                {busy && (
+                  <span
+                    aria-hidden
+                    className="size-2.5 animate-spin rounded-full border-2 border-current border-t-transparent"
+                  />
+                )}
                 {tag}
               </span>
             </li>

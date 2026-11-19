@@ -598,7 +598,7 @@ impl<B: VpnBackend> Engine<B> {
         if self.live().state.profile().is_some() {
             let status = self.read_status().await?;
             if let Some(status) = status {
-                self.verify_protection(status.id, &status).await;
+                self.verify_protection(status.id, &status, false).await;
             }
         }
         self.publish();
@@ -1420,7 +1420,7 @@ impl<B: VpnBackend> Engine<B> {
                         }
                         _ => {}
                     }
-                    self.verify_protection(id, &s).await;
+                    self.verify_protection(id, &s, false).await;
                     let uncertain = matches!(self.live().state, ConnectionState::Uncertain { .. });
                     if uncertain && self.check_session_protection().is_ok() {
                         self.set_state(ConnectionState::Connected {
@@ -1446,7 +1446,7 @@ impl<B: VpnBackend> Engine<B> {
     }
 
     /// Run the backend's active protection check and log changes worth telling the user.
-    async fn verify_protection(&self, id: ProfileId, status: &TunnelStatus) {
+    async fn verify_protection(&self, id: ProfileId, status: &TunnelStatus, force: bool) {
         let Some((summary, settings)) = ({
             let l = self.live();
             l.profiles
@@ -1468,8 +1468,8 @@ impl<B: VpnBackend> Engine<B> {
         );
         let rechecking = self.live().reachability.is_some();
         if settings.connectivity_check && (confirmed || rechecking) {
-            self.check_reachability(&summary, status).await;
-            self.check_public_ip(&summary, status).await;
+            self.check_reachability(&summary, status, force).await;
+            self.check_public_ip(&summary, status, force).await;
         }
         let new = self
             .backend
@@ -1502,10 +1502,16 @@ impl<B: VpnBackend> Engine<B> {
     }
 
     /// Reachability on connect, then at most once per [`REACHABILITY_EVERY`].
-    async fn check_reachability(&self, summary: &ProfileSummary, status: &TunnelStatus) {
-        let due = self.live().reachability.as_ref().is_none_or(|(at, _)| {
-            now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
-        });
+    async fn check_reachability(
+        &self,
+        summary: &ProfileSummary,
+        status: &TunnelStatus,
+        force: bool,
+    ) {
+        let due = force
+            || self.live().reachability.as_ref().is_none_or(|(at, _)| {
+                now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
+            });
         if !due {
             return;
         }
@@ -1533,12 +1539,15 @@ impl<B: VpnBackend> Engine<B> {
     }
 
     /// Public egress IP once per connect (retry on the reachability interval after failure).
-    async fn check_public_ip(&self, summary: &ProfileSummary, status: &TunnelStatus) {
-        let due = match self.live().public_ip.as_ref() {
-            None => true,
-            Some((_, Feature::Verified(_))) => false,
-            Some((at, _)) => now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64,
-        };
+    async fn check_public_ip(&self, summary: &ProfileSummary, status: &TunnelStatus, force: bool) {
+        let due = force
+            || match self.live().public_ip.as_ref() {
+                None => true,
+                Some((_, Feature::Verified(_))) => false,
+                Some((at, _)) => {
+                    now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
+                }
+            };
         if !due {
             return;
         }
@@ -1865,7 +1874,21 @@ impl<B: VpnBackend> Engine<B> {
     // ---------- diagnostics ----------
 
     pub async fn diagnostics(&self) -> Vec<crate::diagnostics::Check> {
+        self.recheck_now().await;
         crate::diagnostics::run(self).await
+    }
+
+    /// Run the live protection checks right now (DNS route, IPv6, reachability,
+    /// public IP) instead of waiting for the next background poll, so a manual
+    /// test measures something new. Does nothing unless a tunnel is up.
+    async fn recheck_now(&self) {
+        if self.live().state.profile().is_none() {
+            return;
+        }
+        if let Ok(Some(status)) = self.read_status().await {
+            self.verify_protection(status.id, &status, true).await;
+            self.publish();
+        }
     }
 
     /// The underlying backend (read access for diagnostics and integration tests).
