@@ -5,8 +5,14 @@ export function About() {
   const { info, caps } = useStore();
   return (
     <div className="flex max-w-3xl flex-col gap-7">
-      <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">About VPNFlow</h1>
-      <Panel>
+      <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">About</h1>
+      <section className="rounded-xl bg-surface p-6 shadow-(--shadow)">
+        <h2 className="text-base font-bold">VPNFlow{info?.version ? ` v${info.version}` : ""}</h2>
+        <p className="mt-1.5 text-[13px] text-muted">
+          Free, local-first WireGuard client. MIT or Apache-2.0. Part of FlowApps.
+        </p>
+      </section>
+      <Panel title="Details">
         <dl>
           <Row label="Version">{info?.version}</Row>
           <Row label="Platform">
