@@ -17,7 +17,7 @@ OUT="$ROOT/dist"
 WORK="$(mktemp -d "${TMPDIR:-/tmp}/vpnflow-pkg.XXXXXX")"
 trap 'rm -rf "$WORK"' EXIT
 VERSION="$(grep -m1 '^version' "$ROOT/Cargo.toml" | cut -d'"' -f2)"
-VERSION="${VERSION:-0.1.0}"
+VERSION="${VERSION:-0.1.1}"
 
 die() { echo "error: $*" >&2; exit 1; }
 [[ $(uname) == Darwin ]] || die "macOS only"

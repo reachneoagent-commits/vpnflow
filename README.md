@@ -23,9 +23,9 @@ Or download an installer yourself:
 
 | Platform | Installer |
 |---|---|
-| macOS Intel | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_x64.dmg) |
-| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_aarch64.dmg) |
-| Windows x64 | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.0/VPNFlow_0.1.0_x64_en-US.msi) (preview, cannot connect yet) |
+| macOS Intel | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64.dmg) |
+| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_aarch64.dmg) |
+| Windows x64 | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64_en-US.msi) (preview, cannot connect yet) |
 | Linux | [Build from source](#build-from-source) |
 
 Older versions are on the [Releases page](https://github.com/reachneoagent-commits/vpnflow/releases),

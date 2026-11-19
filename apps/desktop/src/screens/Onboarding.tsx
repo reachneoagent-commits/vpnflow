@@ -258,7 +258,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                     "Step 2, platform: pick the one for this computer (macOS, Windows or GNU/Linux).",
                     "Step 3, options: leave NAT-PMP and VPN Accelerator as they are.",
                     'Step 4, server: click the "Free server configs" tab. Each country is a button.',
-                    "Click a country you want, then Create, then Download. The free countries are Canada, Japan, Netherlands, Norway, Poland, Romania, Singapore, Switzerland and the United States.",
+                    "Click a country you want, then Create, then Download. The free countries are Canada, Japan, Netherlands, Norway, Poland, Romania, Switzerland and the United States.",
                     "Each country lists many servers. The percentage is how busy a server is: green is lightly used and fastest, yellow is busy, red is very busy. This only changes speed, not privacy, so pick a green one when you can.",
                     "You can download more than one. Two or three servers in each country you want is a good start, so you have a backup if one is slow. Every file you download is added here.",
                     "Return here. Your servers appear below within a few seconds.",
