@@ -132,8 +132,15 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
         .menu(&menu)
         .tooltip("VPNFlow")
         .show_menu_on_left_click(true);
-    if let Some(icon) = app.default_window_icon() {
-        b = b.icon(icon.clone());
+    // The plain white mark, as a template image so macOS tints it to match the
+    // menu bar (light or dark). Fall back to the app icon if it cannot load.
+    match tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png")) {
+        Ok(icon) => b = b.icon(icon).icon_as_template(true),
+        Err(_) => {
+            if let Some(icon) = app.default_window_icon() {
+                b = b.icon(icon.clone());
+            }
+        }
     }
     b.on_menu_event(|app, ev| {
         let engine = Arc::clone(&app.state::<AppState>().engine);
