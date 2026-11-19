@@ -1,9 +1,10 @@
 import { type ReactNode, useEffect, useId, useState } from "react";
 import type { ScreenId } from "../App";
-import { Button, Dot, Panel, Row, type Tone } from "../components/ui";
+import { Button, Dot, InfoTip, Panel, Row, type Tone } from "../components/ui";
 import { api, asUiError } from "../lib/api";
 import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago, bytes, clock, duration, rate, routeLabel } from "../lib/format";
+import type { HelpKey } from "../lib/help";
 import { locationLabel } from "../lib/locations";
 import { useStore } from "../lib/store";
 import type { Check, CheckStatus, Feature, ProfileView, SpeedResult } from "../lib/types";
@@ -148,9 +149,9 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
           aria-label="Protection"
           className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3"
         >
-          <Guard title="Kill switch" f={snapshot?.protection.kill_switch} />
-          <Guard title="DNS leak protection" f={snapshot?.protection.dns} />
-          <Guard title="IPv6 protection" f={snapshot?.protection.ipv6} />
+          <Guard title="Kill switch" help="killSwitch" f={snapshot?.protection.kill_switch} />
+          <Guard title="DNS leak protection" help="dnsProtection" f={snapshot?.protection.dns} />
+          <Guard title="IPv6 protection" help="ipv6Protection" f={snapshot?.protection.ipv6} />
         </ul>
 
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
@@ -191,6 +192,7 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
             >
               Quick Connect
             </Button>
+            <InfoTip topic="quickConnect" />
             <Button onClick={() => goTo("locations")}>Change location</Button>
           </div>
         </div>
@@ -393,12 +395,15 @@ function Hop({
   );
 }
 
-function Guard({ title, f }: { title: string; f?: Feature }) {
+function Guard({ title, help, f }: { title: string; help: HelpKey; f?: Feature }) {
   const feature = f ?? { status: "off" as const };
   const tone = featureTone(feature);
   return (
     <li className="flex flex-col gap-1 bg-surface px-4 py-3">
-      <span className="text-[13px] text-muted">{title}</span>
+      <span className="text-[13px] text-muted">
+        {title}
+        <InfoTip topic={help} />
+      </span>
       <span className="flex items-center gap-2 font-semibold">
         <Dot tone={tone} />
         <span className={tone === "bad" ? "text-danger" : ""}>{featureText(feature)}</span>
@@ -486,6 +491,7 @@ function SpeedPanel({ connected }: { connected: boolean }) {
   return (
     <Panel
       title="Connection speed"
+      help="speedTest"
       actions={
         <Button onClick={start} disabled={!connected || busy}>
           {busy ? "Testing…" : result ? "Test again" : "Test speed"}
@@ -573,6 +579,7 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
   return (
     <Panel
       title="Leak test"
+      help="leakTest"
       actions={
         <Button onClick={start} disabled={!connected || busy}>
           {busy ? "Testing…" : result ? "Test again" : "Run leak test"}

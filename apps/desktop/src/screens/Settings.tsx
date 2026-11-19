@@ -1,5 +1,5 @@
 import { useId, useState } from "react";
-import { Button, Panel, Switch } from "../components/ui";
+import { Button, InfoTip, Panel, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
@@ -49,6 +49,7 @@ export function SettingsScreen() {
         />
         <Switch
           label="Connect on launch"
+          help="connectOnLaunch"
           description="Connects the preferred profile when the app starts. Off by default."
           checked={settings.connect_on_launch}
           onChange={(v) => set({ connect_on_launch: v })}
@@ -57,6 +58,7 @@ export function SettingsScreen() {
         <div className="flex items-center justify-between border-t border-line py-3">
           <label htmlFor={prefId} className="font-medium">
             Preferred profile
+            <InfoTip topic="preferredProfile" />
           </label>
           <select
             id={prefId}
@@ -74,6 +76,7 @@ export function SettingsScreen() {
         </div>
         <Switch
           label="Closing the window keeps VPNFlow in the tray"
+          help="closeToTray"
           description={
             info?.tray_available
               ? "Closing the window never disconnects the VPN. Use Disconnect or Quit from the tray menu."
@@ -88,6 +91,7 @@ export function SettingsScreen() {
       <Panel title="Reconnection">
         <Switch
           label="Reconnect automatically"
+          help="autoReconnect"
           description="If the tunnel drops, retry with increasing delays (1 s up to 60 s)."
           checked={settings.auto_reconnect}
           onChange={(v) => set({ auto_reconnect: v })}
@@ -109,7 +113,7 @@ export function SettingsScreen() {
       </Panel>
 
       {caps?.backend === "macos_daemon" && (
-        <Panel title="Skip the VPN">
+        <Panel title="Skip the VPN" help="bypass">
           <div className="py-3 text-[13px]">
             <label htmlFor={bypassId} className="font-medium">
               Addresses that bypass the VPN
@@ -159,6 +163,7 @@ export function SettingsScreen() {
       <Panel title="Protection">
         <Switch
           label="Kill switch"
+          help="killSwitch"
           description={
             ksUnsupported
               ? `${supportNote(caps?.kill_switch, "The kill switch")}. While this is on, VPNFlow refuses to connect rather than connect without it.`
@@ -169,13 +174,17 @@ export function SettingsScreen() {
         />
         <Switch
           label="Allow local network"
+          help="allowLan"
           description="While the kill switch blocks, devices on your local network (printers, file shares, your router) stay reachable."
           checked={settings.kill_switch_allow_lan}
           disabled={!settings.kill_switch || ksUnsupported}
           onChange={(v) => set({ kill_switch_allow_lan: v })}
         />
         <div className="border-t border-line py-3 text-[13px]">
-          <div className="font-medium">DNS and IPv6</div>
+          <div className="font-medium">
+            DNS and IPv6
+            <InfoTip topic="dnsProtection" />
+          </div>
           <p className="mt-0.5 max-w-[65ch] text-muted">
             {caps?.dns_protection.status === "supported"
               ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. VPNFlow re-checks this every few seconds; the dashboard shows the result."
@@ -196,6 +205,7 @@ export function SettingsScreen() {
       <Panel title="Privacy">
         <Switch
           label="Connectivity check"
+          help="connectivityCheck"
           checked={settings.connectivity_check}
           onChange={(v) => set({ connectivity_check: v })}
           description="While connected, look up example.com and whoami.akamai.net through your tunnel's DNS (at most once a minute). That confirms the resolver answers and reports its egress IPv4. This does not verify your VPN exit IP. The resolver sees those queries. On by default; turn off to skip them."

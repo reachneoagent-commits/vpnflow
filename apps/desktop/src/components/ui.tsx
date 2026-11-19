@@ -1,4 +1,5 @@
-import { type ButtonHTMLAttributes, type ReactNode, useEffect, useId, useRef } from "react";
+import { type ButtonHTMLAttributes, type ReactNode, useEffect, useId, useRef, useState } from "react";
+import { HELP, type HelpKey } from "../lib/help";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
@@ -23,13 +24,74 @@ export function Button({
   );
 }
 
+/** Small "?" button that opens a card: what it is, why, and an example. */
+export function InfoTip({ topic }: { topic: HelpKey }) {
+  const h = HELP[topic];
+  const id = useId();
+  const btn = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+  const open = pos !== null;
+  const show = () => {
+    const r = btn.current?.getBoundingClientRect();
+    if (!r) return;
+    const w = 288;
+    setPos({ top: r.bottom + 6, left: Math.max(8, Math.min(r.left - 8, window.innerWidth - w - 8)) });
+  };
+  const hide = () => setPos(null);
+  return (
+    <span className="relative inline-flex align-middle">
+      <button
+        ref={btn}
+        type="button"
+        aria-label={`What is ${h.title}?`}
+        aria-expanded={open}
+        aria-describedby={open ? id : undefined}
+        onClick={() => (open ? hide() : show())}
+        onMouseEnter={show}
+        onMouseLeave={hide}
+        onFocus={show}
+        onBlur={hide}
+        onKeyDown={(e) => e.key === "Escape" && hide()}
+        className="ml-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full border border-muted/60 text-[10px] leading-none font-semibold text-muted hover:border-fg hover:text-fg"
+      >
+        ?
+      </button>
+      {open && (
+        <span
+          id={id}
+          role="tooltip"
+          style={{ position: "fixed", top: pos.top, left: pos.left, width: 288 }}
+          className="z-50 rounded-lg border border-line bg-surface p-3 text-left text-[12.5px] leading-snug font-normal text-fg shadow-lg"
+        >
+          <strong className="block text-[13px]">{h.title}</strong>
+          <span className="mt-1 block">{h.what}</span>
+          <span className="mt-1.5 block text-muted">
+            <b className="font-semibold text-fg">Why: </b>
+            {h.why}
+          </span>
+          <span className="mt-1.5 block text-muted">
+            <b className="font-semibold text-fg">Example: </b>
+            {h.example}
+          </span>
+          <span className="mt-1.5 block text-muted">
+            <b className="font-semibold text-fg">Good to know: </b>
+            {h.tradeoff}
+          </span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 export function Switch({
   checked,
   onChange,
   label,
   description,
   disabled,
+  help,
 }: {
+  help?: HelpKey;
   checked: boolean;
   onChange: (v: boolean) => void;
   label: string;
@@ -40,9 +102,10 @@ export function Switch({
   return (
     <div className="flex items-start justify-between gap-6 py-3">
       <div className="min-w-0">
-        <label htmlFor={id} className="block font-medium">
+        <label htmlFor={id} className="inline-block font-medium">
           {label}
         </label>
+        {help && <InfoTip topic={help} />}
         {description && (
           <div id={`${id}-d`} className="mt-0.5 max-w-[60ch] text-[13px] text-muted">
             {description}
@@ -159,10 +222,12 @@ export function Row({
 
 export function Panel({
   title,
+  help,
   actions,
   children,
   className = "",
 }: {
+  help?: HelpKey;
   title?: string;
   actions?: ReactNode;
   children: ReactNode;
@@ -172,7 +237,10 @@ export function Panel({
     <section className={className}>
       {title && (
         <header className="mb-2 flex min-h-7 items-center justify-between gap-3 px-1">
-          <h2 className="text-[15px] font-semibold">{title}</h2>
+          <h2 className="text-[15px] font-semibold">
+            {title}
+            {help && <InfoTip topic={help} />}
+          </h2>
           {actions}
         </header>
       )}
