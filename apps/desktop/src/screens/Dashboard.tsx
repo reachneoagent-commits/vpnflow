@@ -1,6 +1,22 @@
+import {
+  Cable,
+  Check as CheckIcon,
+  ChevronDown,
+  Compass,
+  Globe,
+  Laptop,
+  Layers,
+  MapPin,
+  Network,
+  Power,
+  Radio,
+  Server,
+  ShieldCheck,
+  Star,
+} from "lucide-react";
 import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import type { ScreenId } from "../App";
-import { Button, Dot, InfoTip, Panel, Row, type Tone } from "../components/ui";
+import { Button, InfoTip, Panel, Row, type Tone } from "../components/ui";
 import { api, asUiError } from "../lib/api";
 import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago, bytes, clock, duration, rate, routeLabel } from "../lib/format";
@@ -21,8 +37,7 @@ function useNow(active: boolean) {
 }
 
 export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
-  const { snapshot, profiles, settings, events, run, caps, countries } = useStore();
-  const selectId = useId();
+  const { snapshot, profiles, settings, events, run, caps } = useStore();
   const headId = useId();
   const state = snapshot?.state ?? { state: "disconnected" as const };
   const active = isActive(state);
@@ -66,8 +81,7 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
   const tunnelTone: Tone = connected ? "ok" : uncertain ? "bad" : active ? "pending" : "none";
   const serverTone: Tone = connected ? stateTone(state) : "none";
   const reach = snapshot?.reachability ?? { status: "off" as const };
-  const reachTone: HopTone =
-    reach.status === "verified" ? "ok" : reach.status === "failed" ? "bad" : "untested";
+  const reachTone: Tone = reach.status === "verified" ? "ok" : reach.status === "failed" ? "bad" : "none";
   const reachDetail =
     reach.status === "verified"
       ? "Tunnel DNS answered"
@@ -78,22 +92,76 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
           : connected && settings?.connectivity_check
             ? "Checking"
             : "Not tested";
+  const checks: {
+    untested?: boolean;
+    tone: Tone;
+    title: string;
+    detail: string;
+    icon: ReactNode;
+    mono?: boolean;
+  }[] = [
+    {
+      tone: tunnelTone,
+      title: "This device",
+      detail: s ? (s.addresses[0] ?? "") : "",
+      icon: <Laptop size={20} aria-hidden />,
+      mono: true,
+    },
+    {
+      tone: tunnelTone,
+      title: "Tunnel interface",
+      detail: connected
+        ? (stats?.interface ?? "Up")
+        : uncertain
+          ? "Status unknown"
+          : active
+            ? "Starting"
+            : "Not started",
+      icon: <Cable size={20} aria-hidden />,
+      mono: connected && !!stats?.interface,
+    },
+    {
+      tone: serverTone,
+      title: "Server response",
+      detail: !connected
+        ? "Not started"
+        : state.peer === "confirmed"
+          ? "Server answered"
+          : state.peer === "no_response"
+            ? "No reply from the server. If this just started, the network may be down or switched; VPNFlow confirms again when the server answers. If it never connected, check the endpoint, keys and firewall."
+            : "Waiting for data from the server",
+      icon: <Server size={20} aria-hidden />,
+    },
+    {
+      untested: reachTone === "none",
+      tone: reachTone,
+      title: "Internet reachability",
+      detail: reachDetail,
+      icon: <Globe size={20} aria-hidden />,
+    },
+  ];
+  const confirmedCount = checks.filter((c) => c.tone === "ok").length;
+  const heroState = connected ? "connected" : active ? "connecting" : "idle";
 
   return (
-    <div className="flex flex-col gap-9">
-      <section aria-labelledby={headId} className="flex flex-col gap-7">
-        <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
-          <div className="min-w-0">
+    <div className="flex flex-col gap-6">
+      <section aria-labelledby={headId} data-state={heroState}>
+        <div className="hero">
+          <div className="hero-main flex flex-col items-center px-6 py-7 text-center">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[12px] font-semibold">
+              <span className={`size-2 rounded-full ${peerConfirmed ? "bg-(--h-acc)" : "bg-(--h-mute)"}`} />
+              {peerConfirmed ? "Connection confirmed" : active ? "In progress" : "Idle"}
+            </span>
             <h1
               id={headId}
               data-tone={peerConfirmed ? "ok" : "idle"}
-              className="dashboard-headline text-[34px] leading-[1.1] font-semibold tracking-[-0.015em] text-balance"
+              className="mt-3 mb-1.5 text-[26px] leading-tight font-semibold tracking-[-0.02em] text-balance"
               aria-live="polite"
             >
               {stateHeadline(state, selected?.name)}
             </h1>
             <p
-              className={`mt-2 max-w-[62ch] text-[14px] ${state.state === "failed" || uncertain ? "text-danger" : "text-muted"}`}
+              className={`min-h-10 max-w-[300px] text-[13px] ${state.state === "failed" || uncertain ? "text-[#f0786a]" : "text-(--h-mute)"}`}
             >
               {state.state === "failed" || state.state === "uncertain"
                 ? state.reason
@@ -103,159 +171,115 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
               {connected && ` for ${duration(now - state.since_ms)}`}
             </p>
             {!active && snapshot?.protection.kill_switch.status === "verified" && (
-              <p role="status" className="mt-1 max-w-[62ch] text-[14px] font-semibold text-pending">
+              <p role="status" className="mt-1 max-w-[300px] text-[13px] font-semibold text-(--h-pending)">
                 The kill switch is blocking ordinary traffic outside the tunnel.
               </p>
             )}
-          </div>
-          <div className="flex items-center gap-2 pt-1">
-            <PrimaryAction selected={selected} />
-          </div>
-        </header>
-
-        <ol aria-label="What is confirmed" className="grid grid-cols-4 gap-x-1.5">
-          <Hop tone={tunnelTone} title="This device" detail={s ? (s.addresses[0] ?? "") : ""} mono />
-          <Hop
-            tone={tunnelTone}
-            title="Tunnel interface"
-            detail={
-              connected
-                ? (stats?.interface ?? "Up")
-                : uncertain
-                  ? "Status unknown"
-                  : active
-                    ? "Starting"
-                    : "Not started"
-            }
-            mono={connected && !!stats?.interface}
-          />
-          <Hop
-            tone={serverTone}
-            title="Server response"
-            detail={
-              !connected
-                ? "Not started"
-                : state.peer === "confirmed"
-                  ? "Server answered"
-                  : state.peer === "no_response"
-                    ? "No reply from the server. If this just started, the network may be down or switched; VPNFlow confirms again when the server answers. If it never connected, check the endpoint, keys and firewall."
-                    : "Waiting for data from the server"
-            }
-          />
-          <Hop tone={reachTone} title="Internet reachability" detail={reachDetail} />
-        </ol>
-
-        <ul
-          aria-label="Protection"
-          className="grid gap-px overflow-hidden rounded-xl border border-line bg-line sm:grid-cols-3"
-        >
-          <Guard title="Kill switch" help="killSwitch" f={snapshot?.protection.kill_switch} />
-          <Guard title="DNS leak protection" help="dnsProtection" f={snapshot?.protection.dns} />
-          <Guard title="IPv6 protection" help="ipv6Protection" f={snapshot?.protection.ipv6} />
-        </ul>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex min-w-0 items-center gap-3">
-            <CountryFlag code={selected?.server.location?.country_code} />
-            <div>
-              <p className="font-semibold">
-                {selected ? locationLabel(selected, countries) : "No location selected"}
+            <Orb selected={selected} />
+            {connected && (
+              <p className="mb-5 font-mono text-[clamp(26px,3vw,34px)] leading-none tabular-nums">
+                {duration(now - state.since_ms)}
               </p>
-              <p className="text-xs text-muted">
-                {connected ? "Active WireGuard profile" : "Selected WireGuard profile"}
-              </p>
-              <p className="text-xs text-muted">{selected?.name}</p>
-              {selected?.server.location && <p className="text-xs text-muted">User-assigned location</p>}
+            )}
+            <LocationPicker
+              profiles={profiles}
+              selected={selected}
+              disabled={active}
+              onPick={setChosen}
+              preferredId={settings?.preferred_profile ?? null}
+            />
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <Button
+                disabled={isBusy(state) || state.state === "reconnecting" || state.state === "uncertain"}
+                onClick={() => run(api.quickConnect)}
+              >
+                Quick Connect
+              </Button>
+              <InfoTip topic="quickConnect" />
+              <Button onClick={() => goTo("locations")}>Change location</Button>
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor={selectId} className="sr-only">
-              Profile
-            </label>
-            <select
-              id={selectId}
-              value={selected?.id}
-              disabled={active}
-              onChange={(e) => setChosen(e.target.value)}
-              className="h-10 max-w-56 rounded-lg border border-line bg-surface px-3 text-[14px] disabled:opacity-60"
-            >
-              {profiles.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                  {p.id === settings?.preferred_profile ? " (preferred)" : ""}
-                </option>
+
+          <div className="flex min-w-0 flex-col gap-5 p-6">
+            <div className="flex justify-between border-b border-(--h-line) pb-2.5 text-[15px] font-bold">
+              <h2>Connection check</h2>
+              <span className="text-[13px] font-medium text-(--h-acc)">{confirmedCount} of 4 confirmed</span>
+            </div>
+            <ol aria-label="What is confirmed" className="-mt-2">
+              {checks.map((c, i) => (
+                <li
+                  key={c.title}
+                  data-tone={c.untested ? "untested" : c.tone}
+                  data-s={
+                    c.tone === "ok" ? "done" : c.tone === "pending" ? "work" : c.tone === "bad" ? "bad" : ""
+                  }
+                  className={`chk${i === checks.length - 1 ? " last" : ""}`}
+                >
+                  <span className="cn" aria-hidden />
+                  <span className="tile">{c.icon}</span>
+                  <span className="min-w-0 text-[14.5px] font-bold">{c.title}</span>
+                  <span className={`v break-words ${c.mono ? "font-mono" : ""}`}>{c.detail}</span>
+                </li>
               ))}
-            </select>
-            <Button
-              disabled={isBusy(state) || state.state === "reconnecting" || state.state === "uncertain"}
-              onClick={() => run(api.quickConnect)}
-            >
-              Quick Connect
-            </Button>
-            <InfoTip topic="quickConnect" />
-            <Button onClick={() => goTo("locations")}>Change location</Button>
+            </ol>
+
+            <div className="rounded-xl bg-(--h-fill) px-5.5 py-5">
+              <h2 className="mb-3.5 text-[15px] font-bold">Connection details</h2>
+              <dl className="grid grid-cols-2 gap-x-5 gap-y-4 sm:grid-cols-3">
+                <Detail label="Endpoint">
+                  <span className="font-mono text-[13px]">{s?.endpoints[0] ?? "None"}</span>
+                </Detail>
+                <Detail label="Tunnel address">
+                  <span className="font-mono text-[13px]">{s?.addresses.join(", ")}</span>
+                </Detail>
+                <Detail label="Routing">{s ? routeLabel[s.route_kind] : ""}</Detail>
+                <Detail
+                  label={hasHandshakeTime ? "Last handshake" : "Last server response"}
+                  state={peerTime ? "confirmed" : connected ? "pending" : "unavailable"}
+                >
+                  {peerTime
+                    ? ago(peerTime, now)
+                    : connected
+                      ? hasHandshakeTime
+                        ? "None yet"
+                        : state.peer === "no_response"
+                          ? "No response yet"
+                          : "Waiting for the server"
+                      : undefined}
+                </Detail>
+                <PublicIpRow
+                  connected={connected}
+                  f={snapshot?.public_ip}
+                  countryCode={selected?.server.location?.country_code}
+                />
+                <Detail label="Received" state={stats ? "confirmed" : "unavailable"}>
+                  {stats ? bytes(stats.rx_bytes) : undefined}
+                </Detail>
+                <Detail label="Sent" state={stats ? "confirmed" : "unavailable"}>
+                  {stats ? bytes(stats.tx_bytes) : undefined}
+                </Detail>
+                <Detail label="Download" state={stats ? "confirmed" : "unavailable"}>
+                  {stats ? rate(stats.rx_rate_bps) : undefined}
+                </Detail>
+                <Detail label="Upload" state={stats ? "confirmed" : "unavailable"}>
+                  {stats ? rate(stats.tx_rate_bps) : undefined}
+                </Detail>
+                <Detail label="Duration" state={connected ? "confirmed" : "unavailable"}>
+                  {connected ? duration(now - state.since_ms) : "Not connected"}
+                </Detail>
+              </dl>
+              {s && s.warnings.length > 0 && (
+                <ul className="mt-4 rounded-lg bg-(--h-pending)/15 px-3 py-2 text-[13px] text-(--h-pending)">
+                  {s.warnings.map((w) => (
+                    <li key={w}>{w}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
           </div>
         </div>
+        <LeakSection connected={connected} protection={snapshot?.protection} goTo={goTo} />
       </section>
-
-      <Panel title="Connection details">
-        <dl className="grid gap-x-10 sm:grid-cols-2">
-          <div>
-            <Row label="Endpoint">
-              <span className="font-mono text-[13px]">{s?.endpoints[0] ?? "None"}</span>
-            </Row>
-            <Row label="Tunnel address">
-              <span className="font-mono text-[13px]">{s?.addresses.join(", ")}</span>
-            </Row>
-            <Row label="Routing">{s ? routeLabel[s.route_kind] : ""}</Row>
-            <Row
-              label={hasHandshakeTime ? "Last handshake" : "Last server response"}
-              state={peerTime ? "confirmed" : connected ? "pending" : "unavailable"}
-            >
-              {peerTime
-                ? ago(peerTime, now)
-                : connected
-                  ? hasHandshakeTime
-                    ? "None yet"
-                    : state.peer === "no_response"
-                      ? "No response yet"
-                      : "Waiting for the server"
-                  : undefined}
-            </Row>
-            <PublicIpRow
-              connected={connected}
-              f={snapshot?.public_ip}
-              countryCode={selected?.server.location?.country_code}
-            />
-          </div>
-          <div>
-            <Row label="Received" state={stats ? "confirmed" : "unavailable"}>
-              {stats ? bytes(stats.rx_bytes) : undefined}
-            </Row>
-            <Row label="Sent" state={stats ? "confirmed" : "unavailable"}>
-              {stats ? bytes(stats.tx_bytes) : undefined}
-            </Row>
-            <Row label="Download" state={stats ? "confirmed" : "unavailable"}>
-              {stats ? rate(stats.rx_rate_bps) : undefined}
-            </Row>
-            <Row label="Upload" state={stats ? "confirmed" : "unavailable"}>
-              {stats ? rate(stats.tx_rate_bps) : undefined}
-            </Row>
-            <Row label="Duration" state={connected ? "confirmed" : "unavailable"}>
-              {connected ? duration(now - state.since_ms) : "Not connected"}
-            </Row>
-          </div>
-        </dl>
-        {s && s.warnings.length > 0 && (
-          <ul className="my-3 rounded-lg bg-pending-soft px-3 py-2 text-[13px] text-pending">
-            {s.warnings.map((w) => (
-              <li key={w}>{w}</li>
-            ))}
-          </ul>
-        )}
-      </Panel>
-
-      <LeakTestPanel connected={connected} />
 
       <SpeedPanel connected={connected} />
 
@@ -307,109 +331,173 @@ function statusSub(s: string) {
   }[s];
 }
 
-const big = "h-10 min-w-32 rounded-lg px-5 text-[14px]";
+/** Key/value cell inside the hero's details card. */
+function Detail({
+  label,
+  children,
+  state = "confirmed",
+}: {
+  label: string;
+  children?: ReactNode;
+  state?: "confirmed" | "pending" | "unavailable";
+}) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-[12px] text-(--h-mute)">{label}</dt>
+      <dd
+        className={`text-[13.5px] font-semibold break-words ${
+          state === "pending" ? "text-(--h-pending)" : state === "unavailable" ? "text-(--h-mute)" : ""
+        }`}
+      >
+        {state === "pending" ? (children ?? "Pending") : (children ?? "Unavailable")}
+      </dd>
+    </div>
+  );
+}
 
-function PrimaryAction({ selected }: { selected?: ProfileView }) {
+/** The power orb: one control for Connect, Cancel and Disconnect. */
+function Orb({ selected }: { selected?: ProfileView }) {
   const { snapshot, run } = useStore();
   const state = snapshot?.state ?? { state: "disconnected" as const };
+  const blocking = !isActive(state) && snapshot?.protection.kill_switch.status === "verified";
+  let label = "Connect";
+  let disabled = !selected?.server.enabled || !!selected.server.registration_pending;
+  let onClick = () => selected && run(() => api.connect(selected.id));
   if (state.state === "connecting" || state.state === "preparing" || state.state === "reconnecting") {
-    return (
-      <Button className={big} onClick={() => run(api.disconnect)}>
-        Cancel
-      </Button>
-    );
+    label = "Cancel";
+    disabled = false;
+    onClick = () => run(api.disconnect);
+  } else if (isActive(state)) {
+    label = "Disconnect";
+    disabled = isBusy(state);
+    onClick = () => run(api.disconnect);
   }
-  if (isActive(state)) {
-    return (
-      <Button
-        variant="secondary"
-        className={big}
-        disabled={isBusy(state)}
-        onClick={() => run(api.disconnect)}
-      >
-        Disconnect
-      </Button>
-    );
-  }
-  const blocking = snapshot?.protection.kill_switch.status === "verified";
   return (
     <>
+      <button
+        type="button"
+        className="orb"
+        disabled={disabled}
+        onClick={onClick}
+        title={
+          label === "Connect" && selected?.server.registration_pending
+            ? "Register the client identity on your server, then confirm registration in Locations"
+            : undefined
+        }
+      >
+        <span className="ring r3" aria-hidden />
+        <span className="ring r2" aria-hidden />
+        <span className="ring r1" aria-hidden />
+        <span className="core">
+          <Power aria-hidden />
+          {label}
+        </span>
+      </button>
       {blocking && (
-        <Button className={big} onClick={() => run(api.disconnect)}>
+        <Button className="mb-4" onClick={() => run(api.disconnect)}>
           Stop blocking
         </Button>
       )}
-      <ConnectButton selected={selected} />
     </>
   );
 }
 
-function ConnectButton({ selected }: { selected?: ProfileView }) {
-  const { run } = useStore();
-  return (
-    <Button
-      variant="primary"
-      className={big}
-      disabled={!selected?.server.enabled || selected.server.registration_pending}
-      title={
-        selected?.server.registration_pending
-          ? "Register the client identity on your server, then confirm registration in Locations"
-          : undefined
-      }
-      onClick={() => selected && run(() => api.connect(selected.id))}
-    >
-      Connect
-    </Button>
-  );
-}
-
-type HopTone = Tone | "untested";
-
-/** One hop of the tunnel path. The bar leading into it is lit only when that hop is confirmed. */
-function Hop({
-  tone,
-  title,
-  detail,
-  mono,
+/** Location dropdown. Locked while a tunnel is active: switching means disconnecting first. */
+function LocationPicker({
+  profiles,
+  selected,
+  disabled,
+  onPick,
+  preferredId,
 }: {
-  tone: HopTone;
-  title: string;
-  detail: string;
-  mono?: boolean;
+  profiles: ProfileView[];
+  selected?: ProfileView;
+  disabled: boolean;
+  onPick: (id: string) => void;
+  preferredId: string | null;
 }) {
+  const { countries } = useStore();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const listId = useId();
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: MouseEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    document.addEventListener("mousedown", away);
+    document.addEventListener("keydown", esc);
+    return () => {
+      document.removeEventListener("mousedown", away);
+      document.removeEventListener("keydown", esc);
+    };
+  }, [open]);
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+  const ordered = [...profiles].sort((a, b) => Number(b.server.favorite) - Number(a.server.favorite));
   return (
-    <li data-tone={tone} className="hop flex min-w-0 flex-col gap-2.5">
-      <div className="hop-line" aria-hidden />
-      <div className="flex items-center gap-2">
-        <Dot tone={tone === "untested" ? "none" : tone} />
-        <span className="truncate text-[14px] font-semibold">{title}</span>
-      </div>
-      <span
-        className={`text-[13px] leading-snug break-words ${tone === "bad" ? "text-danger" : "text-muted"} ${
-          mono ? "font-mono" : ""
-        }`}
+    <div ref={ref} className="relative mt-4 w-[min(100%,330px)] text-left">
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        aria-controls={listId}
+        aria-label="Location"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-12 w-full items-center gap-2.5 rounded-xl border border-transparent bg-(--h-fill) px-3.5 text-left text-[13.5px] font-semibold hover:enabled:border-(--h-line) disabled:cursor-not-allowed disabled:opacity-60"
       >
-        {detail}
-      </span>
-    </li>
-  );
-}
-
-function Guard({ title, help, f }: { title: string; help: HelpKey; f?: Feature }) {
-  const feature = f ?? { status: "off" as const };
-  const tone = featureTone(feature);
-  return (
-    <li className="flex flex-col gap-1 bg-surface px-4 py-3">
-      <span className="text-[13px] text-muted">
-        {title}
-        <InfoTip topic={help} />
-      </span>
-      <span className="flex items-center gap-2 font-semibold">
-        <Dot tone={tone} />
-        <span className={tone === "bad" ? "text-danger" : ""}>{featureText(feature)}</span>
-      </span>
-      {"detail" in feature && <span className="text-[12.5px] leading-snug text-muted">{feature.detail}</span>}
-    </li>
+        <CountryFlag code={selected?.server.location?.country_code} />
+        <span className="min-w-0 flex-1 truncate">
+          {selected ? locationLabel(selected, countries) : "No location selected"}
+          {selected && <span className="ml-2 text-[12px] font-medium text-(--h-mute)">{selected.name}</span>}
+        </span>
+        <ChevronDown
+          size={18}
+          aria-hidden
+          className={`shrink-0 text-(--h-acc) transition-transform ${open ? "rotate-180" : ""}`}
+        />
+      </button>
+      <p className="mt-2 min-h-[18px] text-[12px] text-(--h-mute)">
+        {disabled ? "Disconnect to change location." : "Pick any location, then press Connect."}
+      </p>
+      {open && (
+        <ul
+          id={listId}
+          aria-label="Locations"
+          className="absolute inset-x-0 top-[54px] z-20 max-h-72 overflow-auto rounded-xl border border-line bg-surface p-1.5 text-fg shadow-(--modal-shadow)"
+        >
+          {ordered.map((p) => (
+            <li key={p.id}>
+              <button
+                type="button"
+                aria-current={p.id === selected?.id ? "true" : undefined}
+                onClick={() => {
+                  onPick(p.id);
+                  setOpen(false);
+                }}
+                className={`flex h-[42px] w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] font-semibold hover:bg-raised ${
+                  p.id === selected?.id ? "bg-raised" : ""
+                }`}
+              >
+                <CountryFlag code={p.server.location?.country_code} />
+                <span className="min-w-0 flex-1 truncate">
+                  {locationLabel(p, countries)}
+                  <span className="ml-2 text-[12px] font-medium text-muted">
+                    {p.name}
+                    {p.id === preferredId ? " (preferred)" : ""}
+                  </span>
+                </span>
+                {p.server.favorite && (
+                  <Star size={13} aria-label="Favorite" className="fill-current text-pending" />
+                )}
+                {p.id === selected?.id && <CheckIcon size={16} aria-hidden className="text-accent" />}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
@@ -440,22 +528,22 @@ function PublicIpRow({
     body = (
       <span>
         <span className="font-mono text-[13px]">{feature.detail}</span>
-        {country ? <span className="text-muted"> · {country} (server's listed country)</span> : null}
+        {country ? <span className="text-(--h-mute)"> · {country} (server's listed country)</span> : null}
       </span>
     );
   } else if (feature.status === "configured") {
     body = feature.detail;
   } else if (feature.status === "failed" || feature.status === "unsupported") {
-    body = <span className="text-danger">{feature.detail}</span>;
+    body = <span className="text-[#f0786a]">{feature.detail}</span>;
   } else if (connected) {
     body = "Enable connectivity check in Settings";
   } else {
     body = undefined;
   }
   return (
-    <Row label="DNS resolver egress IPv4" state={state}>
+    <Detail label="DNS resolver egress IPv4" state={state}>
       {body}
-    </Row>
+    </Detail>
   );
 }
 
@@ -547,7 +635,40 @@ function SpeedPanel({ connected }: { connected: boolean }) {
   );
 }
 
-const LEAK_IDS = ["kill_switch", "dns", "ipv6", "reachability", "public_ip", "other_vpn", "browser_dns"];
+const LEAK_ROWS: {
+  id: string;
+  title: string;
+  icon: ReactNode;
+  protection?: "kill_switch" | "dns" | "ipv6";
+  help?: HelpKey;
+}[] = [
+  {
+    id: "kill_switch",
+    title: "Kill switch",
+    icon: <ShieldCheck size={20} aria-hidden />,
+    protection: "kill_switch",
+    help: "killSwitch",
+  },
+  {
+    id: "dns",
+    title: "DNS leak protection",
+    icon: <Network size={20} aria-hidden />,
+    protection: "dns",
+    help: "dnsProtection",
+  },
+  {
+    id: "ipv6",
+    title: "IPv6 protection",
+    icon: <Globe size={20} aria-hidden />,
+    protection: "ipv6",
+    help: "ipv6Protection",
+  },
+  { id: "reachability", title: "Server reachability", icon: <Radio size={20} aria-hidden /> },
+  { id: "public_ip", title: "Public IP", icon: <MapPin size={20} aria-hidden /> },
+  { id: "other_vpn", title: "Other VPN apps", icon: <Layers size={20} aria-hidden /> },
+  { id: "browser_dns", title: "Browser DNS", icon: <Compass size={20} aria-hidden /> },
+];
+const LEAK_IDS = LEAK_ROWS.map((r) => r.id);
 const leakTone: Record<CheckStatus, Tone> = { pass: "ok", warn: "pending", fail: "bad", skipped: "none" };
 const leakText: Record<CheckStatus, string> = {
   pass: "Protected",
@@ -555,8 +676,23 @@ const leakText: Record<CheckStatus, string> = {
   fail: "Leaking",
   skipped: "Not tested",
 };
+const tagClass: Record<Tone, string> = {
+  ok: "bg-ok-soft text-ok",
+  pending: "bg-pending-soft text-pending",
+  bad: "bg-danger-soft text-danger",
+  none: "bg-raised text-muted",
+};
 
-function LeakTestPanel({ connected }: { connected: boolean }) {
+/** Attached under the hero. Before a test runs, the three protections show their live status. */
+function LeakSection({
+  connected,
+  protection,
+  goTo,
+}: {
+  connected: boolean;
+  protection?: { kill_switch: Feature; dns: Feature; ipv6: Feature };
+  goTo: (s: ScreenId) => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ checks: Check[]; at: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -569,8 +705,7 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
     }
   }, [connected]);
 
-  // Check automatically a few seconds after connecting, so the user sees their
-  // protection without having to ask. "Test again" still reruns it by hand.
+  // Check automatically a few seconds after connecting; "Test again" reruns by hand.
   const startRef = useRef<() => void>(() => {});
   useEffect(() => {
     if (!connected) return;
@@ -621,72 +756,105 @@ function LeakTestPanel({ connected }: { connected: boolean }) {
       : "No leaks found.";
 
   return (
-    <Panel
-      title="Leak test"
-      help="leakTest"
-      actions={
-        <Button className="min-w-28 whitespace-nowrap" onClick={start} disabled={!connected || busy}>
-          {busy ? (
-            <>
-              <span
-                aria-hidden
-                className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
-              />
-              Testing
-            </>
-          ) : result ? (
-            "Test again"
-          ) : (
-            "Run leak test"
-          )}
-        </Button>
-      }
-    >
-      {!connected ? (
-        <p className="py-2 text-[13px] text-muted">Connect to a server to run a leak test.</p>
-      ) : result ? (
-        <>
-          <p className="pb-1 text-[13px] font-medium">{worst}</p>
-          <ul>
-            {result.checks.map((c) => (
-              <li key={c.id} className="flex items-start gap-3 border-b border-line py-2 last:border-b-0">
-                <span className="pt-1.5">
-                  <Dot tone={leakTone[c.status]} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="flex justify-between gap-3">
-                    <span className="font-medium">{c.title}</span>
-                    <span className="text-[12.5px] text-muted">{leakText[c.status]}</span>
+    <div className="leak-section">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-5 pb-1.5">
+        <h2 className="text-[16px] font-bold">
+          Leak test
+          <InfoTip topic="leakTest" />
+        </h2>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => goTo("settings")}
+            className="text-[12.5px] font-bold text-accent hover:underline"
+          >
+            Manage in Settings
+          </button>
+          <Button
+            variant="primary"
+            className="min-w-28 whitespace-nowrap"
+            onClick={start}
+            disabled={!connected || busy}
+          >
+            {busy ? (
+              <>
+                <span
+                  aria-hidden
+                  className="size-3 animate-spin rounded-full border-2 border-current border-t-transparent"
+                />
+                Testing
+              </>
+            ) : result ? (
+              "Test again"
+            ) : (
+              "Run leak test"
+            )}
+          </Button>
+        </div>
+      </div>
+      <p className="px-6 pb-2 text-[13px] text-muted">
+        {!connected
+          ? "Connect to a server to run a leak test."
+          : result
+            ? worst
+            : "Checks run by themselves a few seconds after you connect."}
+      </p>
+      <ul aria-label="Leak checks">
+        {LEAK_ROWS.map((row) => {
+          const c = result?.checks.find((x) => x.id === row.id);
+          const f = row.protection ? protection?.[row.protection] : undefined;
+          let tone: Tone = "none";
+          let tag = "Not run";
+          let detail = "";
+          if (c) {
+            tone = leakTone[c.status];
+            tag = leakText[c.status];
+            detail = c.detail;
+          } else if (f) {
+            tone = featureTone(f);
+            tag = featureText(f);
+            detail = "detail" in f ? f.detail : "";
+          }
+          return (
+            <li
+              key={row.id}
+              className="grid grid-cols-[44px_minmax(0,1fr)_auto] items-center gap-4 border-t border-line px-6 py-3.5"
+            >
+              <span className="grid size-11 place-items-center rounded-[10px] bg-raised text-muted">
+                {row.icon}
+              </span>
+              <div className="min-w-0">
+                <p className="text-[14px] font-bold">
+                  {c?.title ?? row.title}
+                  {row.help && <InfoTip topic={row.help} />}
+                </p>
+                {detail && <p className="text-[12.5px] break-words text-muted">{detail}</p>}
+                {row.id === "other_vpn" && c?.status === "warn" && (
+                  <div className="mt-1.5">
+                    <Button onClick={stopOthers} disabled={stopping || busy}>
+                      {stopping ? "Stopping…" : "Stop it"}
+                    </Button>
+                    {stopNote && <p className="mt-1 text-[12px] text-muted">{stopNote}</p>}
                   </div>
-                  <p className="text-[12.5px] break-words text-muted">{c.detail}</p>
-                  {c.id === "other_vpn" && c.status === "warn" && (
-                    <div className="mt-1.5">
-                      <Button onClick={stopOthers} disabled={stopping || busy}>
-                        {stopping ? "Stopping…" : "Stop it"}
-                      </Button>
-                      {stopNote && <p className="mt-1 text-[12px] text-muted">{stopNote}</p>}
-                    </div>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      ) : (
-        <p className="py-2 text-[13px] text-muted">
-          Checks run by themselves a few seconds after you connect.
-        </p>
-      )}
+                )}
+              </div>
+              <span className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${tagClass[tone]}`}>
+                {tag}
+              </span>
+            </li>
+          );
+        })}
+      </ul>
       {error && (
-        <p role="alert" className="mt-2 text-[13px] text-danger">
+        <p role="alert" className="px-6 py-2 text-[13px] text-danger">
           {error}
         </p>
       )}
-      <p className="mt-2 text-[12px] text-muted">
+      <p className="border-t border-line px-6 py-3 text-[12px] text-muted">
         {result
           ? `Checked at ${clock(result.at)}. Tests run on this device and contact no third-party site.`
           : "Runs on this device and contacts no third-party site."}
       </p>
-    </Panel>
+    </div>
   );
 }

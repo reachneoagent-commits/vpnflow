@@ -21,30 +21,40 @@
  * so an idle window never looks "safe". Interactive accent = teal on ink text; sidebar is always ink; dark is the default theme.
  */
 :root {
-  --bg: #f2fcfa;
+  --bg: #f5f5f5;
   --surface: #ffffff;
-  --raised: #eaeeee;
-  --line: #dce1e1;
+  --raised: #eef0f0;
+  --line: #e7e9ea;
   --fg: #101516;
-  --muted: #4d5a5c;
-  --accent: #54e6d4;
-  --accent-fg: #101516;
-  --focus: #54e6d4;
+  --muted: #5b6b6e;
+  --accent: #0e9a8d;
+  --accent-fg: #ffffff;
+  --focus: #0e9a8d;
   --ok: #1d7a4c;
   --ok-soft: #d5eadf;
   --pending: #9c5f07;
-  --pending-soft: #f3e4c8;
+  --pending-soft: #f7e9bf;
   --danger: #b3261e;
-  --danger-soft: #f6dad6;
+  --danger-soft: #fcd9dc;
   color-scheme: light;
+  --hero: #17272b;
+  --hero-fg: #f2fcfa;
+  --hero-muted: #9fb1b2;
+  --chip: #ececec;
+  --faint: #8a9799;
+  --sel: #e0f5f2;
+  --accent-text: #0b8478;
+  --btn-hover: #0b8a7e;
+  --shadow: 0 1px 2px rgb(16 21 22 / 0.05);
+  --modal-shadow: 0 24px 60px -12px rgb(16 21 22 / 0.35);
 }
 
 @media all {
   :root:not([data-theme="light"]) {
-    --bg: #101516;
-    --surface: #171d1e;
-    --raised: #1f2728;
-    --line: #2c3638;
+    --bg: #0c1112;
+    --surface: #151b1c;
+    --raised: #1c2425;
+    --line: #263032;
     --fg: #f2fcfa;
     --muted: #9aa9a9;
     --accent: #54e6d4;
@@ -56,14 +66,22 @@
     --pending-soft: #3a2d18;
     --danger: #f0786a;
     --danger-soft: #3d201e;
+    --hero: #1d2e33;
+    --chip: #222c2e;
+    --faint: #6f7e80;
+    --sel: #1b3a37;
+    --accent-text: #54e6d4;
+    --btn-hover: #3fd3c1;
+    --shadow: none;
+    --modal-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #101516;
-  --surface: #171d1e;
-  --raised: #1f2728;
-  --line: #2c3638;
+  --bg: #0c1112;
+  --surface: #151b1c;
+  --raised: #1c2425;
+  --line: #263032;
   --fg: #f2fcfa;
   --muted: #9aa9a9;
   --accent: #54e6d4;
@@ -75,6 +93,14 @@
   --pending-soft: #3a2d18;
   --danger: #f0786a;
   --danger-soft: #3d201e;
+  --hero: #1d2e33;
+  --chip: #222c2e;
+  --faint: #6f7e80;
+  --sel: #1b3a37;
+  --accent-text: #54e6d4;
+  --btn-hover: #3fd3c1;
+  --shadow: none;
+  --modal-shadow: 0 24px 60px -12px rgb(0 0 0 / 0.7);
   color-scheme: dark;
 }
 
@@ -88,6 +114,11 @@
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
   --color-focus: var(--focus);
+  --color-chip: var(--chip);
+  --color-faint: var(--faint);
+  --color-sel: var(--sel);
+  --color-accent-text: var(--accent-text);
+  --shadow-card: var(--shadow);
   --color-brand: #54e6d4;
   --color-ink: #101516;
   --color-mist: #f2fcfa;
@@ -109,11 +140,7 @@ body,
 
 body {
   margin: 0;
-  /* Mist wash + fine grain: depth without card decoration. */
-  background:
-    radial-gradient(115% 70% at 8% -10%, color-mix(in srgb, var(--focus) 7%, transparent), transparent 52%),
-    radial-gradient(90% 55% at 100% 0%, color-mix(in srgb, var(--raised) 55%, transparent), transparent 48%),
-    var(--bg);
+  background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans);
   font-size: 14px;
@@ -121,16 +148,6 @@ body {
   font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
   user-select: none;
-}
-
-body::before {
-  content: "";
-  pointer-events: none;
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  opacity: 0.035;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
 #root {
@@ -142,6 +159,21 @@ input,
 textarea,
 .selectable {
   user-select: text;
+}
+
+input:not([type="radio"]):not([type="checkbox"]),
+select,
+textarea {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  color: var(--fg);
+}
+input:not([type="radio"]):not([type="checkbox"]):hover,
+select:hover {
+  border-color: var(--faint);
 }
 
 :focus-visible {
@@ -210,4 +242,244 @@ dialog::backdrop {
     /* biome-ignore lint/complexity/noImportantStyles: must override every component */
     animation-iteration-count: 1 !important;
   }
+}
+
+/* Hero (dark card in both themes). Local --h-* tokens keep one layout for light and dark. */
+.hero {
+  --h-bg: #101516;
+  --h-fg: #f2fcfa;
+  --h-mute: #9fb1b2;
+  --h-line: rgb(255 255 255 / 0.12);
+  --h-fill: rgb(0 0 0 / 0.24);
+  --h-acc: #54e6d4;
+  --h-ring: #7a8a8c;
+  --h-pending: #f0c070;
+  --glow: rgb(84 230 212 / 0.35);
+  --btn-fg: #101516;
+  background: var(--h-bg);
+  color: var(--h-fg);
+  border-radius: 12px 12px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  min-width: 0;
+}
+.hero-main {
+  border-right: 1px solid var(--h-line);
+}
+@media (max-width: 980px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .hero-main {
+    border-right: 0;
+    border-bottom: 1px solid var(--h-line);
+  }
+}
+
+/* Power orb with concentric rings; --c carries the state colour. */
+.orb {
+  position: relative;
+  --o: clamp(128px, 15vw, 176px);
+  width: var(--o);
+  height: var(--o);
+  /* rings reach 39% beyond the core: reserve that space so nothing below overlaps */
+  margin: calc(var(--o) * 0.39 + 16px) 0;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  --c: var(--h-ring);
+}
+.orb .ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--c);
+  transition: all 0.4s;
+}
+.orb .r1 {
+  inset: -12%;
+  opacity: 0.6;
+}
+.orb .r2 {
+  inset: -25%;
+  opacity: 0.32;
+}
+.orb .r3 {
+  inset: -39%;
+  opacity: 0.14;
+}
+.orb .core {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 2px solid var(--c);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--h-fill);
+  color: var(--h-fg);
+  font-size: 14px;
+  font-weight: 700;
+  transition: all 0.4s;
+}
+.orb:hover:not(:disabled) .core {
+  filter: brightness(1.08);
+}
+.orb:disabled {
+  cursor: not-allowed;
+}
+.orb:focus-visible {
+  outline-offset: 14px;
+}
+[data-state="connecting"] .orb {
+  --c: var(--h-pending);
+}
+[data-state="connecting"] .orb .r2 {
+  border-style: dashed;
+  animation: orb-spin 6s linear infinite;
+  opacity: 0.6;
+}
+[data-state="connecting"] .orb .r1 {
+  animation: orb-pulse 1.4s ease-in-out infinite;
+}
+[data-state="connected"] .orb {
+  --c: var(--h-acc);
+}
+[data-state="connected"] .orb .core {
+  background: radial-gradient(
+    circle at 50% 35%,
+    color-mix(in srgb, var(--h-acc) 32%, transparent),
+    color-mix(in srgb, var(--h-acc) 8%, transparent)
+  );
+  box-shadow: 0 0 44px var(--glow);
+}
+@keyframes orb-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@keyframes orb-pulse {
+  50% {
+    opacity: 0.2;
+  }
+}
+
+/* Connection check rows: tiles joined by a dotted line, solid once confirmed. */
+.chk {
+  position: relative;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 0;
+}
+.chk::before {
+  content: "";
+  position: absolute;
+  left: 19px;
+  top: 54px;
+  bottom: -14px;
+  border-left: 2px dotted color-mix(in srgb, var(--h-fg) 28%, transparent);
+}
+.chk .cn {
+  position: absolute;
+  left: 19px;
+  top: 54px;
+  bottom: -14px;
+  width: 2px;
+  background: var(--h-acc);
+  box-shadow: 0 0 8px var(--glow);
+  transform: scaleY(0);
+  transform-origin: top;
+  transition: transform 0.5s ease;
+  z-index: 1;
+}
+.chk[data-s="done"] .cn {
+  transform: scaleY(1);
+}
+.chk.last::before,
+.chk.last .cn {
+  display: none;
+}
+.chk::after {
+  content: "";
+  position: absolute;
+  left: 54px;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--h-line);
+}
+.chk.last::after {
+  display: none;
+}
+.chk .tile {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--h-fill);
+  color: var(--h-mute);
+  transition: all 0.3s;
+}
+.chk[data-s="done"] .tile {
+  background: var(--h-acc);
+  color: var(--btn-fg);
+  box-shadow: 0 0 14px var(--glow);
+}
+.chk[data-s="work"] .tile {
+  background: rgb(240 192 112 / 0.2);
+  color: var(--h-pending);
+  animation: orb-pulse 1.2s ease-in-out infinite;
+}
+.chk[data-s="bad"] .tile {
+  background: rgb(240 120 106 / 0.2);
+  color: #f0786a;
+}
+.chk .v {
+  font-size: 13px;
+  color: var(--h-mute);
+  text-align: right;
+  max-width: 150px;
+}
+.chk[data-s="done"] .v {
+  color: var(--h-acc);
+}
+.chk[data-s="work"] .v {
+  color: var(--h-pending);
+}
+.chk[data-s="bad"] .v {
+  color: #f0786a;
+}
+
+/* Leak section: attached under the hero, uses the theme surface. */
+.leak-section {
+  background: var(--surface);
+  color: var(--fg);
+  border-radius: 0 0 12px 12px;
+}
+
+/* Onboarding illustrations (Streamline Bangalore, CC BY 4.0) recoloured to the brand. */
+.ill svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.ill .a {
+  fill: var(--accent);
+}
+.ill .b {
+  fill: color-mix(in srgb, var(--accent) 28%, var(--raised));
+}
+.ill .k {
+  fill: none;
+  stroke: var(--fg);
+  stroke-width: 1;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }

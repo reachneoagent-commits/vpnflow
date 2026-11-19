@@ -1,16 +1,10 @@
 import { ChevronDown, ChevronRight, Globe, Plus, RefreshCw, Star, Upload, Zap } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { Button, Confirm, Dot, InfoTip, Modal, Segmented, TextField } from "../components/ui";
+import { Button, Confirm, Dot, InfoTip, Modal, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
 import { isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago } from "../lib/format";
-import {
-  hasRecentResponse,
-  type LocationFilter,
-  type LocationSort,
-  locationGroups,
-  locationLabel,
-} from "../lib/locations";
+import { hasRecentResponse, type LocationSort, locationGroups, locationLabel } from "../lib/locations";
 import { useStore } from "../lib/store";
 import type { ProfileDraft, ProfileView, ServerUpdate } from "../lib/types";
 import { Editor } from "./Profiles";
@@ -32,8 +26,7 @@ export function CountryFlag({ code }: { code?: string }) {
 export function Locations() {
   const { profiles, countries, snapshot, settings, run, saveSettings, caps, refreshProfiles } = useStore();
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState<LocationFilter>("all");
-  const [sort, setSort] = useState<LocationSort>("country");
+  const [sort, setSort] = useState<LocationSort>("favorites");
   const [country, setCountry] = useState<string | null | undefined>(undefined);
   const [adding, setAdding] = useState(false);
   const [assigning, setAssigning] = useState<ProfileView[]>([]);
@@ -42,6 +35,7 @@ export function Locations() {
   const [managing, setManaging] = useState<ProfileView | null>(null);
   const [working, setWorking] = useState(false);
   const [guide, setGuide] = useState(false);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
   const searchId = useId();
   const sortId = useId();
@@ -55,7 +49,11 @@ export function Locations() {
   const busy = working || isBusy(state) || state.state === "reconnecting";
   const unsafe = state.state === "uncertain";
   const activeId = isActive(state) && "profile" in state ? state.profile : null;
-  const groups = locationGroups(profiles, countries, settings, snapshot.health, query, filter, sort, now);
+  const groups = locationGroups(profiles, countries, settings, snapshot.health, query, "all", sort, now);
+  const recent = profiles
+    .filter((p) => p.server.last_connected_ms)
+    .sort((a, b) => (b.server.last_connected_ms ?? 0) - (a.server.last_connected_ms ?? 0))
+    .slice(0, 5);
   const selectedCode =
     country === null
       ? null
@@ -64,6 +62,10 @@ export function Locations() {
         : (groups.find((g) => g.servers.some((p) => p.id === activeId)) ?? groups[0])?.code;
   const selected = groups.find((g) => g.code === selectedCode);
   const active = profiles.find((p) => p.id === activeId);
+  const detail =
+    selected?.servers.find((p) => p.id === focusId) ??
+    selected?.servers.find((p) => p.id === activeId) ??
+    selected?.servers[0];
   const perform = async (action: () => Promise<unknown>) => {
     setWorking(true);
     try {
@@ -103,7 +105,7 @@ export function Locations() {
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-1">
-            <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.015em]">VPN Locations</h1>
+            <h1 className="text-2xl font-bold leading-tight tracking-[-0.01em]">VPN Locations</h1>
             <InfoTip topic="locations" />
           </div>
           <p className="mt-1.5 max-w-[54ch] text-muted">
@@ -132,7 +134,7 @@ export function Locations() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search country, city, server or endpoint"
-            className="w-full rounded-lg border border-line bg-surface px-3 py-2"
+            className="h-12 w-full rounded-xl"
           />
         </div>
         <div>
@@ -143,7 +145,7 @@ export function Locations() {
             id={sortId}
             value={sort}
             onChange={(e) => setSort(e.target.value as LocationSort)}
-            className="rounded-lg border border-line bg-surface px-2 py-2"
+            className=""
           >
             <option value="country">Country name</option>
             <option value="recent">Recently connected</option>
@@ -160,18 +162,6 @@ export function Locations() {
         </Button>
         <InfoTip topic="locationFilters" />
       </div>
-      <Segmented
-        label="Filter locations"
-        hideLabel
-        value={filter}
-        onChange={setFilter}
-        options={[
-          { value: "all", label: "All countries" },
-          { value: "favorites", label: "Favorites" },
-          { value: "recent", label: "Recently used" },
-          { value: "available", label: "Available servers" },
-        ]}
-      />
       {profiles.length === 0 ? (
         <section className="px-2 py-14 text-center">
           <Globe size={36} className="mx-auto mb-4 text-muted" aria-hidden />
@@ -191,209 +181,268 @@ export function Locations() {
         </section>
       ) : groups.length === 0 ? (
         <div className="px-1 py-8" role="status">
-          <p className="font-medium">
-            {filter === "available"
-              ? "No servers have answered recently"
-              : filter === "favorites"
-                ? "No favorite servers yet"
-                : filter === "recent"
-                  ? "No recently used servers"
-                  : "No servers match this filter"}
-          </p>
-          <p className="mt-2 max-w-[58ch] text-muted">
-            {filter === "available"
-              ? "Available only lists servers that returned an authenticated WireGuard response in the last five minutes while a tunnel was up. Idle servers are not probed. Try All countries, or connect once so a response can be recorded."
-              : "Try All countries, clear the search, or add a server."}
-          </p>
+          <p className="font-medium">No servers match your search</p>
+          <p className="mt-2 max-w-[58ch] text-muted">Clear the search, or add a server.</p>
         </div>
       ) : (
-        <div className="grid items-start gap-5 min-[850px]:grid-cols-[230px_minmax(0,1fr)]">
-          <section aria-label="Country directory" className="rounded-xl border border-line bg-surface">
-            <h2 className="border-b border-line px-4 py-3 font-semibold">
-              Countries <span className="text-muted">{groups.length}</span>
+        <div className="grid items-start gap-6 min-[900px]:grid-cols-[minmax(0,1fr)_300px]">
+          <section aria-label="Country directory" className="flex min-w-0 flex-col gap-2">
+            <h2 className="mt-1 mb-1 text-[15px] font-bold">
+              All locations{" "}
+              <span className="text-xs font-normal text-muted">· {groups.length} countries</span>
             </h2>
-            <ul className="divide-y divide-line">
-              {groups.map((g) => (
-                <li key={g.code} className="flex items-start gap-1 p-2">
-                  <button
-                    type="button"
-                    aria-expanded={selectedCode === g.code}
-                    aria-controls="location-servers"
-                    onClick={() => setCountry(selectedCode === g.code ? null : g.code)}
-                    className={`flex min-w-0 flex-1 items-center gap-3 rounded-lg px-2 py-2 text-left ${selectedCode === g.code ? "bg-raised" : "hover:bg-raised/60"}`}
-                  >
-                    <CountryFlag code={g.code} />
-                    <span className="min-w-0 flex-1">
-                      <span className="flex items-center gap-2 font-medium">
-                        {g.name}
-                        {g.servers.some((p) => p.id === activeId) && <Dot tone={stateTone(state)} />}
-                      </span>
-                      <span className="block text-xs text-muted">
-                        {g.servers.length} server{g.servers.length !== 1 ? "s" : ""}
-                      </span>
-                      {g.responded > 0 && (
-                        <span className="block text-xs text-muted">{g.responded} responded recently</span>
-                      )}
-                    </span>
-                    {selectedCode === g.code ? (
-                      <ChevronDown size={14} aria-hidden />
-                    ) : (
-                      <ChevronRight size={14} aria-hidden />
-                    )}
-                  </button>
-                  {g.code && (
-                    <button
-                      type="button"
-                      aria-label={`Favorite country ${g.name}`}
-                      aria-pressed={g.favorite}
-                      disabled={busy}
-                      onClick={() => void favoriteCountry(g.code)}
-                      className="mt-2 rounded p-1 text-muted"
-                    >
-                      <Star size={14} className={g.favorite ? "fill-current text-focus" : ""} aria-hidden />
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
-          <section id="location-servers" aria-label="Available servers" className="min-w-0">
-            <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h2 className="text-lg font-semibold">{selected?.name ?? "Select a country"}</h2>
-              <span className="text-xs text-muted">{selected?.servers.length ?? 0} configured</span>
-            </div>
-            <ul className="flex flex-col gap-3">
-              {selected?.servers.map((p) => {
-                const health = snapshot.health.find((h) => h.id === p.id);
-                const current = p.id === activeId;
-                const responded = hasRecentResponse(health, now);
-                const confirmed = current && state.state === "connected" && state.peer === "confirmed";
-                const failed = state.state === "failed" && state.profile === p.id;
-                const status = failed
-                  ? "Last connection failed"
-                  : current
-                    ? stateHeadline(state, p.name)
-                    : p.server.registration_pending
-                      ? "Remote key registration pending"
-                      : !p.server.enabled
-                        ? "Disabled"
-                        : responded
-                          ? "Responded recently"
-                          : "Reachability unknown";
+            <ul className="flex flex-col gap-2">
+              {groups.map((g) => {
+                const open = selectedCode === g.code;
                 return (
-                  <li
-                    key={p.id}
-                    className={`min-w-0 rounded-xl border bg-surface p-4 ${current ? "border-focus" : "border-line"}`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <h3 className="flex items-center gap-2 text-base font-semibold">
-                          <CountryFlag code={p.server.location?.country_code} />
-                          {p.name}
-                        </h3>
-                        <p className="mt-1 text-[13px] text-muted">{locationLabel(p, countries)}</p>
-                        {p.server.location && (
-                          <p className="text-[12px] text-muted">User-assigned location</p>
-                        )}
-                      </div>
-                      <div className="flex items-start gap-1">
+                  <li key={g.code ?? "none"} className="flex flex-col gap-2">
+                    <div
+                      className={`flex h-12 items-center gap-1 rounded-[10px] border-[1.5px] bg-surface pr-2 pl-3.5 shadow-(--shadow) ${open ? "border-accent" : "border-transparent hover:border-line"}`}
+                    >
+                      <button
+                        type="button"
+                        aria-expanded={open}
+                        aria-controls="location-servers"
+                        onClick={() => setCountry(open ? null : g.code)}
+                        className="flex h-full min-w-0 flex-1 items-center gap-3 text-left text-[13.5px] font-semibold"
+                      >
+                        <CountryFlag code={g.code} />
+                        <span className="truncate">{g.name}</span>
+                        {g.servers.some((p) => p.id === activeId) && <Dot tone={stateTone(state)} />}
+                        <span className="ml-auto shrink-0 text-xs font-medium text-muted">
+                          {g.servers.length} server{g.servers.length !== 1 ? "s" : ""}
+                          {g.responded > 0 && ` · ${g.responded} responded recently`}
+                        </span>
+                      </button>
+                      {g.code && (
                         <button
                           type="button"
-                          aria-label={`Favorite ${p.name}`}
-                          aria-pressed={p.server.favorite}
+                          aria-label={`Favorite country ${g.name}`}
+                          aria-pressed={g.favorite}
                           disabled={busy}
-                          onClick={() => favorite(p)}
-                          className="rounded p-1.5 text-muted"
+                          onClick={() => void favoriteCountry(g.code)}
+                          className="grid size-8 place-items-center rounded-full text-faint hover:bg-chip"
                         >
                           <Star
                             size={16}
+                            className={g.favorite ? "fill-current text-focus" : ""}
                             aria-hidden
-                            className={p.server.favorite ? "fill-current text-focus" : ""}
                           />
                         </button>
-                        <Button
-                          variant="ghost"
-                          className="px-2 py-1 text-[13px] text-muted"
-                          aria-label={`Manage ${p.name}`}
-                          onClick={() => setManaging(p)}
-                        >
-                          Manage
-                        </Button>
-                      </div>
-                    </div>
-                    <p className="selectable mt-3 break-all font-mono text-[12px] text-muted">
-                      {p.summary.endpoints.join(", ") || "Missing endpoint"}
-                    </p>
-                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-                      <div>
-                        <dt className="text-muted">Protocol</dt>
-                        <dd>WireGuard</dd>
-                        {p.summary.peer_count > 1 && (
-                          <dd className="text-muted">{p.summary.peer_count} peers (preserved)</dd>
-                        )}
-                      </div>
-                      <div>
-                        <dt className="text-muted">Last successful connection</dt>
-                        <dd>
-                          {p.server.last_connected_ms
-                            ? ago(p.server.last_connected_ms, now)
-                            : "None recorded"}
-                        </dd>
-                      </div>
-                      <div>
-                        <dt className="text-muted">Last response</dt>
-                        <dd>{health?.observed_ms ? ago(health.observed_ms, now) : "Not observed"}</dd>
-                      </div>
-                    </dl>
-                    {failed && state.state === "failed" && (
-                      <p className="mt-3 text-[13px] text-danger" role="alert">
-                        {state.reason}
-                      </p>
-                    )}
-                    <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
-                      <span className="flex items-center gap-2 text-[13px]" role="status">
-                        <Dot tone={failed ? "bad" : confirmed ? "ok" : current ? stateTone(state) : "none"} />
-                        {status}
-                      </span>
-                      {current ? (
-                        <Button
-                          disabled={state.state === "disconnecting"}
-                          onClick={() =>
-                            perform(
-                              state.state === "connecting" ||
-                                state.state === "preparing" ||
-                                state.state === "reconnecting"
-                                ? api.cancel
-                                : api.disconnect,
-                            )
-                          }
-                        >
-                          {["preparing", "connecting", "reconnecting"].includes(state.state)
-                            ? "Cancel"
-                            : "Disconnect"}
-                        </Button>
+                      )}
+                      {open ? (
+                        <ChevronDown size={16} aria-hidden className="text-muted" />
                       ) : (
-                        <Button
-                          variant="primary"
-                          disabled={
-                            busy ||
-                            unsafe ||
-                            !p.server.enabled ||
-                            p.server.registration_pending ||
-                            caps?.available.status !== "supported"
-                          }
-                          onClick={() => perform(() => api.connect(p.id))}
-                        >
-                          {activeId ? "Switch server" : "Connect"}
-                        </Button>
+                        <ChevronRight size={16} aria-hidden className="text-muted" />
                       )}
                     </div>
+                    {open && (
+                      <ul
+                        id="location-servers"
+                        aria-label="Available servers"
+                        className="flex flex-col gap-2 pl-6"
+                      >
+                        {g.servers.map((p) => {
+                          const current = p.id === activeId;
+                          const confirmed =
+                            current && state.state === "connected" && state.peer === "confirmed";
+                          const failed = state.state === "failed" && state.profile === p.id;
+                          const isFocus = detail?.id === p.id;
+                          return (
+                            <li
+                              key={p.id}
+                              className={`flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] border-[1.5px] bg-surface px-3.5 py-1.5 ${isFocus || current ? "border-accent" : "border-line"}`}
+                            >
+                              <button
+                                type="button"
+                                aria-label={`Details for ${p.name}`}
+                                aria-pressed={isFocus}
+                                onClick={() => setFocusId(p.id)}
+                                className="flex min-w-0 flex-1 items-center gap-3 py-1.5 text-left"
+                              >
+                                <CountryFlag code={p.server.location?.country_code} />
+                                <span className="min-w-0">
+                                  <span className="block truncate text-[13.5px] font-semibold">{p.name}</span>
+                                  <span className="block truncate text-xs text-muted">
+                                    {locationLabel(p, countries)}
+                                  </span>
+                                </span>
+                                {(current || failed) && (
+                                  <span
+                                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${failed ? "bg-danger-soft text-danger" : confirmed ? "bg-ok-soft text-ok" : "bg-chip text-muted"}`}
+                                  >
+                                    {failed ? "Failed" : confirmed ? "Connected" : "Current"}
+                                  </span>
+                                )}
+                              </button>
+                              <button
+                                type="button"
+                                aria-label={`Favorite ${p.name}`}
+                                aria-pressed={p.server.favorite}
+                                disabled={busy}
+                                onClick={() => favorite(p)}
+                                className="grid size-8 place-items-center rounded-full text-faint hover:bg-chip"
+                              >
+                                <Star
+                                  size={16}
+                                  aria-hidden
+                                  className={p.server.favorite ? "fill-current text-focus" : ""}
+                                />
+                              </button>
+                              <Button
+                                variant="ghost"
+                                className="h-8 px-3 text-[12.5px] text-muted"
+                                aria-label={`Manage ${p.name}`}
+                                onClick={() => setManaging(p)}
+                              >
+                                Manage
+                              </Button>
+                              {current ? (
+                                <Button
+                                  disabled={state.state === "disconnecting"}
+                                  onClick={() =>
+                                    perform(
+                                      ["preparing", "connecting", "reconnecting"].includes(state.state)
+                                        ? api.cancel
+                                        : api.disconnect,
+                                    )
+                                  }
+                                >
+                                  {["preparing", "connecting", "reconnecting"].includes(state.state)
+                                    ? "Cancel"
+                                    : "Disconnect"}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="primary"
+                                  disabled={
+                                    busy ||
+                                    unsafe ||
+                                    !!activeId ||
+                                    !p.server.enabled ||
+                                    p.server.registration_pending ||
+                                    caps?.available.status !== "supported"
+                                  }
+                                  onClick={() => perform(() => api.connect(p.id))}
+                                >
+                                  {activeId ? "Disconnect to switch" : "Connect"}
+                                </Button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
                   </li>
                 );
               })}
             </ul>
           </section>
+          <aside
+            aria-label="Selected server"
+            className="rounded-xl bg-surface p-5 shadow-(--shadow) min-[900px]:sticky min-[900px]:top-0"
+          >
+            {!detail ? (
+              <div className="py-6 text-center">
+                <Globe size={36} className="mx-auto mb-3 text-muted" aria-hidden />
+                <h2 className="text-base font-bold">{selected ? selected.name : "Select a country"}</h2>
+                <p className="mt-1 text-xs text-muted">
+                  {selected ? "No servers configured here." : "Pick a country to see its servers."}
+                </p>
+              </div>
+            ) : (
+              (() => {
+                const health = snapshot.health.find((h) => h.id === detail.id);
+                const current = detail.id === activeId;
+                const failed = state.state === "failed" && state.profile === detail.id;
+                const confirmed = current && state.state === "connected" && state.peer === "confirmed";
+                const status = failed
+                  ? "Last connection failed"
+                  : current
+                    ? stateHeadline(state, detail.name)
+                    : detail.server.registration_pending
+                      ? "Remote key registration pending"
+                      : !detail.server.enabled
+                        ? "Disabled"
+                        : hasRecentResponse(health, now)
+                          ? "Responded recently"
+                          : "Reachability unknown";
+                return (
+                  <>
+                    <div className="mb-3 flex justify-center">
+                      <span className="grid size-16 place-items-center rounded-full bg-raised">
+                        <CountryFlag code={detail.server.location?.country_code} />
+                      </span>
+                    </div>
+                    <h2 className="text-center text-base font-bold">{detail.name}</h2>
+                    <p className="mt-1.5 mb-4 text-center text-xs text-muted">
+                      {locationLabel(detail, countries)}
+                      {detail.server.location && " · User-assigned location"}
+                    </p>
+                    <p
+                      role="status"
+                      className="mb-3 flex items-center justify-center gap-2 text-[13px] font-semibold"
+                    >
+                      <Dot tone={failed ? "bad" : confirmed ? "ok" : current ? stateTone(state) : "none"} />
+                      {status}
+                    </p>
+                    {failed && state.state === "failed" && (
+                      <p className="mb-3 text-[13px] text-danger" role="alert">
+                        {state.reason}
+                      </p>
+                    )}
+                    <dl className="grid grid-cols-2 gap-3 rounded-xl bg-raised p-4 text-xs">
+                      <div className="col-span-2">
+                        <dt className="text-faint">Endpoint</dt>
+                        <dd className="selectable font-mono text-[12.5px] font-semibold break-all">
+                          {detail.summary.endpoints.join(", ") || "Missing endpoint"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-faint">Protocol</dt>
+                        <dd className="text-[13px] font-semibold">WireGuard</dd>
+                        {detail.summary.peer_count > 1 && (
+                          <dd className="text-muted">{detail.summary.peer_count} peers (preserved)</dd>
+                        )}
+                      </div>
+                      <div>
+                        <dt className="text-faint">Last successful connection</dt>
+                        <dd className="text-[13px] font-semibold">
+                          {detail.server.last_connected_ms
+                            ? ago(detail.server.last_connected_ms, now)
+                            : "None recorded"}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt className="text-faint">Last response</dt>
+                        <dd className="text-[13px] font-semibold">
+                          {health?.observed_ms ? ago(health.observed_ms, now) : "Not observed"}
+                        </dd>
+                      </div>
+                    </dl>
+                  </>
+                );
+              })()
+            )}
+          </aside>
         </div>
+      )}
+      {recent.length > 0 && (
+        <section aria-label="Recently used">
+          <h2 className="mb-2.5 text-[15px] font-bold">Recently used</h2>
+          <ul className="flex flex-col gap-2">
+            {recent.map((p) => (
+              <li
+                key={p.id}
+                className="flex h-12 items-center gap-3 rounded-[10px] border border-line px-3.5 text-[13px]"
+              >
+                <CountryFlag code={p.server.location?.country_code} />
+                <span className="min-w-0 flex-1 truncate font-medium">{p.name}</span>
+                <span className="text-muted">{ago(p.server.last_connected_ms ?? 0, now)}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-4 text-[13px]">
         {!activeId && snapshot.protection.kill_switch.status === "verified" && (
@@ -420,7 +469,7 @@ export function Locations() {
             onChange={(e) =>
               void saveSettings({ ...settings, quick_connect_country: e.target.value || null })
             }
-            className="max-w-44 rounded border border-line bg-surface p-1.5"
+            className="max-w-44 "
           >
             <option value="">Any country</option>
             {countries.map((c) => (
@@ -643,7 +692,7 @@ function ServerDetails({ profile, onClose }: { profile: ProfileView; onClose: ()
             required
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full rounded-md border border-line bg-surface p-2"
+            className="w-full w-full"
           >
             <option value="">Choose a country</option>
             {countries.map((c) => (

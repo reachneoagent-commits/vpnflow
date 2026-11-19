@@ -2,6 +2,10 @@
 
 Only what was actually executed. Newest first.
 
+## 2026-11-19 — Surfshark-style UI port
+
+Ported the v4 mockup into `apps/desktop`: dark hero with connection check and leak section, merged Locations and Advanced WireGuard tabs, single favorites-first server list with Recently used, one Settings page ordered by importance, themed top bar, and X/click-outside/Esc on modals. Under `apps/desktop`, `pnpm typecheck` passed, `pnpm test` passed (33 tests) and `biome lint` reported one `noDescendingSpecificity` warning. Not run: Rust checks, `pnpm build`, and any visual check of the real app (no screenshots per project rules).
+
 ## 2026-11-18 — Main branch integration
 
 Integrated the audit changes with GitHub main at `2854b28`. The integrated
@@ -991,3 +995,15 @@ Onboarding now switches on recommended protection at the last step (kill switch,
 Terminal on the user's Mac, VPNFlow connected (Proton Japan): public IP 37.19.205.193 Datacamp Tokyo; IPv6 request returned the same IPv4 (no IPv6 leak); system DNS 94.140.14.14 / 94.140.15.15 (AdGuard).
 Chrome driven by Claude (ipleak.net, adblock.turtlecute.org): showed Cloudflare addresses in Texas (104.28.255.27) and Cloudflare DNS, and turtlecute scored 6% (8 of 130). Cloudflare WARP was installed and its daemon (pid 551) kept running after the app was quit; the result did not change after quitting the WARP app. Cause not isolated, so these Chrome results are not a measure of VPNFlow. The user's own Chrome on the Surfshark DNS test showed Datacamp, Japan.
 New: `other_vpn` and `browser_dns` diagnostics (crates/aegis-core/src/environment.rs). Parsers unit-tested (3 tests); core 75, desktop 12, UI 30 pass, clippy clean. Not yet seen running in the app.
+
+## 2026-11-19: In-app macOS helper setup (built, not run live)
+
+New `helper_status` / `install_helper` commands (apps/desktop/src-tauri/src/helper.rs), a "Set up" banner, a help card, `scripts/macos/stage-helper.sh`, and a staging step in `release-desktop.yml`.
+Ran: cargo fmt, clippy `-D warnings`, desktop crate tests (14 unit + the IPC permission test; 2 new helper tests for the status rules and for the root script verifying both hashes before loading the daemon), UI typecheck, Biome and 33 Vitest tests (3 new).
+`tauri build --bundles app` on this Mac: `Contents/Resources/helper/` holds vpnflow-daemon and wireguard-go with the same SHA-256 as the staged files, and the daemon hash is embedded in the app binary.
+Not run: the admin-password install itself, the restart afterwards, a cancelled prompt, the helper-mismatch path, or the release workflow on GitHub. The staged wireguard-go was copied from the already-installed helper here; the workflow builds it from source.
+
+## 2026-11-19: Mockup match for Dashboard hero, Locations and Onboarding (UI only)
+
+Dashboard orb now scales with the window and its rings are sized relative to it, so the timer no longer sits inside them. Locations: country rows with inline server rows and a sticky detail panel. Onboarding reworked after on-screen feedback: real shield logo in the header, compact "Step n of 5" progress bar instead of the wrapping stepper, buttons never wrap, smaller per-step illustration panel shown only on wide windows; steps, text and buttons unchanged. The panel now uses five Streamline Bangalore illustrations (CC BY 4.0, credited on About), inlined as SVG and recoloured to the brand with theme-aware CSS (`.ill` in styles.css).
+Ran: UI typecheck, Biome (0 errors, 1 existing `noDescendingSpecificity` warning) and 33 Vitest tests, all passing. Not run: the app itself, so none of this has been looked at on screen.

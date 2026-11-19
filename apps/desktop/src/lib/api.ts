@@ -52,6 +52,8 @@ export const api = {
     invoke<{ imported: string[]; failed: number }>("scan_downloads", { sinceMs }),
   currentNetwork: () => invoke<string | null>("current_network"),
   speedTest: () => invoke<SpeedResult>("speed_test"),
+  helperStatus: () => invoke<HelperStatus>("helper_status"),
+  installHelper: () => invoke<void>("install_helper"),
   stopOtherVpns: () => invoke<{ name: string; ok: boolean; message: string }[]>("stop_other_vpns"),
 };
 
@@ -62,6 +64,8 @@ export function onEngineEvent(cb: (e: EngineEvent) => void): Promise<UnlistenFn>
 export function onImportResult(cb: (r: { name: string; error: UiError | null }) => void) {
   return listen<{ name: string; error: UiError | null }>("import-result", (e) => cb(e.payload));
 }
+
+export type HelperStatus = "not_needed" | "not_bundled" | "ok" | "missing" | "outdated";
 
 export function asUiError(e: unknown): UiError {
   if (e && typeof e === "object" && "message" in e) {

@@ -60,21 +60,36 @@ export function SettingsScreen() {
     <div className="flex max-w-3xl flex-col gap-7">
       <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">Settings</h1>
 
-      <Panel title="Appearance">
-        <div className="flex items-center justify-between py-3">
-          <label htmlFor={themeId} className="font-medium">
-            Theme
-          </label>
-          <select
-            id={themeId}
-            value={settings.theme}
-            onChange={(e) => set({ theme: e.target.value as Theme })}
-            className="rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
-          >
-            <option value="system">Match system</option>
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
+      <Panel title="Protection">
+        <Switch
+          label="Kill switch"
+          help="killSwitch"
+          description={
+            ksUnsupported
+              ? `${supportNote(caps?.kill_switch, "The kill switch")}. While this is on, VPNFlow refuses to connect rather than connect without it.`
+              : "Blocks all traffic outside the tunnel from Connect until you press Disconnect, also while reconnecting or if the app crashes. Server endpoints must be IP addresses. Change it while disconnected."
+          }
+          checked={settings.kill_switch}
+          onChange={(v) => set({ kill_switch: v })}
+        />
+        <Switch
+          label="Allow local network"
+          help="allowLan"
+          description="While the kill switch blocks, devices on your local network (printers, file shares, your router) stay reachable."
+          checked={settings.kill_switch_allow_lan}
+          disabled={!settings.kill_switch || ksUnsupported}
+          onChange={(v) => set({ kill_switch_allow_lan: v })}
+        />
+        <div className="border-t border-line py-3 text-[13px]">
+          <div className="font-medium">
+            DNS and IPv6
+            <InfoTip topic="dnsProtection" />
+          </div>
+          <p className="mt-0.5 max-w-[65ch] text-muted">
+            {caps?.dns_protection.status === "supported"
+              ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. VPNFlow re-checks this every few seconds; the dashboard shows the result."
+              : (supportNote(caps?.dns_protection, "DNS protection") ?? "")}
+          </p>
         </div>
       </Panel>
 
@@ -101,7 +116,7 @@ export function SettingsScreen() {
             id={prefId}
             value={settings.preferred_profile ?? ""}
             onChange={(e) => set({ preferred_profile: e.target.value || null })}
-            className="max-w-64 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+            className="max-w-64 "
           >
             <option value="">None</option>
             {profiles.map((p) => (
@@ -144,7 +159,7 @@ export function SettingsScreen() {
             max={50}
             value={settings.reconnect_max_attempts}
             onChange={(e) => set({ reconnect_max_attempts: Number(e.target.value) || 1 })}
-            className="w-20 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+            className="w-20 "
           />
         </div>
       </Panel>
@@ -186,7 +201,7 @@ export function SettingsScreen() {
                 value={trustDraft}
                 onChange={(e) => setTrustDraft(e.target.value)}
                 placeholder="Name, such as Home"
-                className="w-64 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+                className="w-64 "
               />
               <Button type="submit">Trust this network</Button>
             </form>
@@ -208,62 +223,6 @@ export function SettingsScreen() {
           </div>
         </Panel>
       )}
-
-      <Panel title="Schedule" help="schedule">
-        <Switch
-          label="Connect and disconnect at set times"
-          description="Uses your preferred profile, or Quick connect if none is set. It acts only at those times, so you can still switch manually in between."
-          checked={settings.schedule_enabled}
-          onChange={(v) => set({ schedule_enabled: v })}
-        />
-        {settings.schedule_enabled && (
-          <div className="flex flex-col gap-3 border-t border-line py-3 text-[13px]">
-            <div className="flex flex-wrap items-center gap-4">
-              <label className="flex items-center gap-2 font-medium">
-                Connect at
-                <input
-                  type="time"
-                  value={settings.schedule_connect}
-                  onChange={(e) => e.target.value && set({ schedule_connect: e.target.value })}
-                  className="rounded-md border border-line bg-surface px-2.5 py-1.5"
-                />
-              </label>
-              <label className="flex items-center gap-2 font-medium">
-                Disconnect at
-                <input
-                  type="time"
-                  value={settings.schedule_disconnect}
-                  onChange={(e) => e.target.value && set({ schedule_disconnect: e.target.value })}
-                  className="rounded-md border border-line bg-surface px-2.5 py-1.5"
-                />
-              </label>
-            </div>
-            <fieldset className="flex flex-wrap gap-3">
-              <legend className="sr-only">Days</legend>
-              {DAYS.map((name, i) => {
-                const day = i + 1;
-                const on = settings.schedule_days.includes(day);
-                return (
-                  <label key={name} className="flex items-center gap-1.5">
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={() =>
-                        set({
-                          schedule_days: on
-                            ? settings.schedule_days.filter((d) => d !== day)
-                            : [...settings.schedule_days, day],
-                        })
-                      }
-                    />
-                    {name}
-                  </label>
-                );
-              })}
-            </fieldset>
-          </div>
-        )}
-      </Panel>
 
       {caps?.backend === "macos_daemon" && (
         <Panel title="DNS and ad blocking" help="dns">
@@ -290,7 +249,7 @@ export function SettingsScreen() {
                 setDnsCustom(false);
                 void set({ dns_servers: DNS_PRESETS.find((p) => p.id === v)?.servers ?? [] });
               }}
-              className="mt-2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+              className="mt-2 "
             >
               {DNS_PRESETS.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -323,7 +282,7 @@ export function SettingsScreen() {
                   value={dnsDraft}
                   onChange={(e) => setDnsDraft(e.target.value)}
                   placeholder="94.140.14.14, 94.140.15.15"
-                  className="w-72 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+                  className="w-72 "
                 />
                 <Button type="submit">Save</Button>
               </form>
@@ -362,7 +321,7 @@ export function SettingsScreen() {
                 value={bypassDraft}
                 onChange={(e) => setBypassDraft(e.target.value)}
                 placeholder="192.168.1.20 or 10.0.0.0/24"
-                className="w-64 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+                className="w-64 "
               />
               <Button type="submit">Add</Button>
             </form>
@@ -380,46 +339,60 @@ export function SettingsScreen() {
         </Panel>
       )}
 
-      <Panel title="Protection">
+      <Panel title="Schedule" help="schedule">
         <Switch
-          label="Kill switch"
-          help="killSwitch"
-          description={
-            ksUnsupported
-              ? `${supportNote(caps?.kill_switch, "The kill switch")}. While this is on, VPNFlow refuses to connect rather than connect without it.`
-              : "Blocks all traffic outside the tunnel from Connect until you press Disconnect, also while reconnecting or if the app crashes. Server endpoints must be IP addresses. Change it while disconnected."
-          }
-          checked={settings.kill_switch}
-          onChange={(v) => set({ kill_switch: v })}
+          label="Connect and disconnect at set times"
+          description="Uses your preferred profile, or Quick connect if none is set. It acts only at those times, so you can still switch manually in between."
+          checked={settings.schedule_enabled}
+          onChange={(v) => set({ schedule_enabled: v })}
         />
-        <Switch
-          label="Allow local network"
-          help="allowLan"
-          description="While the kill switch blocks, devices on your local network (printers, file shares, your router) stay reachable."
-          checked={settings.kill_switch_allow_lan}
-          disabled={!settings.kill_switch || ksUnsupported}
-          onChange={(v) => set({ kill_switch_allow_lan: v })}
-        />
-        <div className="border-t border-line py-3 text-[13px]">
-          <div className="font-medium">
-            DNS and IPv6
-            <InfoTip topic="dnsProtection" />
+        {settings.schedule_enabled && (
+          <div className="flex flex-col gap-3 border-t border-line py-3 text-[13px]">
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 font-medium">
+                Connect at
+                <input
+                  type="time"
+                  value={settings.schedule_connect}
+                  onChange={(e) => e.target.value && set({ schedule_connect: e.target.value })}
+                  className=""
+                />
+              </label>
+              <label className="flex items-center gap-2 font-medium">
+                Disconnect at
+                <input
+                  type="time"
+                  value={settings.schedule_disconnect}
+                  onChange={(e) => e.target.value && set({ schedule_disconnect: e.target.value })}
+                  className=""
+                />
+              </label>
+            </div>
+            <fieldset className="flex flex-wrap gap-3">
+              <legend className="sr-only">Days</legend>
+              {DAYS.map((name, i) => {
+                const day = i + 1;
+                const on = settings.schedule_days.includes(day);
+                return (
+                  <label key={name} className="flex items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={on}
+                      onChange={() =>
+                        set({
+                          schedule_days: on
+                            ? settings.schedule_days.filter((d) => d !== day)
+                            : [...settings.schedule_days, day],
+                        })
+                      }
+                    />
+                    {name}
+                  </label>
+                );
+              })}
+            </fieldset>
           </div>
-          <p className="mt-0.5 max-w-[65ch] text-muted">
-            {caps?.dns_protection.status === "supported"
-              ? "Full-tunnel profiles send every DNS lookup to the profile's servers and IPv6 through the tunnel. If a profile has no IPv6, IPv6 is blocked while connected. VPNFlow re-checks this every few seconds; the dashboard shows the result."
-              : (supportNote(caps?.dns_protection, "DNS protection") ?? "")}
-          </p>
-        </div>
-      </Panel>
-
-      <Panel title="Setup">
-        <div className="flex items-center justify-between gap-4 py-3">
-          <p className="text-[13px] text-muted">
-            Walk through account, server files and country choices again. Your current servers stay.
-          </p>
-          <Button onClick={() => window.dispatchEvent(new Event("vpnflow:setup"))}>Run setup again</Button>
-        </div>
+        )}
       </Panel>
 
       <Panel title="Privacy">
@@ -445,6 +418,24 @@ export function SettingsScreen() {
           configured DNS resolver (example.com reachability and whoami for public IP). Idle VPN servers are
           never probed.
         </p>
+      </Panel>
+
+      <Panel title="Appearance">
+        <div className="flex items-center justify-between py-3">
+          <label htmlFor={themeId} className="font-medium">
+            Theme
+          </label>
+          <select
+            id={themeId}
+            value={settings.theme}
+            onChange={(e) => set({ theme: e.target.value as Theme })}
+            className=""
+          >
+            <option value="system">Match system</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
+        </div>
       </Panel>
     </div>
   );

@@ -1,4 +1,4 @@
-import { Copy, Download, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
+import { Check, Copy, Download, FileText, KeyRound, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { useId, useMemo, useState } from "react";
 import { Button, Confirm, Modal, Segmented, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
@@ -31,36 +31,69 @@ export function Profiles() {
 
   return (
     <div className="flex flex-col gap-4">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[28px] leading-tight font-semibold tracking-[-0.015em]">Advanced WireGuard</h1>
-          <p className="mt-1.5 max-w-[56ch] text-[13px] text-muted">
-            Edit keys, peers and AllowedIPs directly. For day-to-day connect and country assignment, use
-            Locations.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button onClick={create}>
-            <Plus size={15} aria-hidden /> New profile
-          </Button>
-          <Button variant="primary" onClick={() => run(api.importDialog)}>
-            <Upload size={15} aria-hidden /> Import .conf
-          </Button>
-        </div>
-      </header>
+      <h1 className="sr-only">Advanced WireGuard</h1>
       <div>
-        <label htmlFor={searchId} className="sr-only">
-          Search profiles
-        </label>
-        <input
-          id={searchId}
-          type="search"
-          placeholder="Search by name or endpoint"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          className="w-full max-w-sm rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
-        />
-        <p className="mt-1.5 text-[12px] text-muted">You can also drop .conf files onto this window.</p>
+        <div className="rounded-t-xl bg-(--hero) px-6 py-6 text-(--hero-fg)">
+          <h2 className="mb-3 text-base font-bold">Bring your own server</h2>
+          <ul className="flex flex-col gap-1.5 text-[12.5px] text-(--hero-muted)">
+            {[
+              "Import a .conf file from your VPN provider or your own server.",
+              "Keys stay on this device and never reach the interface.",
+              "Scripts inside profiles are never run.",
+            ].map((t) => (
+              <li key={t} className="flex items-center gap-3">
+                <Check size={16} aria-hidden className="shrink-0 text-brand" />
+                {t}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="divide-y divide-line rounded-b-xl bg-surface shadow-(--shadow)">
+          <div className="flex items-center gap-3.5 px-6 py-3.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-(--surface-2,var(--raised))">
+              <FileText size={18} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold">Import a WireGuard file</div>
+              <div className="text-xs text-muted">
+                Drop a .conf here or choose one from disk. You can also drop files onto this window.
+              </div>
+            </div>
+            <Button variant="primary" onClick={() => run(api.importDialog)}>
+              <Upload size={15} aria-hidden /> Import .conf
+            </Button>
+          </div>
+          <div className="flex items-center gap-3.5 px-6 py-3.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-raised">
+              <KeyRound size={18} aria-hidden />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-bold">Create a profile by hand</div>
+              <div className="text-xs text-muted">
+                Enter endpoint, keys and peers yourself. Register the public key with your server afterwards.
+              </div>
+            </div>
+            <Button onClick={create}>
+              <Plus size={15} aria-hidden /> New profile
+            </Button>
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
+        <h2 className="text-base font-bold">Your profiles</h2>
+        <div>
+          <label htmlFor={searchId} className="sr-only">
+            Search profiles
+          </label>
+          <input
+            id={searchId}
+            type="search"
+            placeholder="Search by name or endpoint"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="w-72 max-w-full"
+          />
+        </div>
       </div>
 
       {profiles.length === 0 ? (
@@ -79,20 +112,23 @@ export function Profiles() {
       ) : shown.length === 0 ? (
         <p className="py-6 text-muted">No profile matches “{q}”.</p>
       ) : (
-        <ul className="divide-y divide-line rounded-xl border border-line bg-surface">
+        <ul className="flex flex-col gap-2">
           {shown.map((p) => (
-            <li key={p.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
+            <li
+              key={p.id}
+              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] bg-surface px-4 py-3 shadow-(--shadow)"
+            >
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <span className="truncate font-medium">{p.name}</span>
                   {p.active && (
-                    <span className="rounded-md bg-ok-soft px-1.5 py-px text-[12px] font-semibold text-ok">
+                    <span className="rounded-full bg-ok-soft px-2.5 py-0.5 text-[11.5px] font-bold text-ok">
                       Active
                     </span>
                   )}
                   <span
-                    className={`rounded-md px-1.5 py-px text-[12px] ${
-                      p.summary.route_kind === "split" ? "bg-raised text-muted" : "bg-raised text-fg"
+                    className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${
+                      p.summary.route_kind === "split" ? "bg-chip text-muted" : "bg-chip text-fg"
                     }`}
                   >
                     {routeLabel[p.summary.route_kind]}
@@ -203,7 +239,7 @@ function IconButton({
       aria-pressed={pressed}
       disabled={disabled}
       onClick={onClick}
-      className="rounded-md p-1.5 text-muted hover:bg-raised hover:text-fg disabled:opacity-40"
+      className="rounded-full p-2 text-muted hover:bg-chip hover:text-fg disabled:opacity-40"
     >
       {children}
     </button>

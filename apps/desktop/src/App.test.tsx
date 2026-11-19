@@ -114,6 +114,8 @@ const mockApi = vi.hoisted(() => ({
   exportProfile: vi.fn(),
   diagnostics: vi.fn(),
   exportDiagnostics: vi.fn(),
+  helperStatus: vi.fn(),
+  installHelper: vi.fn(),
 }));
 
 const engineEvents = vi.hoisted(() => ({
@@ -137,7 +139,9 @@ vi.mock("./lib/api", async (orig) => {
 
 import { App } from "./App";
 
-function setup(opts: { simulated?: boolean; profiles?: ProfileView[]; snapshot?: Snapshot } = {}) {
+function setup(
+  opts: { helper?: string; simulated?: boolean; profiles?: ProfileView[]; snapshot?: Snapshot } = {},
+) {
   mockApi.appInfo.mockResolvedValue({ version: "0.1.0", os: "linux", arch: "x86_64", tray_available: true });
   mockApi.capabilities.mockResolvedValue(caps(opts.simulated ?? false));
   mockApi.snapshot.mockResolvedValue(opts.snapshot ?? snap({ state: "disconnected" }));
@@ -150,6 +154,8 @@ function setup(opts: { simulated?: boolean; profiles?: ProfileView[]; snapshot?:
   mockApi.events.mockResolvedValue([]);
   mockApi.diagnostics.mockResolvedValue([]);
   mockApi.connect.mockResolvedValue(undefined);
+  mockApi.helperStatus.mockResolvedValue(opts.helper ?? "ok");
+  mockApi.installHelper.mockResolvedValue(undefined);
   return render(<App />);
 }
 
@@ -159,6 +165,27 @@ describe("App", () => {
   it("labels the simulated backend so mock connections never look real", async () => {
     setup({ simulated: true });
     expect(await screen.findByRole("alert")).toHaveTextContent(/not protected/i);
+  });
+
+  it("offers one-time helper setup when the Mac helper is missing, and runs it on request", async () => {
+    setup({ helper: "missing" });
+    const region = await screen.findByRole("region", { name: "One-time setup" });
+    expect(region).toHaveTextContent(/one-time setup before it can connect/i);
+    await userEvent.click(within(region).getByRole("button", { name: "Set up" }));
+    expect(mockApi.installHelper).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the reason when helper setup fails or is cancelled", async () => {
+    mockApi.installHelper.mockRejectedValueOnce("Setup was cancelled. Nothing was changed.");
+    setup({ helper: "missing" });
+    await userEvent.click(await screen.findByRole("button", { name: "Set up" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/cancelled/i);
+  });
+
+  it("hides helper setup once the helper is installed", async () => {
+    setup();
+    await screen.findByRole("heading", { name: "Not connected" });
+    expect(screen.queryByRole("region", { name: "One-time setup" })).not.toBeInTheDocument();
   });
 
   it("shows no simulated banner for a real backend", async () => {
@@ -303,9 +330,8 @@ describe("App", () => {
   it("requires confirmation before deleting a profile", async () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
-    await userEvent.click(
-      within(screen.getByRole("navigation")).getByRole("button", { name: "Advanced WireGuard" }),
-    );
+    await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Advanced WireGuard" }));
     await userEvent.click(screen.getByRole("button", { name: "Delete Office" }));
     expect(mockApi.deleteProfile).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: "Delete profile", hidden: true }));
@@ -316,9 +342,8 @@ describe("App", () => {
   it("warns that export contains the private key", async () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
-    await userEvent.click(
-      within(screen.getByRole("navigation")).getByRole("button", { name: "Advanced WireGuard" }),
-    );
+    await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
+    await userEvent.click(screen.getByRole("tab", { name: "Advanced WireGuard" }));
     await userEvent.click(screen.getByRole("button", { name: "Export Office" }));
     expect(await screen.findByText(/contains the private key/i)).toBeInTheDocument();
     expect(mockApi.exportProfile).not.toHaveBeenCalled();
@@ -387,19 +412,12 @@ describe("Locations", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("VPN authorization denied");
   });
 
-  it("uses favorites and requires a recent response for the available filter", async () => {
+  it("stars a server from the single list without filter tabs", async () => {
     setup({ profiles: [located("SG")] });
     await openLocations();
-    await userEvent.click(screen.getByRole("radio", { name: "Favorites" }));
-    expect(screen.getByText(/No favorite servers yet/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("radio", { name: "All countries" }));
+    expect(screen.queryByRole("radio", { name: "Favorites" })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Favorite Office" }));
     expect(mockApi.updateServer).toHaveBeenCalledWith("p1", expect.objectContaining({ favorite: true }));
-    await userEvent.click(screen.getByRole("radio", { name: "Available servers" }));
-    expect(screen.getByText(/No servers have answered recently/i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/Available only lists servers that returned an authenticated WireGuard response/i),
-    ).toBeInTheDocument();
   });
 
   it("imports configuration then saves country metadata without raw keys", async () => {

@@ -56,6 +56,14 @@ export const HELP = {
     tradeoff:
       "If another VPN is on, the Stop it button disconnects it (Cloudflare WARP) or asks it to quit, like pressing Quit yourself. It never force-closes anything, and only acts when you press it. You can reconnect that VPN later. It checks this device's setup, not what the VPN provider logs. A pass means no leak was found now, not a guarantee for later.",
   },
+  helperSetup: {
+    title: "One-time Mac setup",
+    what: "VPNFlow needs a small background helper on your Mac to create the VPN tunnel and the kill switch. Setup installs it once and asks for your Mac password, the same one you use to install apps.",
+    why: "macOS only lets a program with administrator rights change network settings. Without the helper, Connect stays off.",
+    example: "Press Set up, type your Mac password, and VPNFlow restarts by itself, ready to connect.",
+    tradeoff:
+      "It installs two files in /usr/local/libexec/vpnflow and starts them in the background. VPNFlow checks both files are exactly the ones inside the app before it starts them. Nothing is sent anywhere. If you press Cancel, nothing changes. We recommend setting it up: it is required to connect. Remove it any time with scripts/macos/install-daemon.sh uninstall.",
+  },
   speedTest: {
     title: "Connection speed",
     what: "Measures how fast data moves through the VPN right now.",
@@ -183,22 +191,18 @@ export const HELP = {
       "VPNFlow only connects to servers you add. The country on a server is the label you or the file gave it, and VPNFlow does not check it is true.",
   },
   locationFilters: {
-    title: "Show and refresh servers",
-    what: "Chooses which servers the list shows, and Refresh status updates what the app knows about the one you are connected to.",
-    why: "With many servers, filters help you find the right one. Status tells you which ones answered recently.",
-    example: "Pick Favorites to see only the servers you starred.",
+    title: "Find and refresh servers",
+    what: "Search and sort the one server list. Starred servers sit on top, and Recently used below the list shows where you connected before. Refresh status updates what the app knows about the one you are connected to.",
+    why: "One list is quicker to scan than separate tabs. Status tells you which servers answered recently.",
+    example: "Star a server and it moves to the top of the list.",
     tradeoff:
-      "Idle servers are never contacted just to check them, so a server that shows no response is not necessarily down, it just has not been used lately. Available servers only lists ones that answered in the last five minutes while a VPN was on.",
+      "Idle servers are never contacted just to check them, so a server that shows no response is not necessarily down, it just has not been used lately.",
     options: [
-      { name: "All countries", text: "Every server you have added." },
-      { name: "Favorites", text: "Only servers or countries you starred." },
-      { name: "Recently used", text: "Servers you connected to before, newest first." },
-      {
-        name: "Available servers",
-        text: "Only ones that answered in the last five minutes. Often empty until you have connected once.",
-      },
+      { name: "Favorites first", text: "Starred servers and countries on top. This is the default." },
+      { name: "Country name", text: "Alphabetical by country." },
+      { name: "Recently connected", text: "Servers you connected to most recently first." },
     ],
-    pick: "Leave it on All countries. Switch to Favorites once you have a few servers you like.",
+    pick: "Leave it on Favorites first. Star the servers you use most.",
   },
   quickConnectCountry: {
     title: "Quick Connect country",

@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Dot, InfoTip, Panel, Segmented, type Tone } from "../components/ui";
 import { api } from "../lib/api";
@@ -25,6 +26,8 @@ export function ActivityScreen() {
     void refresh();
   }, [refresh, snapshot?.state.state]);
 
+  const problems = events.filter((e) => e.level !== "info");
+  const lastProblem = problems[problems.length - 1];
   const shown = filter === "all" ? events : events.filter((e) => e.level !== "info");
 
   return (
@@ -40,6 +43,19 @@ export function ActivityScreen() {
         </div>
       </header>
 
+      {lastProblem && (
+        <div role="alert" className="flex gap-2.5 rounded-xl bg-danger-soft px-4 py-3.5 text-[13px]">
+          <AlertTriangle size={18} aria-hidden className="shrink-0 text-danger" />
+          <div>
+            <b className="block">
+              {problems.length} warning{problems.length > 1 ? "s" : ""} or error
+              {problems.length > 1 ? "s" : ""} in the event log
+            </b>
+            {lastProblem.message}
+          </div>
+        </div>
+      )}
+
       <Panel title="Checks" help="checks">
         {!checks ? (
           <p className="py-3 text-muted">Running…</p>
@@ -53,7 +69,19 @@ export function ActivityScreen() {
                 <div className="min-w-0 flex-1">
                   <div className="flex justify-between gap-3">
                     <span className="font-medium">{c.title}</span>
-                    <span className="text-[12.5px] text-muted">{statusText[c.status]}</span>
+                    <span
+                      className={`h-[22px] rounded-full px-2.5 text-[11.5px] leading-[22px] font-bold ${
+                        c.status === "pass"
+                          ? "bg-ok-soft text-ok"
+                          : c.status === "warn"
+                            ? "bg-pending-soft text-pending"
+                            : c.status === "fail"
+                              ? "bg-danger-soft text-danger"
+                              : "bg-chip text-muted"
+                      }`}
+                    >
+                      {statusText[c.status]}
+                    </span>
                   </div>
                   <p className="text-[12.5px] break-words text-muted">{c.detail}</p>
                 </div>
@@ -86,13 +114,20 @@ export function ActivityScreen() {
         {shown.length === 0 ? (
           <p className="py-3 text-muted">No events.</p>
         ) : (
-          <ol className="selectable max-h-[420px] overflow-y-auto">
+          <ol className="selectable -mx-6 max-h-[420px] overflow-y-auto">
+            <li
+              aria-hidden
+              className="sticky top-0 grid grid-cols-[90px_1fr] gap-4 bg-raised px-6 py-2.5 text-[11.5px] text-muted"
+            >
+              <span>Time</span>
+              <span>Event</span>
+            </li>
             {[...shown].reverse().map((e, i) => (
               <li
                 key={`${e.at_ms}-${i}`}
-                className="flex gap-3 border-b border-line py-1.5 text-[13px] last:border-b-0"
+                className="grid grid-cols-[90px_1fr] gap-4 border-t border-line px-6 py-3 text-[13px]"
               >
-                <time className="w-20 shrink-0 font-mono text-[12.5px] text-muted">{clock(e.at_ms)}</time>
+                <time className="text-[12.5px] text-muted">{clock(e.at_ms)}</time>
                 <span
                   className={e.level === "error" ? "text-danger" : e.level === "warn" ? "text-pending" : ""}
                 >

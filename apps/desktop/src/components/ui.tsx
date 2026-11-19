@@ -1,12 +1,13 @@
+import { X } from "lucide-react";
 import { type ButtonHTMLAttributes, type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { HELP, type HelpKey, type HelpTopic } from "../lib/help";
 
 type Variant = "primary" | "secondary" | "ghost" | "danger";
 
 const variants: Record<Variant, string> = {
-  primary: "bg-accent text-accent-fg hover:opacity-90 border-transparent",
-  secondary: "bg-surface text-fg border-line hover:border-muted/60 hover:bg-raised",
-  ghost: "bg-transparent text-fg border-transparent hover:bg-raised",
+  primary: "bg-accent text-accent-fg hover:bg-(--btn-hover) border-transparent",
+  secondary: "bg-chip text-fg border-transparent hover:brightness-95",
+  ghost: "bg-transparent text-fg border-transparent hover:bg-chip",
   danger: "bg-danger text-white border-transparent hover:brightness-110",
 };
 
@@ -18,7 +19,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1.5 rounded-md border px-3 py-1.5 text-[13px] font-semibold transition-[background-color,border-color,opacity] disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 h-9 whitespace-nowrap shrink-0 rounded-[10px] border px-5 text-[13px] font-bold transition-[background-color,filter] disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
       {...props}
     />
   );
@@ -137,13 +138,13 @@ export function Switch({
         aria-describedby={description ? `${id}-d` : undefined}
         disabled={disabled}
         onClick={() => onChange(!checked)}
-        className={`relative mt-0.5 h-5 w-9 shrink-0 rounded-full border transition-colors disabled:opacity-50 ${
-          checked ? "border-accent bg-accent" : "border-line bg-raised"
+        className={`relative mt-0.5 h-6 w-10 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+          checked ? "bg-accent" : "bg-chip"
         }`}
       >
         <span
-          className={`absolute top-0.5 h-3.5 w-3.5 rounded-full transition-[left] ${
-            checked ? "left-[18px] bg-accent-fg" : "left-0.5 bg-muted"
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-[left] ${
+            checked ? "left-[18px]" : "left-0.5"
           }`}
         />
       </button>
@@ -185,7 +186,7 @@ export function TextField({
         aria-invalid={!!error}
         aria-describedby={error || hint ? `${id}-m` : undefined}
         onChange={(e) => onChange(e.target.value)}
-        className={`w-full rounded-md border bg-surface px-2.5 py-1.5 text-[13px] text-fg placeholder:text-muted/60 ${
+        className={`w-full text-fg placeholder:text-faint ${
           mono ? "font-mono" : ""
         } ${error ? "border-danger" : "border-line"}`}
       />
@@ -254,14 +255,14 @@ export function Panel({
     <section className={className}>
       {title && (
         <header className="mb-2 flex min-h-7 items-center justify-between gap-3 px-1">
-          <h2 className="text-[15px] font-semibold">
+          <h2 className="text-base font-bold">
             {title}
             {help && <InfoTip topic={help} />}
           </h2>
           {actions}
         </header>
       )}
-      <div className="rounded-xl border border-line bg-surface px-4 py-1">{children}</div>
+      <div className="rounded-xl bg-surface px-6 py-2 shadow-(--shadow)">{children}</div>
     </section>
   );
 }
@@ -289,20 +290,33 @@ export function Modal({
   }, [open]);
   const titleId = useId();
   return (
+    // biome-ignore lint/a11y/useKeyWithClickEvents: Escape already closes a native dialog; the click only dismisses on the backdrop.
     <dialog
       ref={ref}
       aria-labelledby={titleId}
       onClose={onClose}
+      onClick={(e) => {
+        // A click on the backdrop lands on the <dialog> itself, not on its content.
+        if (e.target === e.currentTarget) onClose();
+      }}
       className={`m-auto max-h-[85vh] w-[calc(100%-32px)] overflow-auto rounded-2xl border border-line bg-surface p-0 text-fg shadow-[0_24px_60px_-20px_rgb(10_16_22/0.45)] ${
         wide ? "max-w-3xl" : "max-w-md"
       }`}
     >
       {open && (
         <>
-          <header className="sticky top-0 z-10 border-b border-line bg-surface px-5 py-3.5">
+          <header className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-line bg-surface px-5 py-3.5">
             <h2 id={titleId} className="text-[17px] font-semibold">
               {title}
             </h2>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-raised text-muted hover:text-fg"
+            >
+              <X size={16} aria-hidden />
+            </button>
           </header>
           <div className="px-5 py-4">{children}</div>
         </>
@@ -372,7 +386,7 @@ export function Segmented<T extends string>({
               onChange={() => onChange(o.value)}
               className="peer sr-only"
             />
-            <span className="block rounded-md border border-line bg-surface px-2.5 py-1 text-[12.5px] text-muted peer-checked:border-accent peer-checked:bg-accent peer-checked:text-accent-fg peer-focus-visible:outline-2 peer-focus-visible:outline-focus hover:text-fg">
+            <span className="block rounded-full bg-chip px-3.5 py-1.5 text-[12.5px] font-semibold text-muted peer-checked:bg-accent peer-checked:text-accent-fg peer-focus-visible:outline-2 peer-focus-visible:outline-focus hover:text-fg">
               {o.label}
             </span>
           </label>

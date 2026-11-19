@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VPNFlow UI mockup v4</title>
+<style>
+@font-face{font-family:"Firjar Variable";src:url("../brand/Firjar/Firjar-VariableFont_wdth,wght.ttf") format("truetype-variations");font-weight:1 999;font-stretch:25% 151%;font-display:swap}
+
+/* ===== Tokens. Proportions measured from the Surfshark refs (1440px frame):
+   sidebar 216, topbar 60, 2nd pane 288, content column 940, card radius 12,
+   canvas #f5f5f5, button height 28 (small) / 44 (large), 8px grid. ===== */
+:root{
+  --brand:#54e6d4;                 /* logo, selection ring, sparkles */
+  --btn:#0e9a8d; --btn-hover:#0b8a7e; --btn-fg:#fff;   /* deep brand teal: Surfshark-style solid button */
+  --btn-soft:#a9ddd7;              /* disabled/"Done" */
+  --accent-text:#0b8478;
+  --canvas:#f5f5f5; --surface:#fff; --surface-2:#f5f5f5; --line:#e7e9ea; --chip:#ececec;
+  --guide-head:#e4e6e7; --sel:#e0f5f2; --pane-sel:#ebedee;
+  --fg:#101516; --muted:#5b6b6e; --faint:#8a9799;
+  --hero:#17272b; --hero-fg:#f2fcfa; --hero-muted:#9fb1b2;
+  --ok:#1d7a4c; --ok-soft:#d5eadf; --pending:#9c5f07; --pending-soft:#f7e9bf; --danger:#b3261e; --danger-soft:#fcd9dc;
+  --shadow:0 1px 2px rgb(16 21 22/.05);
+  --modal-shadow:0 24px 60px -12px rgb(16 21 22/.35);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --btn:#54e6d4; --btn-hover:#3fd3c1; --btn-fg:#101516; --btn-soft:#2c5a56;
+  --accent-text:#54e6d4;
+  --canvas:#0c1112; --surface:#151b1c; --surface-2:#1c2425; --line:#263032; --chip:#222c2e;
+  --guide-head:#1f2829; --sel:#1b3a37; --pane-sel:#222c2e;
+  --fg:#f2fcfa; --muted:#9aa9a9; --faint:#6f7e80;
+  --hero:#1d2e33; --hero-fg:#f2fcfa; --hero-muted:#9fb1b2;
+  --ok:#5bc893; --ok-soft:#17352a; --pending:#e3a84b; --pending-soft:#3a2d18; --danger:#f0786a; --danger-soft:#3d201e;
+  --shadow:none; --modal-shadow:0 24px 60px -12px rgb(0 0 0/.7);
+  color-scheme:dark;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:"Firjar Variable",system-ui,"Segoe UI Variable","Noto Sans",sans-serif;font-size:14px;line-height:1.45;color:var(--fg);background:var(--canvas);-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none;padding:0}
+h1,h2,h3,h4,p,ul{margin:0}
+ul{padding:0;list-style:none}
+svg.i{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex:none}
+:focus-visible{outline:2px solid var(--brand);outline-offset:2px}
+
+/* ===== Shell ===== */
+.app{display:grid;grid-template-columns:216px 1fr;height:100vh}
+.side{background:var(--surface);border-right:1px solid var(--line);display:flex;flex-direction:column;overflow-y:auto;padding:0 8px 16px}
+.logo{height:60px;display:flex;align-items:center;gap:10px;padding:0 12px;font-weight:700;font-size:19px;letter-spacing:-.02em}
+.logo svg{width:32px;height:27px}
+.logo sup{font-size:9px;font-weight:600;color:var(--faint);margin-left:-6px;vertical-align:top;position:relative;top:2px}
+.grp{border-top:1px solid var(--line);padding:6px 0}
+.grp:first-of-type{border:0}
+.nav{display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 12px;border-radius:10px;font-weight:600;font-size:14px;text-align:left}
+.nav:hover{background:var(--surface-2)}
+.nav[aria-current="page"]{color:var(--fg)}
+.nav .chev{margin-left:auto;width:16px;height:16px;color:var(--muted);transition:transform .2s}
+.nav[aria-expanded="true"] .chev{transform:rotate(180deg)}
+.nav .badge{margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.05em;padding:2px 9px;border-radius:999px;background:var(--brand);color:#101516}
+.nav .stat{margin-left:auto}
+.sub{display:none;flex-direction:column;gap:2px;padding:2px 0 4px}
+.sub.open{display:flex}
+.sub button{height:32px;padding:0 12px 0 44px;border-radius:999px;font-size:12.5px;color:var(--muted);text-align:left}
+.sub button:hover{color:var(--fg)}
+.sub button[aria-current="true"]{background:var(--sel);color:var(--accent-text);font-weight:600}
+.dotc{width:9px;height:9px;border-radius:50%;background:var(--faint);display:inline-block}
+.dotc.ok{background:var(--ok)}.dotc.pending{background:var(--pending)}
+
+.right{display:grid;grid-template-rows:60px 1fr;min-width:0;min-height:0}
+.top{display:flex;align-items:center;gap:16px;padding:0 24px;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .sp{flex:1}
+.status{display:inline-flex;align-items:center;gap:8px;height:32px;padding:0 14px;border-radius:999px;background:var(--chip);font-weight:600;font-size:12.5px}
+.theme{display:inline-flex;background:var(--chip);border-radius:999px;padding:3px}
+.theme button{width:30px;height:26px;border-radius:999px;display:grid;place-items:center;color:var(--muted)}
+.theme button[aria-pressed="true"]{background:var(--surface);color:var(--fg)}
+.theme svg.i{width:15px;height:15px}
+.acct{display:flex;align-items:center;gap:10px}
+.acct .av{width:28px;height:28px;color:var(--muted)}
+.acct b{display:block;font-size:12px;line-height:1.2}
+.acct small{display:block;font-size:11px;color:var(--muted);line-height:1.2}
+
+.body{min-height:0;overflow-y:auto}
+.canvas{padding:32px 24px 56px}
+.col{max-width:940px;margin:0 auto;display:flex;flex-direction:column;gap:24px}
+.view{display:none}.view.on{display:block}
+.view.panes.on{display:grid;height:100%}
+
+/* ===== Type ===== */
+h1{font-size:24px;font-weight:700;letter-spacing:-.015em;line-height:1.2}
+h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
+h3{font-size:16px;font-weight:700}
+.sub-h{font-size:16px;font-weight:700;display:flex;gap:8px}
+.sub-h span{color:var(--accent-text)}
+.muted{color:var(--muted)}
+.cap{font-size:12px;color:var(--muted)}
+.eyebrow{font-size:12px;color:var(--accent-text);font-weight:500}
+
+/* ===== Buttons (Surfshark: solid teal, 8px radius, soft grey secondary) ===== */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:28px;padding:0 14px;border-radius:8px;font-size:12px;font-weight:700;background:var(--btn);color:var(--btn-fg);transition:background .15s}
+.btn:hover{background:var(--btn-hover)}
+.btn.grey{background:var(--chip);color:var(--fg)}
+.btn.grey:hover{filter:brightness(.96)}
+.btn.done{background:var(--btn-soft);color:#fff;cursor:default}
+.btn.md{height:36px;padding:0 20px;font-size:13px;border-radius:10px}
+.btn.lg{height:44px;padding:0 24px;font-size:14px;border-radius:10px;width:100%}
+.btn.bad{background:var(--danger);color:#fff}
+.btn.ghost{background:none;color:var(--fg)}
+.icon-btn{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:var(--chip);color:var(--muted)}
+
+/* ===== Cards ===== */
+.card{background:var(--surface);border-radius:12px;box-shadow:var(--shadow)}
+.card.pad{padding:24px}
+.tile{width:36px;height:36px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;flex:none;color:var(--fg)}
+.tile.teal{background:var(--btn);color:var(--btn-fg)}
+.tile svg.i{width:18px;height:18px}
+
+/* Dark hero w/ inner white card (Surfshark "Surfshark One" block) */
+.hero{background:var(--hero);color:var(--hero-fg);border-radius:12px;padding:24px;display:grid;grid-template-columns:260px 1fr;gap:32px;align-items:center}
+.hero .eyebrow{color:var(--hero-muted);font-size:11.5px}
+.hero h2{font-size:20px;margin:4px 0 12px}
+.hero .copy{font-size:13px;color:var(--hero-muted);line-height:1.55}
+.stackwrap{position:relative;padding-right:28px}
+.stackwrap::before,.stackwrap::after{content:"";position:absolute;top:14px;bottom:14px;border-radius:12px;background:rgb(255 255 255/.18)}
+.stackwrap::before{right:14px;left:30px}
+.stackwrap::after{right:0;left:60px;top:26px;bottom:26px;background:rgb(255 255 255/.1)}
+.qc{position:relative;z-index:1;background:var(--surface);color:var(--fg);border-radius:12px;overflow:hidden;display:grid;grid-template-columns:1fr 150px}
+.qc .l{padding:20px 20px 16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.qc .art{background:var(--surface-2);display:grid;place-items:center}
+.qc .art svg{width:120px;height:120px}
+.qc h3{font-size:16px}
+.qc .loc{display:flex;align-items:center;gap:10px;font-size:13px}
+.qc .loc a{margin-left:auto;color:var(--accent-text);font-weight:700;font-size:12px;cursor:pointer}
+.bar{height:3px;background:var(--chip);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--btn);transition:width .5s}
+.qrow{display:flex;align-items:center;gap:12px;margin-top:2px}
+.qrow .bar{flex:1}
+[data-state="connected"] .bar i{width:100%}
+[data-state="connecting"] .bar i{width:60%}
+.shieldsvg .ring{stroke:var(--faint)}
+[data-state="connected"] .shieldsvg .ring{stroke:var(--ok)}
+[data-state="connecting"] .shieldsvg .ring{stroke:var(--pending)}
+[data-state="connecting"] .shieldsvg{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.5}}
+.tag{display:inline-flex;align-items:center;gap:6px;height:22px;padding:0 10px;border-radius:999px;font-size:11.5px;font-weight:700;width:fit-content}
+.tag.idle{background:var(--chip);color:var(--muted)}
+.tag.ok{background:var(--ok-soft);color:var(--ok)}
+.tag.pending{background:var(--pending-soft);color:var(--pending)}
+.tag.bad{background:var(--danger-soft);color:var(--danger)}
+
+/* Add-on style cards */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.feat{padding:20px 24px;display:flex;flex-direction:column;gap:6px;position:relative}
+.feat .x{position:absolute;top:16px;right:16px;color:var(--muted)}
+.feat .tile{margin-bottom:10px}
+.feat h3{font-size:16px}
+.feat p{font-size:13px;color:var(--muted);line-height:1.5}
+.feat .acts{display:flex;align-items:center;gap:8px;margin-top:12px}
+.feat .acts .sw{margin-left:auto}
+
+/* Setup-guide card (grey header band, divider, steps) */
+.guide .head{background:var(--guide-head);padding:20px 24px 0}
+.guide .top2{display:flex;justify-content:space-between;align-items:center;padding-bottom:14px;border-bottom:1px solid rgb(0 0 0/.12);font-weight:700}
+.guide .top2 span{color:var(--accent-text);font-weight:500;font-size:13px}
+.guide .head .big{padding:18px 0 22px}
+.guide .head .big h3{font-size:15px;margin-bottom:6px}
+.guide .head .big p{font-size:13px;color:var(--muted)}
+.steps{padding:16px 24px 20px}
+.steps .lab{font-size:12px;color:var(--muted);margin:2px 0 10px}
+.step{display:flex;align-items:center;gap:14px;padding:9px 0}
+.step .txt{flex:1;min-width:0}
+.step .t{font-size:13px;font-weight:700}
+.step .d{font-size:12px;color:var(--muted)}
+.step.dim{opacity:.55}
+
+/* Switch */
+.sw{position:relative;width:40px;height:24px;border-radius:999px;background:var(--chip);flex:none;transition:background .2s}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgb(0 0 0/.3);transition:transform .2s}
+.sw[aria-checked="true"]{background:var(--btn)}
+.sw[aria-checked="true"]::after{transform:translateX(16px)}
+
+/* Help "?" card */
+.help{position:relative;display:inline-grid;place-items:center;width:16px;height:16px;margin-left:8px;border-radius:50%;border:1.5px solid var(--muted);color:var(--muted);font-size:10px;font-weight:700;vertical-align:middle}
+.help:hover,.help:focus-visible{color:var(--fg);border-color:var(--fg)}
+.help .pop{display:none;position:absolute;z-index:30;top:24px;left:-8px;width:270px;padding:14px;border-radius:12px;background:var(--surface);color:var(--fg);box-shadow:var(--modal-shadow);border:1px solid var(--line);font-weight:400;font-size:12.5px;line-height:1.45;text-align:left}
+.help:hover .pop,.help:focus-visible .pop{display:block}
+.pop b{display:block;font-size:13px;margin-bottom:4px}
+.pop span{display:block;margin-top:6px;color:var(--muted)}
+.pop em{font-style:normal;font-weight:700;color:var(--fg)}
+
+/* Stat cards */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.stat{padding:16px 20px}
+.stat .k{font-size:12px;color:var(--muted)}
+.stat .v{font-size:22px;font-weight:700;letter-spacing:-.02em}
+.stat .v small{font-size:12px;font-weight:500;color:var(--muted);margin-left:4px}
+
+/* Segmented tabs */
+.seg{display:flex;background:var(--chip);border-radius:10px;padding:3px}
+.seg button{flex:1;height:34px;border-radius:8px;font-weight:600;font-size:13px;color:var(--muted)}
+.seg button[aria-selected="true"]{background:var(--surface);color:var(--fg);box-shadow:0 1px 2px rgb(0 0 0/.08)}
+
+/* Dark banner w/ checklist ("Protect all your devices") */
+.banner{background:var(--hero);color:var(--hero-fg);border-radius:12px 12px 0 0;padding:24px;display:grid;grid-template-columns:1fr 150px;gap:16px;align-items:center}
+.banner h3{margin-bottom:14px}
+.banner li{display:flex;gap:12px;font-size:12.5px;color:var(--hero-muted);padding:4px 0;align-items:center}
+.banner li svg{color:var(--brand);width:16px;height:16px}
+.rowlist .step{padding:14px 24px}
+.rowlist .step + .step{border-top:0}
+
+/* Floating-label field */
+.field{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 14px;display:block}
+.field small{display:block;font-size:11px;color:var(--faint)}
+.field input,.field select{width:100%;border:0;background:none;outline:0;font:inherit;font-size:14px;color:var(--fg);padding:0}
+.field.grey{background:var(--surface-2);border-color:transparent}
+.search{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--line);border-radius:12px;height:48px;padding:0 16px;color:var(--faint)}
+.search input{flex:1;border:0;background:none;outline:0;font:inherit;color:var(--fg)}
+
+/* ===== Multi-pane (Locations) ===== */
+.p2{background:var(--surface);border-right:1px solid var(--line);padding:0 16px 24px;overflow-y:auto}
+.p2 h3{height:60px;display:flex;align-items:center;padding:0 2px;font-size:17px}
+.pitem{display:flex;align-items:center;gap:14px;width:100%;height:52px;padding:0 14px;border-radius:10px;font-weight:600;font-size:14px;text-align:left;margin-bottom:6px;border:1px solid transparent}
+.pitem svg.go{margin-left:auto;width:16px;height:16px;color:var(--muted)}
+.pitem:hover{background:var(--surface-2)}
+.pitem[aria-selected="true"]{background:var(--pane-sel)}
+.pitem .n{margin-left:auto;font-size:12px;color:var(--muted);font-weight:500}
+.p3{padding:24px;overflow-y:auto;min-width:0}
+.p3 .inner{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+.p3 h2{font-size:20px}
+.p3 .tabs-line{display:flex;border-bottom:1px solid var(--line)}
+.p3 .tabs-line button{flex:1;height:44px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.p3 .tabs-line button[aria-selected="true"]{color:var(--fg);border-color:var(--btn)}
+.lrow{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:10px;height:48px;padding:0 14px;border:1.5px solid transparent;box-shadow:var(--shadow);width:100%;text-align:left;font-weight:600;font-size:13.5px}
+.lrow:hover{border-color:var(--line)}
+.lrow[aria-current="true"]{border-color:var(--btn)}
+.lrow .tl{width:28px;height:20px;border-radius:4px;background:var(--btn);display:grid;place-items:center;color:var(--btn-fg);flex:none}
+.lrow .tl svg{width:13px;height:13px}
+.flag{width:28px;height:20px;border-radius:4px;display:grid;place-items:center;font-size:9px;font-weight:800;letter-spacing:.04em;color:#fff;flex:none}
+.lrow .ms{margin-left:auto;font-size:12px;color:var(--muted);font-weight:500}
+.lrow .star{color:var(--faint);margin-left:6px;display:grid}
+.lrow .star[aria-pressed="true"]{color:#e3a84b}
+.lrow .star[aria-pressed="true"] svg{fill:currentColor}
+.lrow .star svg{width:16px;height:16px}
+.sechead{font-size:15px;font-weight:700;margin-top:8px}
+.aside{background:var(--surface);border-left:1px solid var(--line);padding:32px 24px;overflow-y:auto}
+.aside .illus{display:grid;place-items:center;margin-bottom:12px}
+.aside h3{text-align:center;font-size:16px}
+.aside .cap{text-align:center;margin:6px 0 16px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--surface-2);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.kv small{display:block;font-size:11px;color:var(--faint)}
+.kv b{font-size:13px}
+.qa{border-top:1px solid var(--line)}
+.qa button{display:flex;width:100%;justify-content:space-between;gap:12px;padding:14px 0;font-size:12.5px;color:var(--muted);text-align:left}
+.qa p{display:none;font-size:12.5px;color:var(--muted);padding:0 0 14px}
+.qa.open p{display:block}
+.qa.open svg{transform:rotate(180deg)}
+.warn{display:flex;gap:10px;padding:12px 14px;border-radius:10px;background:var(--pending-soft);color:var(--pending);font-size:12px;align-items:flex-start}
+.alert{display:flex;gap:10px;padding:14px 18px;border-radius:12px;background:var(--danger-soft);color:var(--fg);font-size:13px}
+.alert b{display:block}
+
+/* Rows with 3 columns (Activity) */
+.tbl .r{display:grid;grid-template-columns:130px 1fr 110px;gap:16px;align-items:center;padding:14px 24px;font-size:13px}
+.tbl .r + .r{border-top:1px solid var(--line)}
+.tbl .r.h{font-size:11.5px;color:var(--muted);background:var(--surface-2);border-radius:12px 12px 0 0;padding:10px 24px}
+
+/* Settings rows */
+.srow{display:flex;align-items:center;gap:14px;padding:16px 24px}
+.srow + .srow{border-top:1px solid var(--line)}
+.srow .txt{flex:1}
+.srow .t{font-size:13.5px;font-weight:600}
+.srow .d{font-size:12px;color:var(--muted)}
+.card > h3.ch{padding:20px 24px 4px}
+
+/* Modal */
+.scrim{position:fixed;inset:0;background:rgb(16 21 22/.55);display:none;place-items:center;z-index:50}
+.scrim.on{display:grid}
+.modal{width:min(440px,92vw);background:var(--surface);border-radius:16px;box-shadow:var(--modal-shadow);overflow:hidden}
+.modal .mh{background:var(--surface-2);display:grid;place-items:center;height:170px}
+.modal .mb{padding:20px 24px 24px;display:flex;flex-direction:column;gap:10px}
+.modal ul{list-style:disc;padding-left:18px;font-size:12.5px;color:var(--muted)}
+.modal .btns{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+
+/* Setup (first-run split screen) */
+.setup{position:fixed;inset:0;background:var(--surface);z-index:40;display:none;grid-template-rows:60px 1fr}
+.setup.on{display:grid}
+.setup .bar0{border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px}
+.setup .split{display:grid;grid-template-columns:1fr 1fr;gap:32px;padding:24px 32px 32px;min-height:0}
+.setup .l{display:flex;flex-direction:column;max-width:520px;width:100%;margin-left:auto;padding:24px 0 0}
+.setup .l h1{font-size:24px;margin-bottom:8px}
+.setup .l .steps2{display:flex;flex-direction:column;gap:16px;margin:24px 0}
+.setup .foot{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.setup .r{background:var(--surface-2);border-radius:24px;display:grid;place-items:center}
+.setup .r svg{width:min(380px,70%);height:auto}
+.dropzone{border:1.5px dashed var(--line);border-radius:12px;padding:28px;text-align:center;color:var(--muted);font-size:13px}
+
+
+
+/* ===== v4 ===== */
+[hidden]{display:none!important}
+.btn:disabled{background:var(--btn-soft);color:#fff;cursor:not-allowed}
+.btn.grey:disabled{background:var(--chip);color:var(--faint)}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--line)}
+.tabs button{height:44px;padding:0 18px;font-weight:600;color:var(--muted);border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--fg)}
+.tabs button[aria-selected="true"]{color:var(--fg);border-color:var(--btn)}
+
+/* Hero: themed through local tokens so light + dark share one layout */
+.hero3{--h-bg:var(--hero);--h-fg:var(--hero-fg);--h-mute:var(--hero-muted);--h-line:rgb(255 255 255/.12);--h-fill:rgb(0 0 0/.24);--h-acc:#54e6d4;--h-ring:#7a8a8c;--h-t:#54e6d4;--glow:rgb(84 230 212/.35);--btn-fg:#101516;--chip:rgb(255 255 255/.1);--pending:#f0c070;--pending-soft:rgb(240 192 112/.2);--ok-soft:rgb(91 200 147/.18);--ok:#7fe0ae;--muted:#9fb1b2;
+  background:var(--h-bg);color:var(--h-fg);border-radius:12px;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr)}
+.h3-main{padding:28px 24px;display:flex;flex-direction:column;align-items:center;text-align:center;border-right:1px solid var(--h-line)}
+.h3-main h2{font-size:26px;letter-spacing:-.02em;margin:12px 0 6px}
+.h3-main .copy{font-size:13px;color:var(--h-mute);max-width:300px;min-height:40px}
+.orb3{position:relative;width:150px;height:150px;margin:52px 0 40px;border-radius:50%;display:grid;place-items:center;--c:var(--h-ring)}
+.orb3 .ring{position:absolute;border-radius:50%;border:1.5px solid var(--c);transition:all .4s}
+.orb3 .r1{inset:-18px;opacity:.6}.orb3 .r2{inset:-38px;opacity:.32}.orb3 .r3{inset:-58px;opacity:.14}
+.orb3 .core{position:relative;width:150px;height:150px;border-radius:50%;border:2px solid var(--c);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:var(--h-fill);color:var(--h-fg);font-size:14px;font-weight:700;transition:all .4s}
+.orb3 .core svg{width:34px;height:34px;stroke-width:2}
+.orb3:hover .core{filter:brightness(1.08)}
+.orb3:focus-visible{outline-offset:14px}
+[data-state="connecting"] .orb3{--c:var(--pending)}
+[data-state="connecting"] .orb3 .r2{border-style:dashed;animation:spin 6s linear infinite;opacity:.6}
+[data-state="connecting"] .orb3 .r1{animation:pulse 1.4s ease-in-out infinite}
+[data-state="connected"] .orb3{--c:var(--h-acc)}
+[data-state="connected"] .orb3 .core{background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--h-acc) 32%,transparent),color-mix(in srgb,var(--h-acc) 8%,transparent));box-shadow:0 0 44px var(--glow)}
+.hero3 .timer{margin-top:0;font-size:32px}
+.dd{position:relative;width:min(100%,330px);margin-top:16px;text-align:left}
+.ddbtn{display:flex;align-items:center;gap:10px;width:100%;height:48px;padding:0 14px;border-radius:12px;background:var(--h-fill);font-weight:600;font-size:13.5px;text-align:left;border:1px solid transparent}
+.ddbtn:hover:not(:disabled){border-color:var(--h-line)}
+.ddbtn:disabled{cursor:not-allowed;opacity:.6}
+.ddbtn .ms{margin-left:auto;font-size:12px;color:var(--h-mute);font-weight:500}
+.ddbtn .chv{color:var(--h-t);width:18px;height:18px;transition:transform .2s}
+.ddbtn[aria-expanded="true"] .chv{transform:rotate(180deg)}
+.ddlist{position:absolute;z-index:20;left:0;right:0;top:calc(100% + 6px);max-height:288px;overflow:auto;background:var(--surface);color:var(--fg);border:1px solid var(--line);border-radius:12px;box-shadow:var(--modal-shadow);padding:6px}
+.ddopt{display:flex;align-items:center;gap:10px;width:100%;height:42px;padding:0 10px;border-radius:8px;font-size:13px;font-weight:600;text-align:left}
+.ddopt:hover,.ddopt:focus-visible{background:var(--surface-2)}
+.ddopt[aria-selected="true"]{background:var(--sel)}
+.ddopt .ms{margin-left:auto;color:var(--muted);font-weight:500;font-size:12px}
+.ddopt .ck{color:var(--accent-text);width:16px;height:16px}
+.ddopt .st{color:#e3a84b;width:13px;height:13px;fill:currentColor}
+.ddhint{font-size:12px;color:var(--h-mute);margin-top:8px;min-height:18px}
+
+.h3-side{padding:24px;display:flex;flex-direction:column;gap:20px;min-width:0}
+.chead3{display:flex;justify-content:space-between;font-weight:700;font-size:15px;padding-bottom:10px;border-bottom:1px solid var(--h-line)}
+.chead3 span+span{color:var(--h-t);font-weight:500;font-size:13px}
+.s3{position:relative;display:grid;grid-template-columns:40px minmax(0,1fr) auto;gap:14px;align-items:center;padding:14px 0}
+.s3::before{content:"";position:absolute;left:19px;top:54px;bottom:-14px;border-left:2px dotted color-mix(in srgb,var(--h-fg) 28%,transparent)}
+.s3 .cn{position:absolute;left:19px;top:54px;bottom:-14px;width:2px;background:var(--h-acc);box-shadow:0 0 8px var(--glow);transform:scaleY(0);transform-origin:top;transition:transform .5s ease;z-index:1}
+.s3[data-s="done"] .cn{transform:scaleY(1)}
+.s3.last::before,.s3.last .cn{display:none}
+.s3::after{content:"";position:absolute;left:54px;right:0;bottom:0;height:1px;background:var(--h-line)}
+.s3 .tile{width:40px;height:40px;border-radius:10px;background:var(--h-fill);color:var(--h-mute);transition:all .3s;position:relative;z-index:2}
+.s3 .tile svg.i{width:20px;height:20px}
+.s3[data-s="done"] .tile{background:var(--h-acc);color:var(--btn-fg);box-shadow:0 0 14px var(--glow)}
+.s3[data-s="work"] .tile{background:var(--pending-soft);color:var(--pending);animation:pulse 1.2s ease-in-out infinite}
+.s3 .t{font-size:14.5px;font-weight:700}
+.s3 .d{font-size:12.5px;color:var(--h-mute)}
+.s3 .v{font-size:13px;color:var(--h-mute);text-align:right;max-width:140px}
+.s3[data-s="done"] .v{color:var(--h-t)}
+.s3[data-s="work"] .v{color:var(--pending)}
+.dcard{background:var(--h-fill);border-radius:12px;padding:20px 22px}
+.dcard h3{font-size:15px;margin-bottom:14px}
+.dgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 20px}
+.dgrid small{display:block;font-size:12px;color:var(--h-mute)}
+.dgrid b{font-size:13.5px;font-weight:600;overflow-wrap:anywhere}
+
+.cardhead{display:flex;align-items:center;justify-content:space-between;padding:20px 24px 6px}
+.cardhead a{font-size:12.5px;font-weight:700;color:var(--accent-text);cursor:pointer}
+.lk{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:16px;align-items:center;padding:14px 24px}
+.lk + .lk{border-top:1px solid var(--line)}
+.lk .tile{width:44px;height:44px;border-radius:10px}
+.lk .t{font-weight:700;font-size:14px}
+.lk .d{font-size:12.5px;color:var(--muted)}
+.spd{padding:8px 24px 20px}
+.spd svg{width:100%;height:120px;display:block;margin-top:8px}
+.legend{display:flex;gap:24px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.legend b{color:var(--fg);font-weight:700;margin-left:4px}
+.legend i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.tbl .r.c2{grid-template-columns:90px 1fr 110px}
+.mx{position:absolute;top:12px;right:12px;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--chip);color:var(--muted);z-index:2}
+.mx:hover{color:var(--fg)}
+.modal{position:relative}
+.modal.plain .mb{padding-top:28px}
+.modal.plain h3{padding-right:36px}
+.split2{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:24px;align-items:start}
+.aside.asd{border:0;border-radius:12px;background:var(--surface);box-shadow:var(--shadow);padding:24px 20px;position:sticky;top:0;overflow:visible}
+.stackc{display:flex;flex-direction:column;gap:8px}
+.lrow .ms+.star{margin-left:6px}
+.lrow .tag{height:20px;font-size:11px}
+.lrow .acts{display:flex;gap:6px;margin-left:8px}
+.lrow.static{cursor:default}
+.recent .lrow{box-shadow:none;border:1px solid var(--line);background:none;font-weight:500}
+@media (max-width:980px){
+  .hero3{grid-template-columns:1fr}.h3-main{border-right:0;border-bottom:1px solid var(--h-line)}
+  .split2{grid-template-columns:1fr}.aside.asd{display:block;position:static}
+}
+@media (max-width:760px){.dgrid{grid-template-columns:1fr 1fr}}
+
+@media (max-width:980px){
+  .hero{grid-template-columns:1fr}
+  .setup .split{grid-template-columns:1fr}.setup .r{display:none}.setup .l{margin:0 auto}
+  .view.panes.on{grid-template-columns:1fr!important}.aside{display:none}
+}
+@media (max-width:760px){
+  .app{grid-template-columns:64px 1fr}
+  .side{padding:0 6px}.logo{justify-content:center;padding:0}.logo span,.logo sup,.nav .lbl,.nav .chev,.nav .badge,.sub{display:none!important}
+  .nav{justify-content:center;padding:0}
+  .qc{grid-template-columns:1fr}.qc .art{display:none}
+  .grid2,.stats{grid-template-columns:1fr}
+  .acct div{display:none}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+.h3-leak{grid-column:1/-1;border-top:1px solid var(--h-line);padding:22px 24px 10px}
+.h3-leak .chead3{border:0;padding-bottom:4px}
+.h3-leak .chead3 a{color:var(--h-t);font-weight:600;font-size:13px;cursor:pointer}
+.hero3 .lk{padding:14px 0}
+.hero3 .lk+.lk{border-top:1px solid var(--h-line)}
+.hero3 .lk .tile{background:var(--h-fill);color:var(--h-mute);transition:all .3s}
+.hero3 .lk .d{color:var(--h-mute)}
+.hero3[data-state="connected"] .lk .tile{background:var(--h-acc);color:var(--btn-fg);box-shadow:0 0 14px var(--glow)}
+.hero3 .help .pop{color:var(--fg)}
+
+.top .tt{width:36px;height:36px;margin-left:auto}.top .tt+.acct{margin-left:12px}.top .tt:hover{color:var(--fg)}.top .tt svg{width:18px;height:18px}
+/* Leak test section: themed surface instead of the dark hero */
+.h3-leak{background:var(--surface);color:var(--fg);border-radius:0 0 12px 12px;border-top:0;
+  --h-fg:var(--fg);--h-mute:#5b6b6e;--h-line:#e7e9ea;--h-fill:#f0f2f2;--h-t:#0b8478;--h-acc:#0e9a8d;--btn-fg:#fff;--glow:rgb(14 154 141/.3);
+  --ok:#1d7a4c;--ok-soft:#d5eadf;--pending:#9c5f07;--pending-soft:#f7e9bf;--muted:#5b6b6e}
+html[data-theme="dark"] .h3-leak{--h-mute:#9aa9a9;--h-line:#263032;--h-fill:#1c2425;--h-t:#54e6d4;--h-acc:#54e6d4;--btn-fg:#101516;--glow:rgb(84 230 212/.35);
+  --ok:#5bc893;--ok-soft:#17352a;--pending:#e3a84b;--pending-soft:#3a2d18;--muted:#9aa9a9}
+.h3-leak .chead3{color:var(--fg)}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8M6.3 6.8a8 8 0 1 0 11.4 0"/></symbol>
+  <symbol id="i-dash" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="9" rx="1.5"/><rect x="14" y="3" width="7" height="5" rx="1.5"/><rect x="14" y="12" width="7" height="9" rx="1.5"/><rect x="3" y="16" width="7" height="5" rx="1.5"/></symbol>
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.6 2.8 3.9 5.8 3.9 9s-1.3 6.2-3.9 9c-2.6-2.8-3.9-5.8-3.9-9S9.4 5.8 12 3z"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9m-3 3 3 3m-6-3 2 2"/></symbol>
+  <symbol id="i-pulse" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 4.5-3.2 8-8 9-4.8-1-8-4.5-8-9V6z"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-right" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></symbol>
+  <symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="2"/><path d="M2 20h20"/></symbol>
+  <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3A4 4 0 0 0 11 18.7l1-1"/></symbol>
+  <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+  <symbol id="i-dns" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="6" rx="2"/><rect x="3" y="14" width="18" height="6" rx="2"/><path d="M7 7h.01M7 17h.01"/></symbol>
+  <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></symbol>
+  <symbol id="i-auto" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path d="M12 4v12m0 0l-4-4m4 4l4-4M5 20h14"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="3" fill="var(--surface)" stroke="none"/><path d="M6.5 18c1-2.6 3-3.7 5.5-3.7s4.5 1.1 5.5 3.7" fill="var(--surface)" stroke="none"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16h.01"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></symbol>
+  <!-- 4-point sparkle used in Surfshark illustrations -->
+  <symbol id="spark" viewBox="0 0 24 24"><path d="M12 0C12 7 17 12 24 12C17 12 12 17 12 24C12 17 7 12 0 12C7 12 12 7 12 0Z" fill="currentColor"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></symbol>
+<symbol id="i-up" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4m0 0L8 8m4-4l4 4M5 20h14"/></symbol>
+</svg>
+<div class="app">
+  <nav class="side" aria-label="Main">
+    <div class="logo">
+      <svg viewBox="0 0 44.89 37.23" aria-hidden="true"><g fill="#54e6d4"><polygon points="0 17.22 8.65 18.04 8.65 16.39 0 17.22"/><path d="M44.89,18.08l-7.21-.69h0c.53-4.21.71-8.21.76-9.56.01-.28-.18-.54-.45-.61C30.13,4.99,22.29,0,22.29,0l.02.11s0,0,0,0l-.02,2.45c-2.06,1.7-4.9,3-7.39,3.87-1.25.44-2.55.83-3.84,1.18l-1.94.51c-.27.07-.47.33-.47.62v7.65s1.1-.1,1.1-.1c6.31-.6,11.86-5.6,12.46-11.9l.08-.85-.19,30.72-.45-4.2c-.6-6.31-5.6-11.3-11.9-11.9l-1.09-.1v.69c0,5.16,2.57,9.96,6.86,12.82,0,0,6.19,4.08,6.57,4.41.02.01-.03,1.26-.03,1.26.17-.05,9.91-4.57,12.76-8.96,1.29-1.99,2.13-5.72,2.68-9.48,0,0,0,0,0,0l7.39-.71ZM36.03,9.72c-.12,2.27-.33,4.9-.66,7.44,0,0,0,0,0,0h-.02s-.21-.02-.21-.02c-6.31-.6-11.3-5.6-11.9-11.9l-.16-1.69v-.04c2.48,1.47,7.06,3.87,12.52,5.59.27.08.44.33.43.61ZM32.85,27.19c-1.6,2.45-7.72,5.82-9.92,6.97l.31-3.24c.61-6.29,5.57-11.28,11.86-11.9,0,0,.02,0,.02,0h0c-.53,3.52-1.28,6.66-2.27,8.18Z"/></g></svg>
+      <span>VPNFlow</span>
+    </div>
+    <div class="grp"><button class="nav" data-go="dashboard" aria-current="page"><svg class="i"><use href="#i-dash"/></svg><span class="lbl">Dashboard</span><span class="stat"><span class="dotc" id="navdot"></span></span></button></div>
+    <div class="grp"><button class="nav" data-go="locations"><svg class="i"><use href="#i-globe"/></svg><span class="lbl">Locations</span></button></div>
+    <div class="grp"><button class="nav" data-go="activity"><svg class="i"><use href="#i-pulse"/></svg><span class="lbl">Activity</span></button></div>
+    <div class="grp"><button class="nav" data-go="settings"><svg class="i"><use href="#i-gear"/></svg><span class="lbl">Settings</span></button></div>
+    <div class="grp"><button class="nav" data-go="about"><svg class="i"><use href="#i-info"/></svg><span class="lbl">About</span></button></div>
+  </nav>
+
+  <div class="right">
+    <header class="top">
+      <span class="status"><span class="dotc" id="pilldot"></span><span id="pilltxt">Not connected</span></span>
+      <span class="sp"></span>
+      <button class="icon-btn tt" id="themeTog" aria-label="Switch to dark theme" title="Switch theme"><svg class="i"><use href="#i-moon"/></svg></button>
+      <div class="acct"><svg class="i av"><use href="#i-user"/></svg><div><b>This device</b><small>Local only · no account</small></div></div>
+    </header>
+
+    <div class="body" id="body">
+
+      <!-- ================= Dashboard ================= -->
+      <section class="view on" id="v-dashboard">
+        <div class="canvas"><div class="col">
+          <h1>Dashboard</h1>
+
+          <div class="hero3" id="hero" data-state="disconnected">
+            <div class="h3-main">
+              <span class="tag idle" id="qtag">Not connected</span>
+              <h2 id="qtitle">Connect to stay safe</h2>
+              <p class="copy" id="qsub">Route your traffic through your chosen server.</p>
+              <button class="orb3" id="connectBtn" aria-label="Connect"><i class="ring r3"></i><i class="ring r2"></i><i class="ring r1"></i><span class="core"><svg class="i"><use href="#i-power"/></svg><b id="orbLbl">Connect</b></span></button>
+              <div class="timer" id="timer">00:00:00</div>
+              <div class="dd" id="dd">
+                <button class="ddbtn" id="ddBtn" aria-haspopup="listbox" aria-expanded="false" aria-controls="ddList"><span class="flag" id="ddFlag"></span><span id="ddName"></span><span class="ms" id="ddPing"></span><svg class="i chv"><use href="#i-chev"/></svg></button>
+                <div class="ddlist" id="ddList" role="listbox" aria-label="Location" hidden></div>
+              </div>
+              <p class="ddhint" id="ddHint"></p>
+            </div>
+
+            <div class="h3-side">
+              <div>
+                <div class="chead3"><span>Connection check</span><span id="pathcount">0 of 4 confirmed</span></div>
+                <div id="path">
+                  <div class="s3"><i class="cn"></i><span class="tile"><svg class="i"><use href="#i-laptop"/></svg></span><div><div class="t">This device</div><div class="d">Interface is up with its address</div></div><span class="v">Waiting</span></div>
+                  <div class="s3"><i class="cn"></i><span class="tile"><svg class="i"><use href="#i-link"/></svg></span><div><div class="t">Tunnel interface</div><div class="d">WireGuard peer is configured</div></div><span class="v">Waiting</span></div>
+                  <div class="s3"><i class="cn"></i><span class="tile"><svg class="i"><use href="#i-pulse"/></svg></span><div><div class="t">Server response</div><div class="d">Handshake answered in the last 2 minutes</div></div><span class="v">Waiting</span></div>
+                  <div class="s3 last"><i class="cn"></i><span class="tile"><svg class="i"><use href="#i-globe"/></svg></span><div><div class="t">Internet reachability</div><div class="d">A lookup through the tunnel succeeded</div></div><span class="v">Waiting</span></div>
+                </div>
+                <p class="cap" style="margin-top:10px;color:var(--h-mute)">Nothing is marked safe until the server answers.</p>
+              </div>
+              <div class="dcard">
+                <h3>Connection details</h3>
+                <div class="dgrid">
+                  <div><small>Endpoint</small><b id="d-ep">—</b></div>
+                  <div><small>Received</small><b id="d-rx">—</b></div>
+                  <div><small>Download</small><b id="d-dl">—</b></div>
+                  <div><small>Tunnel address</small><b id="d-ip">—</b></div>
+                  <div><small>Sent</small><b id="d-tx">—</b></div>
+                  <div><small>Upload</small><b id="d-ul">—</b></div>
+                  <div><small>Routing</small><b id="d-rt">—</b></div>
+                  <div><small>Last handshake</small><b id="d-hs">—</b></div>
+                  <div><small>Session</small><b id="d-ses">—</b></div>
+                </div>
+              </div>
+            </div>
+            <section class="h3-leak" aria-label="Leak test">
+              <div class="chead3"><span>Leak test</span><a data-go="settings">Manage in Settings</a></div>
+              <div id="leak"></div>
+            </section>
+          </div>
+
+          <div class="card">
+            <div class="cardhead"><h3>Connection speed</h3></div>
+            <div class="spd">
+              <div class="legend"><span><i style="background:var(--btn)"></i>Download<b id="l-dl">—</b></span><span><i style="background:#e3a84b"></i>Upload<b id="l-ul">—</b></span></div>
+              <svg id="chart" viewBox="0 0 600 120" preserveAspectRatio="none" aria-label="Live speed chart"></svg>
+              <p class="cap" id="chartcap">Connect to see live speed.</p>
+            </div>
+          </div>
+
+          <div class="card tbl">
+            <div class="cardhead"><h3>Recent events</h3><a data-go="activity">View all</a></div>
+            <div id="evRecent"></div>
+          </div>
+        </div></div>
+      </section>
+
+      <!-- ================= Locations + Advanced WireGuard (tabs) ================= -->
+      <section class="view" id="v-locations">
+        <div class="canvas"><div class="col">
+          <h1>Locations</h1>
+          <div class="tabs" role="tablist">
+            <button role="tab" data-tab="loc" aria-selected="true">Locations</button>
+            <button role="tab" data-tab="adv" aria-selected="false">Advanced WireGuard</button>
+          </div>
+
+          <div id="tp-loc" class="split2">
+            <div class="stackc" style="gap:16px">
+              <div class="search"><svg class="i"><use href="#i-search"/></svg><input id="q" placeholder="Search by country or city" aria-label="Search locations"></div>
+              <div id="quick" class="stackc">
+                <button class="lrow" data-pick="fast"><span class="tl"><svg class="i"><use href="#i-bolt"/></svg></span>Fastest server<span class="ms">Lowest ping</span></button>
+                <button class="lrow" data-pick="near"><span class="tl"><svg class="i"><use href="#i-pin"/></svg></span>Nearest country</button>
+              </div>
+              <div class="sechead">All locations <span class="cap" style="font-weight:400">· starred first</span></div>
+              <div id="servers" class="stackc"></div>
+              <div class="recent" id="recentBox">
+                <div class="sechead" style="margin:8px 0 10px;display:flex;justify-content:space-between">Recent connections <a class="cap" style="cursor:pointer;color:var(--accent-text);font-weight:700" data-go="activity">See activity</a></div>
+                <div id="recent" class="stackc"></div>
+              </div>
+            </div>
+            <aside class="aside asd" aria-label="Selected server">
+              <div class="illus" aria-hidden="true">
+                <svg width="92" height="92" viewBox="0 0 92 92" fill="none"><circle cx="46" cy="46" r="40" fill="var(--surface-2)"/><path d="M46 14c-11 0-19 8-19 19 0 14 19 33 19 33s19-19 19-33c0-11-8-19-19-19z" fill="var(--hero)"/><circle cx="46" cy="33" r="8" fill="var(--brand)"/><use href="#spark" x="66" y="8" width="12" height="12" style="color:var(--btn)"/><use href="#spark" x="10" y="58" width="9" height="9" style="color:var(--btn)"/></svg>
+              </div>
+              <h3 id="a-name"></h3>
+              <p class="cap" id="a-sub"></p>
+              <div class="kv"><div><small>Server</small><b id="a-srv"></b></div><div><small>Ping</small><b id="a-ping"></b></div><div><small>Protocol</small><b>WireGuard</b></div><div><small>Last connected</small><b id="a-last"></b></div></div>
+              <div id="a-act" style="margin-bottom:20px"></div>
+              <div class="qa"><button>1. Why is a closer server faster?<svg class="i" style="width:16px;height:16px"><use href="#i-chev"/></svg></button><p>Your traffic travels a shorter distance, so there is less delay.</p></div>
+              <div class="qa"><button>2. Does choosing a location change my privacy?<svg class="i" style="width:16px;height:16px"><use href="#i-chev"/></svg></button><p>Only the apparent country websites see. Your provider still runs the server.</p></div>
+              <div class="qa"><button>3. What is a favorite?<svg class="i" style="width:16px;height:16px"><use href="#i-chev"/></svg></button><p>A star pins a server to the top of your list for one-click access.</p></div>
+            </aside>
+          </div>
+
+          <div id="tp-adv" hidden style="display:flex;flex-direction:column;gap:24px">
+            <div>
+              <div class="banner">
+                <div><h3>Bring your own server</h3>
+                  <ul><li><svg class="i"><use href="#i-check"/></svg>Import a .conf file from your VPN provider or your own server.</li><li><svg class="i"><use href="#i-check"/></svg>Keys stay on this device and never reach the interface.</li><li><svg class="i"><use href="#i-check"/></svg>Scripts inside profiles are never run.</li></ul></div>
+                <svg viewBox="0 0 120 100" width="130" fill="none" aria-hidden="true"><circle cx="64" cy="50" r="40" fill="var(--btn)" opacity=".85"/><rect x="34" y="30" width="54" height="40" rx="5" fill="var(--surface)"/><path d="M34 38h54" stroke="var(--hero)" stroke-width="3"/><path d="M48 54h26" stroke="var(--btn)" stroke-width="4" stroke-linecap="round"/><use href="#spark" x="92" y="8" width="14" height="14" style="color:var(--brand)"/></svg>
+              </div>
+              <div class="card rowlist" style="border-radius:0 0 12px 12px">
+                <div class="step"><span class="tile"><svg class="i"><use href="#i-file"/></svg></span><div class="txt"><div class="t">Import a WireGuard file</div><div class="d">Drop a .conf here or choose one from disk.</div></div><button class="btn" data-go="setup">Import</button></div>
+                <div class="step"><span class="tile"><svg class="i"><use href="#i-key"/></svg></span><div class="txt"><div class="t">Generate a key pair</div><div class="d">Register the public key with your server afterwards.</div></div><button class="btn grey">Generate</button></div>
+                <div class="step"><span class="tile"><svg class="i"><use href="#i-globe"/></svg></span><div class="txt"><div class="t">Add a server by hand</div><div class="d">Endpoint, port and peer public key.</div></div><button class="btn grey">Add server</button></div>
+              </div>
+            </div>
+            <div class="sub-h" id="profHead">Your profiles</div>
+            <div class="seg" id="profSeg"><button aria-selected="true" data-pf="all">All</button><button aria-selected="false" data-pf="Imported">Imported</button><button aria-selected="false" data-pf="Generated">Generated</button></div>
+            <div id="profiles" class="stackc"></div>
+          </div>
+        </div></div>
+      </section>
+
+      <!-- ================= Activity ================= -->
+      <section class="view" id="v-activity">
+        <div class="canvas"><div class="col">
+          <h1>Activity</h1>
+          <div class="alert"><svg class="i" style="color:var(--danger)"><use href="#i-alert"/></svg><div><b>One connection attempt failed yesterday</b>The server did not answer within 10 seconds. VPNFlow retried and reconnected.</div></div>
+          <div class="card tbl" id="evAll"></div>
+        </div></div>
+      </section>
+
+      <!-- ================= Settings (one page, most important first) ================= -->
+      <section class="view" id="v-settings">
+        <div class="canvas"><div class="col">
+          <h1>Settings</h1>
+          <div class="card">
+            <h3 class="ch">Protection</h3>
+            <div class="srow"><div class="txt"><div class="t">Kill switch<span class="help" tabindex="0">?<span class="pop"><b>Kill switch</b>Blocks all internet if the tunnel drops.<span><em>Recommended: On.</em> Turn it off only if you must use the web while the VPN is paused.</span></span></span></div><div class="d">Block all traffic if the VPN disconnects</div></div><button class="sw" role="switch" aria-checked="true" data-prot="kill" aria-label="Kill switch"></button></div>
+            <div class="srow"><div class="txt"><div class="t">DNS leak protection<span class="help" tabindex="0">?<span class="pop"><b>DNS leak protection</b>Sends name lookups through the tunnel so your provider can't see the sites you visit.<span><em>Recommended: On.</em> Off lets your network's DNS see every site you open.</span></span></span></div><div class="d">Send DNS lookups through the tunnel</div></div><button class="sw" role="switch" aria-checked="true" data-prot="dns" aria-label="DNS leak protection"></button></div>
+            <div class="srow"><div class="txt"><div class="t">IPv6 protection<span class="help" tabindex="0">?<span class="pop"><b>IPv6 protection</b>Stops IPv6 traffic going around the tunnel.<span><em>Recommended: On.</em> Turn it off only if a site you need breaks without IPv6.</span></span></span></div><div class="d">Route IPv6 traffic through the tunnel</div></div><button class="sw" role="switch" aria-checked="true" data-prot="ipv6" aria-label="IPv6 protection"></button></div>
+            <div class="srow"><div class="txt"><div class="t">Allow local network<span class="help" tabindex="0">?<span class="pop"><b>Allow local network</b>Keeps printers, NAS and TVs at home reachable.<span><em>Recommended: On</em> at home, Off on public Wi‑Fi.</span></span></span></div><div class="d">Printers, NAS and other devices at home</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Allow local network"></button></div>
+            <div class="srow"><div class="txt"><div class="t">Reconnect automatically</div><div class="d">Try again if the connection drops</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Reconnect automatically"></button></div>
+          </div>
+          <div class="card">
+            <h3 class="ch">Startup</h3>
+            <div class="srow"><div class="txt"><div class="t">Connect on launch</div></div><button class="sw" role="switch" aria-checked="false" aria-label="Connect on launch"></button></div>
+            <div class="srow"><div class="txt"><div class="t">Start VPNFlow when you sign in</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Start when you sign in"></button></div>
+            <div class="srow"><div class="txt"><div class="t">Keep running in the tray when closed</div></div><button class="sw" role="switch" aria-checked="true" aria-label="Keep running in tray"></button></div>
+          </div>
+          <div class="card">
+            <h3 class="ch">Appearance</h3>
+            <div class="srow"><span class="tile"><svg class="i"><use href="#i-sun"/></svg></span><div class="txt"><div class="t">Theme</div><div class="d">Light, dark or follow your system</div></div>
+              <div class="seg" style="width:260px"><button aria-selected="false" data-theme="light">Light</button><button aria-selected="false" data-theme="dark">Dark</button><button aria-selected="true" data-theme="system">System</button></div></div>
+          </div>
+        </div></div>
+      </section>
+
+      <section class="view" id="v-about">
+        <div class="canvas"><div class="col"><h1>About</h1>
+          <div class="card pad"><h3>VPNFlow v0.4.0</h3><p class="muted" style="margin-top:6px">Free, local-first WireGuard client. Apache-2.0 / MIT. Part of FlowApps.</p></div>
+        </div></div>
+      </section>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: kill switch confirm (X, Esc, outside click and a safe default all close it) -->
+<div class="scrim" id="scrim" role="dialog" aria-modal="true" aria-labelledby="m-title">
+  <div class="modal">
+    <button class="mx" data-close aria-label="Close"><svg class="i" style="width:16px;height:16px"><use href="#i-x"/></svg></button>
+    <div class="mh" aria-hidden="true">
+      <svg width="200" height="140" viewBox="0 0 200 140" fill="none"><rect x="62" y="58" width="76" height="56" rx="10" fill="var(--hero)"/><path d="M80 58V46a20 20 0 0 1 40 0v12" stroke="var(--fg)" stroke-width="3.5" fill="none"/><circle cx="100" cy="82" r="8" fill="var(--btn)"/><path d="M100 86v12" stroke="var(--btn)" stroke-width="5" stroke-linecap="round"/><use href="#spark" x="148" y="22" width="20" height="20" style="color:var(--btn)"/><use href="#spark" x="30" y="86" width="14" height="14" style="color:var(--btn)"/></svg>
+    </div>
+    <div class="mb">
+      <h3 id="m-title">Turn off the kill switch?</h3>
+      <p class="muted" style="font-size:13px">With it off:</p>
+      <ul><li>Your real IP can show for a moment if the VPN drops.</li><li>Apps keep working while the tunnel reconnects.</li></ul>
+      <p style="font-size:12.5px;font-weight:700">Recommended: keep it on.</p>
+      <div class="btns"><button class="btn lg" id="m-keep">Keep it on</button><button class="btn lg ghost" id="m-off">Turn off anyway</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: delete profile -->
+<div class="scrim" id="scrimDel" role="dialog" aria-modal="true" aria-labelledby="d-title">
+  <div class="modal plain">
+    <button class="mx" data-close aria-label="Close"><svg class="i" style="width:16px;height:16px"><use href="#i-x"/></svg></button>
+    <div class="mb">
+      <h3 id="d-title">Delete this profile?</h3>
+      <p class="muted" style="font-size:13px" id="d-body"></p>
+      <div class="btns" style="flex-direction:row;justify-content:flex-end"><button class="btn grey md" data-close id="d-cancel">Cancel</button><button class="btn bad md" id="d-ok">Delete</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- First-run setup (split screen, like Surfshark onboarding) -->
+<div class="setup" id="v-setup">
+  <div class="bar0">
+    <div class="logo" style="padding:0"><svg viewBox="0 0 44.89 37.23" aria-hidden="true"><use href="#logo-mark"/></svg><span>VPNFlow</span></div>
+    <button class="btn grey" id="setup-close">Close</button>
+  </div>
+  <div class="split">
+    <div class="l">
+      <h1>Import a WireGuard file</h1>
+      <p class="muted">Drop a <b>.conf</b> from your VPN provider or server. We check it before anything connects.</p>
+      <div class="steps2">
+        <div class="dropzone"><svg class="i" style="width:28px;height:28px;margin-bottom:8px"><use href="#i-down"/></svg><div>Drop your .conf file here</div><div class="cap">or choose it from your computer</div></div>
+        <div class="card" style="box-shadow:none;border:1px solid var(--line)"><div class="step" style="padding:12px 16px"><span class="tile" style="background:var(--ok-soft);color:var(--ok)"><svg class="i"><use href="#i-shield"/></svg></span><div class="txt"><div class="d">Status</div><div class="t">Nothing imported yet</div></div></div></div>
+      </div>
+      <div class="foot"><button class="btn grey lg" id="setup-back">Back</button><button class="btn lg" id="setup-next">Next</button></div>
+    </div>
+    <div class="r" aria-hidden="true">
+      <svg viewBox="0 0 380 340" fill="none"><rect x="110" y="110" width="160" height="150" rx="18" fill="var(--hero)" transform="rotate(-6 190 185)"/><path d="M150 110V84a40 40 0 0 1 80 0v26" stroke="var(--fg)" stroke-width="5" fill="none" transform="rotate(-6 190 185)"/><circle cx="190" cy="172" r="16" fill="var(--btn)"/><path d="M190 180v28" stroke="var(--btn)" stroke-width="9" stroke-linecap="round"/><use href="#spark" x="290" y="60" width="44" height="44" style="color:var(--btn)"/><use href="#spark" x="60" y="190" width="30" height="30" style="color:var(--btn)"/><use href="#spark" x="280" y="260" width="34" height="34" style="color:var(--btn)"/><path d="M60 290c40 30 90 20 130-10" stroke="var(--fg)" stroke-width="2" stroke-linecap="round"/></svg>
+    </div>
+  </div>
+</div>
+
+<script>
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const html=document.documentElement;
+
+/* logo mark reused in setup bar */
+(()=>{const src=$('.logo svg g').outerHTML;const sym=document.createElementNS('http://www.w3.org/2000/svg','symbol');sym.id='logo-mark';sym.setAttribute('viewBox','0 0 44.89 37.23');sym.innerHTML=src;$('svg[width="0"]').appendChild(sym);$('#v-setup .logo svg').style.cssText='width:32px;height:27px'})();
+
+/* ---------- data ---------- */
+const C=[ // cc, country, city, server, ping, flag colour, favourite
+ ['US','United States','New York','nyc-04',24,'#3c3b6e',1],['US','United States','Los Angeles','lax-02',71,'#3c3b6e',0],
+ ['CA','Canada','Toronto','tor-03',31,'#d52b1e',0],['GB','United Kingdom','London','lon-06',96,'#1f3a7a',1],
+ ['DE','Germany','Frankfurt','fra-05',112,'#b08800',0],['NL','Netherlands','Amsterdam','ams-07',101,'#e8710a',0],
+ ['JP','Japan','Tokyo','tyo-02',171,'#bc002d',0],['AU','Australia','Sydney','syd-01',212,'#1a3f8f',0],
+];
+const LAST={0:'Today, 09:41',3:'Yesterday',2:'2 days ago'};
+let PR=[{i:0,src:'Imported'},{i:3,src:'Imported'},{i:2,src:'Generated',pend:1}];
+const P={kill:true,dns:true,ipv6:true};
+const EV=[['09:41','Connected to New York','ok','Confirmed'],['09:41','Handshake with server','ok','Confirmed'],['Yesterday','Network changed, reconnecting','pending','Retried'],['Yesterday','Server did not answer in 10 s','bad','Failed']];
+let cur=0,sel=0,connIdx=null,state='disconnected',query='',pf='all',delIdx=null;
+const nm=i=>C[i][1]+' · '+C[i][2];
+const order=()=>C.map((_,i)=>i).sort((a,b)=>C[b][6]-C[a][6]||a-b);
+const flag=i=>`<span class="flag" style="background:${C[i][5]}">${C[i][0]}</span>`;
+const ic=(n,s=16)=>`<svg class="i" style="width:${s}px;height:${s}px"><use href="#i-${n}"/></svg>`;
+
+/* ---------- navigation ---------- */
+function tab(t){$('#tp-loc').hidden=t!=='loc';$('#tp-adv').hidden=t!=='adv';$$('[data-tab]').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===t))}
+function go(id){
+  if(id==='setup'){$('#v-setup').classList.add('on');return}
+  if(id==='advanced'){id='locations';tab('adv')}
+  $$('.view').forEach(v=>v.classList.toggle('on',v.id==='v-'+id));
+  $$('.nav').forEach(n=>{n.removeAttribute('aria-current');if(n.dataset.go===id)n.setAttribute('aria-current','page')});
+  $('#body').scrollTop=0;
+}
+const openM=(id,focus)=>{$('#'+id).classList.add('on');$(focus)?.focus()};
+const closeAll=()=>{$$('.scrim.on').forEach(s=>s.classList.remove('on'));$('#v-setup').classList.remove('on');ddClose()};
+
+/* ---------- theme ---------- */
+function setTheme(t){
+  try{localStorage.setItem('vf-theme',t)}catch(_){}
+  const dark=t==='dark'||(t==='system'&&matchMedia('(prefers-color-scheme:dark)').matches);
+  if(dark)html.dataset.theme='dark';else html.removeAttribute('data-theme');
+  $$('button[data-theme]').forEach(b=>b.setAttribute('aria-selected',b.dataset.theme===t));
+  const tg=$('#themeTog');if(tg){tg.querySelector('use').setAttribute('href',dark?'#i-sun':'#i-moon');tg.setAttribute('aria-label',dark?'Switch to light theme':'Switch to dark theme')}
+}
+let saved='system';try{saved=localStorage.getItem('vf-theme')||'system'}catch(_){}
+setTheme(saved);
+
+/* ---------- location dropdown (disabled while connected) ---------- */
+function ddClose(){$('#ddList').hidden=true;$('#ddBtn').setAttribute('aria-expanded','false')}
+function ddRender(){
+  const c=C[cur],locked=state!=='disconnected';
+  $('#ddFlag').style.background=c[5];$('#ddFlag').textContent=c[0];
+  $('#ddName').textContent=nm(cur);$('#ddPing').textContent=c[4]+' ms';
+  $('#ddBtn').disabled=locked;
+  $('#ddHint').textContent=locked?'Disconnect to change location.':'';
+  $('#ddList').innerHTML=order().map(i=>`<button class="ddopt" role="option" data-d="${i}" aria-selected="${i===cur}">${flag(i)}${nm(i)}${C[i][6]?'<svg class="i st"><use href="#i-star"/></svg>':''}<span class="ms">${C[i][4]} ms</span>${i===cur?'<svg class="i ck"><use href="#i-check"/></svg>':''}</button>`).join('');
+}
+
+/* ---------- leak test: status only; the switches live in Settings ---------- */
+const LK=[
+ ['kill','Kill switch','lock','Blocks all internet if the VPN drops.','The firewall block was confirmed; endpoint and network-control exceptions apply.','Kill switch','Blocks internet if the tunnel drops. Recommended: On.'],
+ ['dns','DNS leak protection','dns','Sends name lookups through the tunnel.','All 2 system DNS servers are reached through the tunnel.','DNS leak protection','Keeps your lookups private. Recommended: On.'],
+ ['ipv6','IPv6 protection','globe','Stops IPv6 traffic going around the tunnel.','IPv6 internet traffic is routed through the tunnel.','IPv6 protection','Stops IPv6 bypassing the tunnel. Recommended: On.'],
+];
+function renderLeak(){
+  $('#leak').innerHTML=LK.map(([k,t,icon,cfg,ver,hb,hd])=>{
+    let tag,d;
+    if(!P[k]){tag=['idle','Off'];d='Turned off in Settings.'}
+    else if(state==='connected'){tag=['ok','Verified'];d=ver}
+    else if(state==='connecting'){tag=['pending','Checking…'];d='Verifying through the tunnel. Not confirmed yet.'}
+    else{tag=['idle','Configured'];d=cfg+' Connect to verify.'}
+    return `<div class="lk"><span class="tile">${ic(icon,20)}</span><div><div class="t">${t}<span class="help" tabindex="0">?<span class="pop"><b>${hb}</b>${hd}</span></span></div><div class="d">${d}</div></div><span class="tag ${tag[0]}">${tag[1]}</span></div>`}).join('');
+}
+
+/* ---------- events ---------- */
+function evRows(list,head){return (head?'<div class="r h"><span>Time</span><span>Event</span><span>Result</span></div>':'')+list.map(e=>`<div class="r"><span>${e[0]}</span><span>${e[1]}</span><span class="tag ${e[2]}">${e[3]}</span></div>`).join('')}
+function renderEv(){$('#evAll').innerHTML=evRows(EV,true);$('#evRecent').innerHTML=evRows(EV.slice(0,3),false)}
+
+/* ---------- locations ---------- */
+function renderLoc(){
+  const ql=query.toLowerCase();
+  const idx=order().filter(i=>!ql||C[i][1].toLowerCase().includes(ql)||C[i][2].toLowerCase().includes(ql));
+  $('#quick').style.display=ql?'none':'flex';$('#recentBox').style.display=ql?'none':'block';
+  $('#servers').innerHTML=idx.length?idx.map(i=>{
+    const on=connIdx===i&&state!=='disconnected',tg=on?(state==='connected'?'<span class="tag ok">Connected</span>':'<span class="tag pending">Connecting…</span>'):'';
+    return `<div class="lrow" role="button" tabindex="0" data-i="${i}" ${i===sel?'aria-current="true"':''}>${flag(i)}${nm(i)}${tg}<span class="ms">${C[i][4]} ms</span><button class="star" aria-pressed="${!!C[i][6]}" aria-label="Favorite ${C[i][2]}">${ic('star')}</button></div>`}).join(''):'<p class="muted">No locations match.</p>';
+  $('#recent').innerHTML=[0,3,2].map(i=>`<div class="lrow" role="button" tabindex="0" data-i="${i}">${flag(i)}${nm(i)}<span class="ms">${LAST[i]}</span></div>`).join('');
+  const c=C[sel];
+  $('#a-name').textContent=nm(sel);$('#a-srv').textContent=c[3];$('#a-ping').textContent=c[4]+' ms';$('#a-last').textContent=LAST[sel]||'Never';
+  const here=connIdx===sel&&state!=='disconnected';
+  $('#a-sub').textContent=here?(state==='connected'?'Connected now':'Connecting…'):'Selected location';
+  $('#a-act').innerHTML=state==='disconnected'?`<button class="btn lg" data-act="connect">Connect to ${c[2]}</button>`
+    :here?`<button class="btn grey lg" data-act="disconnect">Disconnect</button>`
+    :`<button class="btn lg" disabled>Disconnect to switch</button>`;
+}
+function renderProf(){
+  const list=PR.filter(p=>pf==='all'||p.src===pf);
+  $('#profHead').textContent=`Your profiles (${PR.length})`;
+  $('#profiles').innerHTML=list.length?list.map(p=>{
+    const on=connIdx===p.i&&state!=='disconnected';
+    return `<div class="lrow static">${flag(p.i)}${C[p.i][3]}.example.net${on?'<span class="tag ok" style="margin-left:8px">Connected</span>':''}${p.pend?'<span class="tag pending" style="margin-left:8px">Needs registration</span>':''}<span class="ms">${p.src} · WireGuard</span><span class="acts"><button class="icon-btn" data-exp="${p.i}" aria-label="Export ${C[p.i][3]}" title="Export">${ic('up')}</button><button class="icon-btn" data-del="${p.i}" aria-label="Delete ${C[p.i][3]}" title="${on?'Disconnect first':'Delete'}" ${on?'disabled style="opacity:.4;cursor:not-allowed"':''}>${ic('trash')}</button></span></div>`}).join(''):'<p class="muted">No profiles here.</p>';
+}
+
+/* ---------- speed chart ---------- */
+const N=40,DL=Array(N).fill(0),UL=Array(N).fill(0);
+function renderChart(){
+  const mx=Math.max(100,...DL,...UL)*1.15,pt=a=>a.map((v,i)=>`${(i*600/(N-1)).toFixed(1)},${(116-v/mx*108).toFixed(1)}`).join(' ');
+  $('#chart').innerHTML=`<line x1="0" y1="119" x2="600" y2="119" stroke="var(--line)"/><polygon points="0,119 ${pt(DL)} 600,119" fill="var(--btn)" opacity=".12"/><polyline points="${pt(DL)}" fill="none" stroke="var(--btn)" stroke-width="2" vector-effect="non-scaling-stroke"/><polyline points="${pt(UL)}" fill="none" stroke="#e3a84b" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+}
+
+/* ---------- connect simulation: nothing is marked safe until the last check lands ---------- */
+const VAL=['10.2.0.2/32','utun8','Server answered','Tunnel DNS answered'];
+const rows=()=>$$('#path .s3');
+function setStep(i,k){const r=rows()[i];r.dataset.s=k;r.querySelector('.v').textContent=k==='done'?VAL[i]:k==='work'?'Checking…':'Waiting'}
+let timers=[],tick;
+function paint(){
+  const city=C[connIdx??cur][2];
+  $('#hero').dataset.state=state;
+  const m={
+    disconnected:['Not connected','Connect to stay safe','Route your traffic through your chosen server.','Connect','idle','Not connected',''],
+    connecting:['Connecting…','Connecting…','Checking each step. Nothing is protected yet.','Cancel','pending','Connecting…','pending'],
+    connected:['Connected','You are connected','The server answered and traffic is flowing through the tunnel.','Disconnect','ok','Connected · '+city,'ok']
+  }[state];
+  $('#qtag').textContent=m[0];$('#qtag').className='tag '+m[4];
+  $('#qtitle').textContent=m[1];$('#qsub').textContent=m[2];
+  $('#orbLbl').textContent=m[3];$('#connectBtn').setAttribute('aria-label',m[3]);
+  $('#pilltxt').textContent=m[5];$('#pilldot').className='dotc '+m[6];$('#navdot').className='dotc '+m[6];
+  ddRender();renderLeak();renderLoc();renderProf();
+}
+function reset(){
+  timers.forEach(clearTimeout);clearInterval(tick);
+  rows().forEach((_,i)=>setStep(i,''));$('#pathcount').textContent='0 of 4 confirmed';
+  ['#d-ep','#d-rx','#d-dl','#d-ip','#d-tx','#d-ul','#d-rt','#d-hs','#d-ses','#l-dl','#l-ul'].forEach(s=>$(s).textContent='—');
+  DL.fill(0);UL.fill(0);renderChart();$('#chartcap').textContent='Connect to see live speed.';$('#timer').textContent='00:00:00';
+}
+const done=(i,n)=>{setStep(i,'done');$('#pathcount').textContent=n+' of 4 confirmed'};
+const p2=n=>String(n).padStart(2,'0'),kib=v=>v.toFixed(1)+' KiB/s';
+$('#connectBtn').addEventListener('click',()=>{
+  if(state!=='disconnected'){
+    if(state==='connected')EV.unshift(['Now','Disconnected from '+C[connIdx][2],'idle','Done']);
+    state='disconnected';connIdx=null;reset();paint();renderEv();return}
+  state='connecting';connIdx=cur;paint();ddClose();
+  setStep(0,'work');setStep(1,'work');setStep(2,'work');setStep(3,'work');
+  timers.push(setTimeout(()=>done(0,1),500),setTimeout(()=>done(1,2),1000),setTimeout(()=>done(2,3),1900));
+  timers.push(setTimeout(()=>{
+    done(3,4);state='connected';paint();
+    EV.unshift(['Now','Connected to '+C[connIdx][2],'ok','Confirmed']);renderEv();
+    $('#d-ep').textContent=C[connIdx][3]+'.example.net:51820';$('#d-ip').textContent='10.2.0.2/32';$('#d-rt').textContent='Full tunnel';
+    $('#chartcap').textContent='Traffic counted by your device while connected.';
+    let s=0,rx=0,tx=0;
+    tick=setInterval(()=>{
+      s++;const dl=250+Math.random()*450,ul=40+Math.random()*140;rx+=dl;tx+=ul;
+      DL.push(dl);DL.shift();UL.push(ul);UL.shift();renderChart();
+      $('#d-rx').textContent=(rx/1024).toFixed(1)+' MiB';$('#d-tx').textContent=tx.toFixed(0)+' KiB';
+      $('#d-dl').textContent=kib(dl);$('#d-ul').textContent=kib(ul);$('#l-dl').textContent=kib(dl);$('#l-ul').textContent=kib(ul);
+      $('#d-hs').textContent=(s%120)+' s ago';$('#d-ses').textContent=p2(Math.floor(s/60))+':'+p2(s%60);
+      $('#timer').textContent=p2(Math.floor(s/3600))+':'+p2(Math.floor(s/60)%60)+':'+p2(s%60);
+    },1000);
+  },2800));
+});
+
+/* ---------- global clicks ---------- */
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(!t.closest('#dd'))ddClose();
+  const cl=t.closest('[data-close]');if(cl){cl.closest('.scrim').classList.remove('on');return}
+  if(t.classList.contains('scrim')){t.classList.remove('on');return}
+  if(t.closest('#themeTog')){setTheme(html.dataset.theme==='dark'?'light':'dark');return}
+  const th=t.closest('button[data-theme]');if(th){setTheme(th.dataset.theme);return}
+  const g=t.closest('[data-go]');if(g){go(g.dataset.go);return}
+  const tb=t.closest('[data-tab]');if(tb){tab(tb.dataset.tab);return}
+  const sw=t.closest('.sw');
+  if(sw){const on=sw.getAttribute('aria-checked')==='true',k=sw.dataset.prot;
+    if(on&&k==='kill'){openM('scrim','#m-keep');return}
+    sw.setAttribute('aria-checked',!on);if(k){P[k]=!on;renderLeak()}return}
+  if(t.closest('#ddBtn')){const o=$('#ddList').hidden;$('#ddList').hidden=!o;$('#ddBtn').setAttribute('aria-expanded',o);if(o)$('#ddList [aria-selected="true"]')?.focus();return}
+  const d=t.closest('[data-d]');if(d){cur=+d.dataset.d;ddClose();ddRender();$('#ddBtn').focus();return}
+  const st=t.closest('.star');if(st){const i=+st.closest('[data-i]').dataset.i;C[i][6]=C[i][6]?0:1;renderLoc();ddRender();return}
+  const a=t.closest('[data-act]');if(a){
+    if(a.dataset.act==='connect'){cur=sel;go('dashboard');ddRender();$('#connectBtn').click()}
+    else $('#connectBtn').click();
+    return}
+  const r=t.closest('[data-i]');if(r){sel=+r.dataset.i;renderLoc();return}
+  const p=t.closest('[data-pick]');if(p){sel=p.dataset.pick==='fast'?0:3;renderLoc();return}
+  const pfb=t.closest('[data-pf]');if(pfb){pf=pfb.dataset.pf;$$('[data-pf]').forEach(b=>b.setAttribute('aria-selected',b===pfb));renderProf();return}
+  const de=t.closest('[data-del]');if(de&&!de.disabled){delIdx=+de.dataset.del;$('#d-body').textContent=`${C[delIdx][3]}.example.net will be removed from this device, including its stored keys. This can't be undone.`;openM('scrimDel','#d-cancel');return}
+  const q=t.closest('.qa button');if(q)q.parentElement.classList.toggle('open');
+});
+$('#m-keep').onclick=()=>$('#scrim').classList.remove('on');
+$('#m-off').onclick=()=>{P.kill=false;$('[data-prot="kill"]').setAttribute('aria-checked','false');$('#scrim').classList.remove('on');renderLeak()};
+$('#d-ok').onclick=()=>{PR=PR.filter(p=>p.i!==delIdx);$('#scrimDel').classList.remove('on');renderProf()};
+$('#setup-close').onclick=$('#setup-back').onclick=$('#setup-next').onclick=()=>$('#v-setup').classList.remove('on');
+$('#q').addEventListener('input',e=>{query=e.target.value;renderLoc()});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape')closeAll();
+  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role="button"][data-i]')){e.preventDefault();e.target.click()}
+});
+
+renderEv();renderChart();tab('loc');paint();
+
+</script>
+</body>
+</html>

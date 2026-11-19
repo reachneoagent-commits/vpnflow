@@ -58,6 +58,18 @@ export function About() {
             notify-rust, ipnet and x25519-dalek. The full dependency and license inventory ships with each
             release.
           </p>
+          <p>
+            Setup illustrations: Bangalore set by{" "}
+            <a
+              className="text-focus underline-offset-2 hover:underline"
+              href="https://www.streamlinehq.com"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Streamline
+            </a>
+            , licensed CC BY 4.0, recoloured to the VPNFlow palette.
+          </p>
           <p>VPNFlow has not been independently security-audited.</p>
         </div>
       </Panel>
