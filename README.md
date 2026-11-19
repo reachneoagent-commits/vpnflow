@@ -2,56 +2,86 @@
   <img src="apps/desktop/src-tauri/icons/128x128.png" width="128" height="128" alt="VPNFlow icon">
 </p>
 
-<h1 align="center">VPNFlow</h1>
+<div align="center">
+  <h1>VPNFlow</h1>
+  <p><strong>A free VPN client that shows you whether it is really protecting you. Open source, on your own computer.</strong></p>
+</div>
 
-<p align="center"><b>A free VPN that shows you whether it is really protecting you. Open source, on your own computer.</b></p>
+> VPNFlow is a fork of [Aegis VPN](https://github.com/mikeholp87/aegis-vpn) by mikeholp87, with our own name, look and defaults. Thank you to its author and contributors for the WireGuard client, the leak checks and everything under the hood. See [NOTICE](NOTICE) for details. WireGuard is a registered trademark of Jason A. Donenfeld.
 
-VPNFlow is part of the FlowApps suite. It is a fork of
-[Aegis VPN](https://github.com/mikeholp87/aegis-vpn) by mikeholp87, with our own name, look and
-defaults. The WireGuard client, leak checks and everything under the hood come from their work; see
-[Credits](#credits). WireGuard is a registered trademark of Jason A. Donenfeld.
+> **Preview.** Unsigned builds for Mac and Windows. On Windows the tunnel service is not implemented yet, so Windows cannot connect. See [Supported platforms](#supported-platforms), [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/testing/TEST_RESULTS.md](docs/testing/TEST_RESULTS.md).
 
-> **Preview.** Unsigned builds for Mac and Windows. On Windows the tunnel service is not implemented
-> yet, so Windows cannot connect. See [Supported platforms](#supported-platforms),
-> [docs/ROADMAP.md](docs/ROADMAP.md) and [docs/testing/TEST_RESULTS.md](docs/testing/TEST_RESULTS.md).
+VPNFlow connects to a WireGuard server and then checks that the tunnel, the DNS lookups and IPv6 really go through it. VPNFlow is a client only: it does not come with VPN servers. You bring a WireGuard configuration from a VPN provider or from a server you run yourself.
+
+## Why VPNFlow?
+
+- **Free**: no subscription, no account
+- **Honest**: shows what is actually confirmed (tunnel up, server answered, DNS and IPv6 protection verified) instead of a single "secure" badge
+- **Private**: no account and no telemetry; the optional connectivity checks are explained in Settings
+- **Yours**: bring any WireGuard `.conf` file; your keys never leave your computer
+
+## Features
+
+- Imports standard WireGuard `.conf` files (file picker, drag and drop, or a whole folder), rejecting `PostUp`-style scripts and directives it cannot honour
+- Creates and edits profiles without ever showing or accepting raw keys in the UI
+- Locations directory for your own servers: country and city, search, favorites, recent connections, Quick Connect and switching
+- Automatic reconnect with bounded backoff, diagnostics and a sanitized export
+- Connects through NetworkManager on Linux; tunnels keep running when the app closes and are picked up again when it restarts
+- Light and dark themes, keyboard navigation, tray menu
 
 ## Download and install
 
-**Easiest:** install and update VPNFlow with the
-[FlowApps launcher](https://github.com/reachneoagent-commits/FlowApps-Launcher/releases/latest).
-Or download an installer yourself:
+**Easiest:** install and update it with the [FlowApps launcher](https://github.com/reachneoagent-commits/FlowApps-Launcher/releases/latest), one app that also manages the other FlowApps on Mac and Windows. Or download an installer yourself below.
 
-| Platform | Installer |
-|---|---|
-| macOS Intel | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64.dmg) |
+Download the installer for your system (latest version, 0.1.1).
+
+| Platform                          | Installer |
+| --------------------------------- | --------- |
 | macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_aarch64.dmg) |
-| Windows x64 | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64_en-US.msi) (preview, cannot connect yet) |
-| Linux | [Build from source](#build-from-source) |
+| macOS Intel                       | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64.dmg) |
+| Windows x64                       | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64_en-US.msi) (preview, cannot connect yet) |
+| Linux                             | [Build from source](#build-it-yourself) |
 
-Older versions are on the [Releases page](https://github.com/reachneoagent-commits/vpnflow/releases),
-and every release lists SHA-256 checksums to check the files against.
+Older versions are on the [Releases page](https://github.com/reachneoagent-commits/vpnflow/releases). Every release lists SHA-256 checksums so you can check the files.
 
-VPNFlow is not signed with a paid Apple or Microsoft certificate, so your computer warns you the
-first time you open it. VPNFlow is a client only: you bring a WireGuard configuration from a VPN
-provider or from a server you run yourself.
+VPNFlow isn't signed with a paid Apple or Microsoft certificate (that costs money every year, and VPNFlow is free). Your computer will warn you the first time you open it. The warning is expected, and the steps below get past it once.
 
-## What it does
+### Mac
 
-- Imports standard WireGuard `.conf` files (file picker or drag and drop),
-  rejecting `PostUp`-style scripts and directives it cannot honour
-- Creates and edits profiles without ever showing or accepting raw keys in the UI
-- Connects through NetworkManager on Linux; tunnels keep running when the app closes
-  and are picked up again when it restarts
-- Shows what is actually confirmed: tunnel up, server responded, protection
-  configured or verified, instead of a single "secure" badge
-- Locations directory for your own servers: country/city metadata, search, favorites,
-  recent successful connections, Quick Connect and switching through the same engine
-- Automatic reconnect with bounded backoff, diagnostics, sanitized export
-- Light and dark themes, keyboard navigation, tray menu
-- No account or telemetry; optional connectivity checks have a Settings disclosure
+1. Download the `.dmg` that matches your Mac:
+   - **`aarch64`**: Macs with an M1, M2, M3 or newer chip.
+   - **`x64`**: older Macs with an Intel chip.
+2. Open the `.dmg` and drag **VPNFlow** into **Applications**.
+3. Open VPNFlow. macOS will say it can't verify the app. Click **Done** (not Move to Trash).
+4. Open **System Settings → Privacy & Security**, scroll down to the message about VPNFlow, click **Open Anyway**, and enter your password.
 
-VPNFlow is a client only. It does not come with VPN servers: you bring a WireGuard
-configuration from a VPN provider or from a server you run yourself.
+If step 4 doesn't show Open Anyway, run this once and open VPNFlow again:
+
+```bash
+xattr -cr /Applications/VPNFlow.app
+```
+
+To check a download against its checksum, run this in the folder with the file:
+
+```bash
+shasum -a 256 VPNFlow_0.1.1_aarch64.dmg
+```
+
+### Windows
+
+1. Download the `.msi` installer and run it.
+2. If Windows says **"Windows protected your PC"**, click **More info**, then **Run anyway**.
+3. Finish the installer and open VPNFlow. In this preview the tunnel service is not implemented yet, so Windows cannot connect.
+
+To check the download, run this in PowerShell in the folder with the file:
+
+```powershell
+Get-FileHash .\VPNFlow_0.1.1_x64_en-US.msi -Algorithm SHA256
+```
+
+### Linux
+
+There is no installer yet. Build it from source (below). Linux needs NetworkManager 1.16 or newer.
 
 ## Quick start: connect to a VPN provider
 
@@ -87,6 +117,23 @@ internet traffic, IPv4 and IPv6, goes through the VPN server.
 
 For your own server, see [Locations setup and limitations](docs/features/LOCATIONS.md),
 which also lists what the server operator has to configure.
+
+## Check that it works
+
+- **In the app:** Dashboard shows Connected, **Server answered**, and the
+  DNS/IPv6 protection rows as Verified. Activity lists the same checks.
+- **From a terminal:**
+
+  ```sh
+  nmcli -t -f NAME,DEVICE,STATE connection show --active | grep Aegis   # activated on aegis-xxxxxxxx
+  ip route get 1.1.1.1                     # dev aegis-xxxxxxxx (full tunnel)
+  resolvectl query example.com             # link: aegis-xxxxxxxx
+  ```
+
+- **Exit location:** `curl https://ifconfig.co/country-iso` asks a third-party
+  service which country your traffic appears to come from. Geolocation databases
+  are approximate, and the country you assign in Locations is your own label,
+  not a verified location.
 
 ## DNS on Linux: make sure lookups go through the VPN
 
@@ -161,23 +208,6 @@ still claims every lookup. Turn that off, or stop Tailscale from managing DNS wh
 using the VPN with `sudo tailscale set --accept-dns=false` (tailnet names then stop
 resolving until you set it back to `true`).
 
-## Check that it works
-
-- **In the app:** Dashboard shows Connected, **Server answered**, and the
-  DNS/IPv6 protection rows as Verified. Activity lists the same checks.
-- **From a terminal:**
-
-  ```sh
-  nmcli -t -f NAME,DEVICE,STATE connection show --active | grep Aegis   # activated on aegis-xxxxxxxx
-  ip route get 1.1.1.1                     # dev aegis-xxxxxxxx (full tunnel)
-  resolvectl query example.com             # link: aegis-xxxxxxxx
-  ```
-
-- **Exit location:** `curl https://ifconfig.co/country-iso` asks a third-party
-  service which country your traffic appears to come from. Geolocation databases
-  are approximate, and the country you assign in Locations is your own label,
-  not a verified location.
-
 ## Troubleshooting
 
 | Symptom | What it means / what to do |
@@ -198,63 +228,6 @@ resolving until you set it back to `true`).
 | macOS (Intel and Apple Silicon) | Preview, unsigned |
 | Windows 11 x64 | Preview installer; the tunnel service is not implemented yet, so it cannot connect |
 
-## Build from source
-
-See [docs/development/LINUX.md](docs/development/LINUX.md) and
-[docs/development/WINDOWS.md](docs/development/WINDOWS.md).
-
-```sh
-cd apps/desktop && pnpm install && pnpm tauri dev
-# UI only, no real tunnels:
-AEGIS_BACKEND=mock pnpm tauri dev
-```
-
-The app icon source is `apps/desktop/src-tauri/icons/icon.svg`; regenerate all
-sizes with `pnpm tauri icon src-tauri/icons/icon.svg`.
-
-**Taskbar icon in dev builds (KDE/GNOME on Wayland):** the desktop looks up a
-window's icon from an installed `.desktop` file named after the app id
-(`aegis-desktop`), which `pnpm tauri dev` does not install. To see the icon while
-developing:
-
-```sh
-for n in 32 64 128 256 512; do
-  install -Dm644 /dev/null ~/.local/share/icons/hicolor/${n}x${n}/apps/aegis-desktop.png
-  magick -background none apps/desktop/src-tauri/icons/icon.svg -resize ${n}x${n} \
-    ~/.local/share/icons/hicolor/${n}x${n}/apps/aegis-desktop.png
-done
-cat > ~/.local/share/applications/aegis-desktop.desktop <<'EOF'
-[Desktop Entry]
-Type=Application
-Name=VPNFlow
-Exec=aegis-desktop
-Icon=aegis-desktop
-StartupWMClass=aegis-desktop
-NoDisplay=true
-EOF
-kbuildsycoca6 2>/dev/null || update-desktop-database ~/.local/share/applications
-```
-
-## Linux helper: install or upgrade
-
-Disconnect and quit VPNFlow before replacing or uninstalling the helper. From
-the repository root, update the binary and Polkit policy together:
-
-```sh
-cargo build --release -p aegis-helper --locked
-sudo scripts/install-helper.sh install target/release/aegis-helper
-```
-
-Firewall changes affect every local user and require administrator
-authentication. Read-only status and handshake queries are password-free for
-the active desktop user. Reopen VPNFlow after upgrading; an older helper lacks
-the new `status` command, so the app reports unknown firewall state until it
-is upgraded. Custom Polkit rules need the separate
-`org.aegisvpn.helper.killswitch.apply` and `.remove` action IDs.
-
-`sudo scripts/install-helper.sh uninstall` removes the firewall block first.
-If cleanup fails it keeps the helper and policy installed so you can retry.
-
 ## Limitations
 
 - Linux kill-switch support requires the installed helper/Polkit policy and
@@ -271,34 +244,28 @@ If cleanup fails it keeps the helper and policy installed so you can retry.
   server response from received data.
 - Not independently security-audited.
 
+## Build it yourself
+
+See [docs/development/LINUX.md](docs/development/LINUX.md) and
+[docs/development/WINDOWS.md](docs/development/WINDOWS.md).
+
+```sh
+cd apps/desktop && pnpm install && pnpm tauri dev
+# UI only, no real tunnels:
+AEGIS_BACKEND=mock pnpm tauri dev
+```
+
+Linux developer notes (dev icon, helper install, preview packaging) are in [docs/development/LINUX_EXTRAS.md](docs/development/LINUX_EXTRAS.md).
+
+## About this fork
+
+VPNFlow's WireGuard client, leak checks and Linux backend come from Aegis VPN. The upstream project is at <https://github.com/mikeholp87/aegis-vpn>.
+
+### Credits
+
+- **[Aegis VPN](https://github.com/mikeholp87/aegis-vpn)** by mikeholp87: the WireGuard client, leak checks and backends (Apache 2.0).
+- **[WireGuard](https://www.wireguard.com/)**: the VPN protocol. WireGuard is a registered trademark of Jason A. Donenfeld. VPNFlow is not affiliated with the WireGuard project.
+
 ## License
 
-MIT OR Apache-2.0. WireGuard is a registered trademark of Jason A. Donenfeld;
-this project is not affiliated with the WireGuard project.
-
-## Audit and preview packaging
-
-The current release classification is **Development Preview**. Linux uses the
-real NetworkManager backend. The DEB and RPM packages include the helper and
-matching Polkit policy for protected mode. Protected switching and Always On
-remain unavailable. The Windows
-adapter stays offline until the authenticated tunnel service is implemented.
-
-For a self-hosted WireGuard endpoint, configure the server peer, UDP listener,
-return routes and any forwarding or DNS required by your profile. Then import
-the client configuration from Locations and verify the peer response and routed
-traffic. See [Locations](docs/features/LOCATIONS.md), [DNS](docs/security/DNS_PROTECTION.md),
-[IPv6](docs/security/IPV6_PROTECTION.md), and [recovery](docs/security/RECOVERY.md).
-
-Build the Linux desktop preview with Tauri's DEB or RPM target. Inspect its
-dependencies and checksum, then use the matching package manager on a
-disposable test system. Disconnect and remove any remaining firewall block
-before uninstalling. See the [release checklist](docs/releases/RELEASE_CHECKLIST.md)
-and [remediation report](docs/audits/REMEDIATION_REPORT.md).
-
-## Credits
-
-VPNFlow is a derivative work of [Aegis VPN](https://github.com/mikeholp87/aegis-vpn) by mikeholp87,
-licensed under the Apache License 2.0. Thank you to its author and contributors. See
-[NOTICE](NOTICE) for details. "Aegis VPN" and its author's names are not licensed for use as VPNFlow
-branding.
+MIT OR Apache-2.0. VPNFlow is a derivative work of Aegis VPN (Apache License 2.0). "Aegis VPN" and its author's names are not licensed for use as VPNFlow branding.
