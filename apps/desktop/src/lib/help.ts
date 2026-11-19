@@ -200,6 +200,14 @@ export const HELP = {
     tradeoff:
       "VPNFlow keeps running in the background. Choose Quit from the menu bar to close it fully; the VPN stays as it is.",
   },
+  importFolder: {
+    title: "Import a whole folder",
+    what: "Pick one folder and VPNFlow imports every .conf file in it, plus the .conf files one level down in its sub-folders.",
+    why: "Quicker than opening the folder and selecting each file. If one file is broken it is skipped and named, and the rest still import.",
+    example: "Download 20 Proton files into one folder, press Import folder, choose it, done.",
+    tradeoff:
+      "Every .conf in the folder is imported, so keep unrelated configs out of it. Recommended: use a folder that holds only the servers you want.",
+  },
   locations: {
     title: "VPN locations",
     what: "Your list of servers, grouped by country. Each server is one WireGuard profile you imported or added.",

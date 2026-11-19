@@ -118,6 +118,7 @@ pub fn run() {
             commands::disconnect,
             commands::cancel,
             commands::import_dialog,
+            commands::import_folder_dialog,
             commands::new_draft,
             commands::profile_draft,
             commands::create_profile,

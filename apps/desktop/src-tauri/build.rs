@@ -17,6 +17,7 @@ const COMMANDS: &[&str] = &[
     "disconnect",
     "cancel",
     "import_dialog",
+    "import_folder_dialog",
     "new_draft",
     "profile_draft",
     "create_profile",

@@ -1,40 +1,35 @@
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { Locations } from "./Locations";
 import { Profiles } from "./Profiles";
 
-type Tab = "locations" | "advanced";
-
-const TABS: { id: Tab; label: string }[] = [
-  { id: "locations", label: "Locations" },
-  { id: "advanced", label: "Advanced WireGuard" },
-];
-
-/** One page for picking servers and for editing the WireGuard profiles behind them. */
-export function LocationsPage({ initialTab = "locations" }: { initialTab?: Tab }) {
-  const [tab, setTab] = useState<Tab>(initialTab);
+/** One page: add servers at the top, pick and manage them below, raw WireGuard profiles at the bottom. */
+export function LocationsPage({ showAdvanced = false }: { showAdvanced?: boolean }) {
+  const [open, setOpen] = useState(showAdvanced);
   return (
-    <div className="flex flex-col gap-5">
-      <div role="tablist" aria-label="Locations sections" className="flex gap-1 border-b border-line">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            role="tab"
-            id={`tab-${t.id}`}
-            aria-selected={tab === t.id}
-            aria-controls={`panel-${t.id}`}
-            onClick={() => setTab(t.id)}
-            className={`-mb-px h-11 border-b-2 px-4 font-semibold ${
-              tab === t.id ? "border-accent text-fg" : "border-transparent text-muted hover:text-fg"
-            }`}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
-        {tab === "locations" ? <Locations /> : <Profiles />}
-      </div>
+    <div className="flex flex-col gap-8">
+      <Locations />
+      <section aria-label="Advanced WireGuard" className="border-t border-line pt-5">
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+          className="flex w-full items-center justify-between gap-3 text-left"
+        >
+          <span>
+            <span className="block text-base font-bold">Advanced WireGuard</span>
+            <span className="block text-xs text-muted">
+              Every imported profile in one plain list: edit, export, duplicate or delete several at once.
+            </span>
+          </span>
+          <ChevronDown size={18} aria-hidden className={open ? "rotate-180" : ""} />
+        </button>
+        {open && (
+          <div className="mt-4">
+            <Profiles embedded />
+          </div>
+        )}
+      </section>
     </div>
   );
 }

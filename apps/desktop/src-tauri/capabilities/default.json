@@ -24,6 +24,7 @@
     "allow-disconnect",
     "allow-cancel",
     "allow-import-dialog",
+    "allow-import-folder-dialog",
     "allow-new-draft",
     "allow-profile-draft",
     "allow-create-profile",

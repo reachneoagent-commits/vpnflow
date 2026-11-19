@@ -207,13 +207,17 @@ async fn pick_conf_files(app: &AppHandle) -> Vec<PathBuf> {
         .collect()
 }
 
-#[tauri::command]
-pub async fn import_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
-    // One bad file must not stop the rest: import what works, then report the skipped files together.
+/// Import each path; one bad file must not stop the rest. Skipped files are reported together.
+async fn import_paths(
+    app: &AppHandle,
+    st: &AppState,
+    paths: Vec<PathBuf>,
+    none_found: &str,
+) -> Vec<ProfileView> {
     let mut out = Vec::new();
     let mut skipped = Vec::new();
-    for path in pick_conf_files(&app).await {
-        match st.engine.import_file(&path).await {
+    for path in &paths {
+        match st.engine.import_file(path).await {
             Ok(p) => out.push(p),
             Err(e) => {
                 let name = path
@@ -224,7 +228,15 @@ pub async fn import_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<Pro
             }
         }
     }
-    if !skipped.is_empty() {
+    if paths.is_empty() {
+        let _ = app.emit(
+            "import-result",
+            ImportResult {
+                name: "No files found".into(),
+                error: Some(UiError::msg(none_found)),
+            },
+        );
+    } else if !skipped.is_empty() {
         let _ = app.emit(
             "import-result",
             ImportResult {
@@ -233,7 +245,64 @@ pub async fn import_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<Pro
             },
         );
     }
-    Ok(out)
+    out
+}
+
+#[tauri::command]
+pub async fn import_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
+    let paths = pick_conf_files(&app).await;
+    Ok(import_paths(&app, &st, paths, "").await)
+}
+
+/// Every `.conf` directly inside `dir` or one level of sub-folders, sorted by name.
+fn conf_files_in(dir: &std::path::Path) -> Vec<PathBuf> {
+    fn is_conf(p: &std::path::Path) -> bool {
+        p.is_file()
+            && p.extension()
+                .and_then(|e| e.to_str())
+                .is_some_and(|e| e.eq_ignore_ascii_case("conf"))
+    }
+    let mut out = Vec::new();
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return out;
+    };
+    for entry in rd.flatten() {
+        let p = entry.path();
+        if is_conf(&p) {
+            out.push(p);
+        } else if p.is_dir()
+            && !entry.file_type().is_ok_and(|t| t.is_symlink())
+            && let Ok(sub) = std::fs::read_dir(&p)
+        {
+            out.extend(sub.flatten().map(|e| e.path()).filter(|q| is_conf(q)));
+        }
+    }
+    out.sort();
+    out
+}
+
+#[tauri::command]
+pub async fn import_folder_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
+    let (tx, rx) = tokio::sync::oneshot::channel();
+    app.dialog()
+        .file()
+        .set_title("Choose a folder of WireGuard profiles")
+        .pick_folder(move |f| {
+            let _ = tx.send(f);
+        });
+    let Some(dir) = rx.await.ok().flatten().and_then(|f| f.into_path().ok()) else {
+        return Ok(Vec::new());
+    };
+    let paths = tokio::task::spawn_blocking(move || conf_files_in(&dir))
+        .await
+        .unwrap_or_default();
+    Ok(import_paths(
+        &app,
+        &st,
+        paths,
+        "That folder has no .conf files. Pick the folder you downloaded them into.",
+    )
+    .await)
 }
 
 #[derive(Serialize, Clone)]

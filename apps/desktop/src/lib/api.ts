@@ -38,6 +38,7 @@ export const api = {
   disconnect: () => invoke<void>("disconnect"),
   cancel: () => invoke<void>("cancel"),
   importDialog: () => invoke<ProfileView[]>("import_dialog"),
+  importFolderDialog: () => invoke<ProfileView[]>("import_folder_dialog"),
   newDraft: () => invoke<ProfileDraft>("new_draft"),
   draft: (id: ProfileId) => invoke<ProfileDraft>("profile_draft", { id }),
   createProfile: (draft: ProfileDraft) => invoke<ProfileView>("create_profile", { draft }),

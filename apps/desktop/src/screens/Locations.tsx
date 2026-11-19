@@ -1,4 +1,14 @@
-import { ChevronDown, ChevronRight, Globe, Plus, RefreshCw, Star, Upload, Zap } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronRight,
+  FolderOpen,
+  Globe,
+  Plus,
+  RefreshCw,
+  Star,
+  Upload,
+  Zap,
+} from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { Button, Confirm, Dot, InfoTip, Modal, SelectBar, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
@@ -80,9 +90,9 @@ export function Locations() {
       setNow(Date.now());
     }
   };
-  const importServers = () =>
+  const importServers = (folder = false) =>
     perform(async () => {
-      const imported = await api.importDialog();
+      const imported = await (folder ? api.importFolderDialog() : api.importDialog());
       await refreshProfiles();
       if (imported.length) {
         setAdding(false);
@@ -122,9 +132,18 @@ export function Locations() {
             <Zap size={15} aria-hidden />
             Quick Connect
           </Button>
-          <Button variant="primary" disabled={busy} onClick={() => setAdding(true)}>
+          <Button variant="primary" disabled={busy} onClick={() => importServers(false)}>
+            <Upload size={15} aria-hidden />
+            Import files
+          </Button>
+          <Button variant="primary" disabled={busy} onClick={() => importServers(true)}>
+            <FolderOpen size={15} aria-hidden />
+            Import folder
+          </Button>
+          <InfoTip topic="importFolder" />
+          <Button disabled={busy} onClick={() => setAdding(true)}>
             <Plus size={15} aria-hidden />
-            Add server
+            Other ways
           </Button>
         </div>
       </header>
@@ -170,15 +189,12 @@ export function Locations() {
       {profiles.length === 0 ? (
         <section className="px-2 py-14 text-center">
           <Globe size={36} className="mx-auto mb-4 text-muted" aria-hidden />
-          <h2 className="text-xl font-semibold">Import a WireGuard file</h2>
+          <h2 className="text-xl font-semibold">Add your first server</h2>
           <p className="mx-auto mt-2 max-w-[48ch] text-muted">
-            Bring in a configuration from your provider or server, then assign a country so it shows up here.
+            Press Import files, or Import folder to add a whole folder of .conf files at once. Then give each
+            a country so it shows up here.
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-2">
-            <Button variant="primary" disabled={busy} onClick={importServers}>
-              Import WireGuard Configuration
-            </Button>
-            <Button onClick={() => setAdding(true)}>Add Server</Button>
             <Button variant="ghost" onClick={() => setGuide(true)}>
               View Setup Guide
             </Button>
@@ -521,15 +537,19 @@ export function Locations() {
         uses recent responses and your preferences; it does not measure download speed.
       </p>
       {adding && (
-        <Modal open title="Add server" onClose={() => setAdding(false)}>
+        <Modal open title="Other ways to add a server" onClose={() => setAdding(false)}>
           <p className="mb-4 text-[13px] text-muted">
             Use a configuration from your provider or an existing WireGuard server. Importing does not
             configure the remote server.
           </p>
           <div className="flex flex-col gap-3">
-            <Button variant="primary" disabled={busy} onClick={importServers}>
+            <Button variant="primary" disabled={busy} onClick={() => importServers(false)}>
               <Upload size={15} aria-hidden />
-              Import WireGuard Configuration
+              Import files
+            </Button>
+            <Button disabled={busy} onClick={() => importServers(true)}>
+              <FolderOpen size={15} aria-hidden />
+              Import a whole folder
             </Button>
             <Button disabled={busy} onClick={create}>
               Configure manually

@@ -108,6 +108,7 @@ const mockApi = vi.hoisted(() => ({
   disconnect: vi.fn(),
   cancel: vi.fn(),
   importDialog: vi.fn(),
+  importFolderDialog: vi.fn(),
   newDraft: vi.fn(),
   draft: vi.fn(),
   createProfile: vi.fn(),
@@ -341,7 +342,7 @@ describe("App", () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
     await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
-    await userEvent.click(screen.getByRole("tab", { name: "Advanced WireGuard" }));
+    await userEvent.click(screen.getByRole("button", { name: /Advanced WireGuard/ }));
     await userEvent.click(screen.getByRole("button", { name: "Delete Office" }));
     expect(mockApi.deleteProfile).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: "Delete profile", hidden: true }));
@@ -353,7 +354,7 @@ describe("App", () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
     await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
-    await userEvent.click(screen.getByRole("tab", { name: "Advanced WireGuard" }));
+    await userEvent.click(screen.getByRole("button", { name: /Advanced WireGuard/ }));
     await userEvent.click(screen.getByRole("button", { name: "Export Office" }));
     expect(await screen.findByText(/contains the private key/i)).toBeInTheDocument();
     expect(mockApi.exportProfile).not.toHaveBeenCalled();
@@ -389,11 +390,24 @@ describe("Locations", () => {
   it("shows an empty directory with import, add and setup guidance", async () => {
     setup({ profiles: [] });
     await openLocations();
-    expect(screen.getByRole("heading", { name: "Import a WireGuard file" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Import WireGuard Configuration" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Add your first server" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import files" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Import folder" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "View Setup Guide" }));
     expect(screen.getByText(/server must recognize your client public key/i)).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "Country directory" })).not.toBeInTheDocument();
+  });
+
+  it("imports a whole folder through the folder button", async () => {
+    mockApi.importFolderDialog.mockResolvedValue([located("SG")]);
+    setup({ profiles: [] });
+    await openLocations();
+    await userEvent.click(screen.getByRole("button", { name: "Import folder" }));
+    expect(mockApi.importFolderDialog).toHaveBeenCalledTimes(1);
+    expect(mockApi.importDialog).not.toHaveBeenCalled();
+    expect(
+      await screen.findByRole("heading", { name: "Server details: Office", hidden: true }),
+    ).toBeInTheDocument();
   });
 
   it("selects, collapses and searches actual configured countries and endpoints", async () => {
@@ -435,7 +449,7 @@ describe("Locations", () => {
     mockApi.updateServer.mockResolvedValue(located("SG"));
     setup({ profiles: [] });
     await openLocations();
-    await userEvent.click(screen.getByRole("button", { name: "Import WireGuard Configuration" }));
+    await userEvent.click(screen.getByRole("button", { name: "Import files" }));
     expect(
       await screen.findByRole("heading", { name: "Server details: Office", hidden: true }),
     ).toBeInTheDocument();

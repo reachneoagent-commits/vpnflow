@@ -148,7 +148,7 @@ function Shell() {
               <HelperBanner />
               {screen === "dashboard" && <Dashboard goTo={setScreen} />}
               {(screen === "locations" || screen === "profiles") && (
-                <LocationsPage initialTab={screen === "profiles" ? "advanced" : "locations"} />
+                <LocationsPage showAdvanced={screen === "profiles"} />
               )}
               {screen === "activity" && <ActivityScreen />}
               {screen === "settings" && <SettingsScreen />}

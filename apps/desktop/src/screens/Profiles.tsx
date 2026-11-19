@@ -7,7 +7,7 @@ import { routeLabel } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Issue, KeyAction, PeerDraft, ProfileDraft, ProfileView } from "../lib/types";
 
-export function Profiles() {
+export function Profiles({ embedded = false }: { embedded?: boolean }) {
   const { profiles, settings, run, saveSettings, refreshProfiles, notify } = useStore();
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<{ id: string | null; draft: ProfileDraft } | null>(null);
@@ -52,56 +52,59 @@ export function Profiles() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="sr-only">Advanced WireGuard</h1>
-      <div>
-        <div className="rounded-t-xl bg-(--hero) px-6 py-6 text-(--hero-fg)">
-          <h2 className="mb-3 text-base font-bold">Bring your own server</h2>
-          <ul className="flex flex-col gap-1.5 text-[12.5px] text-(--hero-muted)">
-            {[
-              "Import a .conf file from your VPN provider or your own server.",
-              "Keys stay on this device and never reach the interface.",
-              "Scripts inside profiles are never run.",
-            ].map((t) => (
-              <li key={t} className="flex items-center gap-3">
-                <Check size={16} aria-hidden className="shrink-0 text-brand" />
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="divide-y divide-line rounded-b-xl bg-surface shadow-(--shadow)">
-          <div className="flex items-center gap-3.5 px-6 py-3.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-(--surface-2,var(--raised))">
-              <FileText size={18} aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-bold">Import a WireGuard file</div>
-              <div className="text-xs text-muted">
-                Drop a .conf here or choose one from disk. You can also drop files onto this window.
-              </div>
-            </div>
-            <Button variant="primary" onClick={() => run(api.importDialog)}>
-              <Upload size={15} aria-hidden /> Import .conf
-            </Button>
+      {!embedded && <h1 className="sr-only">Advanced WireGuard</h1>}
+      {!embedded && (
+        <div>
+          <div className="rounded-t-xl bg-(--hero) px-6 py-6 text-(--hero-fg)">
+            <h2 className="mb-3 text-base font-bold">Bring your own server</h2>
+            <ul className="flex flex-col gap-1.5 text-[12.5px] text-(--hero-muted)">
+              {[
+                "Import a .conf file from your VPN provider or your own server.",
+                "Keys stay on this device and never reach the interface.",
+                "Scripts inside profiles are never run.",
+              ].map((t) => (
+                <li key={t} className="flex items-center gap-3">
+                  <Check size={16} aria-hidden className="shrink-0 text-brand" />
+                  {t}
+                </li>
+              ))}
+            </ul>
           </div>
-          <div className="flex items-center gap-3.5 px-6 py-3.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-raised">
-              <KeyRound size={18} aria-hidden />
-            </span>
-            <div className="min-w-0 flex-1">
-              <div className="text-[13px] font-bold">Create a profile by hand</div>
-              <div className="text-xs text-muted">
-                Enter endpoint, keys and peers yourself. Register the public key with your server afterwards.
+          <div className="divide-y divide-line rounded-b-xl bg-surface shadow-(--shadow)">
+            <div className="flex items-center gap-3.5 px-6 py-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-(--surface-2,var(--raised))">
+                <FileText size={18} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-bold">Import a WireGuard file</div>
+                <div className="text-xs text-muted">
+                  Drop a .conf here or choose one from disk. You can also drop files onto this window.
+                </div>
               </div>
+              <Button variant="primary" onClick={() => run(api.importDialog)}>
+                <Upload size={15} aria-hidden /> Import .conf
+              </Button>
             </div>
-            <Button onClick={create}>
-              <Plus size={15} aria-hidden /> New profile
-            </Button>
+            <div className="flex items-center gap-3.5 px-6 py-3.5">
+              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-raised">
+                <KeyRound size={18} aria-hidden />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-bold">Create a profile by hand</div>
+                <div className="text-xs text-muted">
+                  Enter endpoint, keys and peers yourself. Register the public key with your server
+                  afterwards.
+                </div>
+              </div>
+              <Button onClick={create}>
+                <Plus size={15} aria-hidden /> New profile
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-base font-bold">Your profiles</h2>
+        <h2 className="text-base font-bold">{embedded ? "All WireGuard profiles" : "Your profiles"}</h2>
         <div>
           <label htmlFor={searchId} className="sr-only">
             Search profiles
