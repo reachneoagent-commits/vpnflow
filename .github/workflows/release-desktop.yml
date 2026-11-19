@@ -35,13 +35,13 @@ jobs:
           for v in "$cargo_v" "$pkg_v" "$tauri_v"; do
             test "$v" = "${{ inputs.confirm_version }}"
           done
-      - name: Create the pre-release
+      - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$TAG" --repo "${{ github.repository }}" \
-            --target "${{ github.sha }}" --prerelease \
-            --title "VPNFlow ${{ inputs.confirm_version }} (preview)" \
+            --target "${{ github.sha }}" \
+            --title "VPNFlow ${{ inputs.confirm_version }}" \
             --notes "Preview build. Unsigned. macOS: the first launch asks for your Mac password once to set up the background helper. Windows: the tunnel service is not implemented yet, so Windows cannot connect. See docs/releases/RELEASE_CHECKLIST.md."
 
   macos:
