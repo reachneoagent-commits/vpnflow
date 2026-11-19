@@ -958,3 +958,11 @@ Added 1.1.1.1 to the bypass list, reconnected to JP-FREE#2, then checked the rou
 - Unit tests pass for arp/route parsing, MAC normalisation, and the decision table (trusted -> disconnect, untrusted idle -> connect, offline/disabled -> nothing). Clippy clean, UI tests 30 pass, release app rebuilt.
 - Not tested live: joining a trusted vs untrusted network with the feature on, the scoped route lookup while the VPN is connected, Ethernet, a router that does not answer ARP.
 - `cargo test --workspace` on macOS also runs the Linux-only `aegis-helper` tests; 3 of them fail here (not touched by this change).
+
+## 2026-11-18: DNS firewall rule (macOS), live check
+
+With the VPN connected and Allow local network on: `dig @192.168.10.1 example.com`
+timed out (blocked); default lookups resolved via the tunnel DNS (10.2.0.1);
+`curl https://example.com` returned 200; ping to the router succeeded. Not
+covered: DNS/IPv6 leaks with the kill switch off, DNS-over-HTTPS in browsers.
+Unit test `dns_outside_the_tunnel_is_blocked_even_with_local_network_allowed` passes.

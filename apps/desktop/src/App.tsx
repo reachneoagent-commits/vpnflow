@@ -149,15 +149,12 @@ function Shell() {
 function Notices() {
   const { notices, dismiss } = useStore();
   return (
-    <div
-      aria-live="polite"
-      className="pointer-events-none fixed right-4 bottom-4 flex w-[min(420px,calc(100%-32px))] flex-col gap-2"
-    >
+    <div aria-live="polite" className="pointer-events-none fixed inset-x-0 top-0 z-50 flex flex-col gap-px">
       {notices.map((n) => (
         <div
           key={n.id}
           role={n.tone === "error" ? "alert" : "status"}
-          className={`pointer-events-auto flex items-start gap-3 rounded-xl border px-3.5 py-2.5 text-[13px] shadow-[0_12px_32px_-12px_rgb(10_16_22/0.35)] ${
+          className={`pointer-events-auto flex items-start gap-3 border-b px-5 py-2.5 text-[13px] shadow-[0_8px_24px_-12px_rgb(10_16_22/0.35)] ${
             n.tone === "error" ? "border-danger/50 bg-danger-soft text-fg" : "border-line bg-surface text-fg"
           }`}
         >

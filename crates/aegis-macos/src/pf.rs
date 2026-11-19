@@ -4,6 +4,7 @@
 //! Policy (mirrors `Backend::apply_kill_switch`): block everything, then pass
 //! loopback, the tunnel interface, UDP to the WireGuard endpoints, DHCP, IPv6
 //! neighbour discovery and, when `allow_lan`, private/link-local ranges.
+//! DNS (ports 53 and 853) outside the tunnel is blocked even for those ranges.
 //! Every input is validated; nothing user-controlled is interpolated raw.
 
 use std::net::SocketAddr;
@@ -70,12 +71,6 @@ pub fn ruleset_with_bypass(
     r.push_str(
         "pass quick inet6 proto icmp6 all icmp6-type { routersol, routeradv, neighbrsol, neighbradv }\n",
     );
-    if allow_lan {
-        r.push_str(&format!("pass quick inet to {LAN_V4}\n"));
-        r.push_str(&format!("pass quick inet from {LAN_V4}\n"));
-        r.push_str(&format!("pass quick inet6 to {LAN_V6}\n"));
-        r.push_str(&format!("pass quick inet6 from {LAN_V6}\n"));
-    }
     for net in bypass {
         let fam = if net.addr().is_ipv4() {
             "inet"
@@ -84,6 +79,17 @@ pub fn ruleset_with_bypass(
         };
         r.push_str(&format!("pass quick {fam} to {net}\n"));
         r.push_str(&format!("pass quick {fam} from {net}\n"));
+    }
+    // DNS (and DNS over TLS) may only travel inside the tunnel. Without this,
+    // "allow local network" would let lookups reach the router, which forwards
+    // them to the internet provider. Traffic inside the tunnel already passed
+    // above; destinations the user chose to bypass are passed before this line.
+    r.push_str("block drop quick proto { tcp, udp } from any to any port { 53, 853 }\n");
+    if allow_lan {
+        r.push_str(&format!("pass quick inet to {LAN_V4}\n"));
+        r.push_str(&format!("pass quick inet from {LAN_V4}\n"));
+        r.push_str(&format!("pass quick inet6 to {LAN_V6}\n"));
+        r.push_str(&format!("pass quick inet6 from {LAN_V6}\n"));
     }
     // Last and quick: nothing evaluated after this anchor can re-allow traffic.
     r.push_str("block drop quick all\n");
@@ -105,6 +111,29 @@ mod tests {
         assert!(!valid_tunnel_interface("en0"));
         assert!(!valid_tunnel_interface("utun4 all\npass out"));
         assert!(!valid_tunnel_interface("utun12345"));
+    }
+
+    #[test]
+    fn dns_outside_the_tunnel_is_blocked_even_with_local_network_allowed() {
+        let nets: Vec<IpNet> = vec!["192.168.1.5/32".parse().unwrap()];
+        let r =
+            ruleset_with_bypass(Some("utun4"), &[ep("203.0.113.7:51820")], true, &nets).unwrap();
+        let pos = |needle: &str| r.find(needle).unwrap_or_else(|| panic!("missing {needle}"));
+        let dns = pos("block drop quick proto { tcp, udp } from any to any port { 53, 853 }\n");
+        assert!(
+            pos("pass quick on utun4 all\n") < dns,
+            "tunnel DNS must pass"
+        );
+        assert!(
+            pos("pass quick inet to 192.168.1.5/32\n") < dns,
+            "bypass choice wins"
+        );
+        assert!(
+            dns < pos("pass quick inet to { 10.0.0.0/8"),
+            "LAN must not re-allow DNS"
+        );
+        assert!(dns < pos("pass quick inet6 to { fe80::/10"));
+        assert!(r.trim_end().ends_with("block drop quick all"));
     }
 
     #[test]
