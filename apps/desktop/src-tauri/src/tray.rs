@@ -55,6 +55,14 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
             && preferred.is_some_and(|p| aegis_core::registry::eligible(&p.meta)),
         None::<&str>,
     )?;
+    let quick = MenuItem::with_id(
+        app,
+        "quick",
+        "Quick connect",
+        idle && engine.capabilities().available.is_supported()
+            && profiles.iter().any(|p| aegis_core::registry::eligible(&p.meta)),
+        None::<&str>,
+    )?;
     let blocking = matches!(
         snap.protection.kill_switch,
         aegis_core::Feature::Verified(_)
@@ -96,7 +104,7 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
         &refs,
     )?;
 
-    let open = MenuItem::with_id(app, "open", "Open Aegis VPN", true, None::<&str>)?;
+    let open = MenuItem::with_id(app, "open", "Open VPNFlow", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit (VPN stays as it is)", true, None::<&str>)?;
     let sep = || PredefinedMenuItem::separator(app);
@@ -105,6 +113,7 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
         &[
             &status,
             &sep()?,
+            &quick,
             &connect,
             &disconnect,
             &pref,
@@ -121,7 +130,7 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
     let menu = build_menu(app, engine)?;
     let mut b = TrayIconBuilder::with_id(TRAY_ID)
         .menu(&menu)
-        .tooltip("Aegis VPN")
+        .tooltip("VPNFlow")
         .show_menu_on_left_click(true);
     if let Some(icon) = app.default_window_icon() {
         b = b.icon(icon.clone());
@@ -136,6 +145,11 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
                         let _ = engine.connect(pid).await;
                     });
                 }
+            }
+            "quick" => {
+                tauri::async_runtime::spawn(async move {
+                    let _ = engine.quick_connect().await;
+                });
             }
             "disconnect" => {
                 tauri::async_runtime::spawn(async move {
@@ -179,7 +193,7 @@ pub fn refresh(app: &AppHandle, engine: &Engine<AnyBackend>) {
     {
         let _ = tray.set_menu(Some(menu));
         let _ = tray.set_tooltip(Some(format!(
-            "Aegis VPN: {}",
+            "VPNFlow: {}",
             status_text(&engine.snapshot().state)
         )));
     }
