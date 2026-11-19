@@ -1,6 +1,6 @@
 import { ChevronDown, ChevronRight, Globe, Plus, RefreshCw, Star, Upload, Zap } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { Button, Confirm, Dot, Modal, Segmented, TextField } from "../components/ui";
+import { Button, Confirm, Dot, InfoTip, Modal, Segmented, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
 import { isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago } from "../lib/format";
@@ -102,7 +102,10 @@ export function Locations() {
     <div className="flex flex-col gap-5">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.015em]">VPN Locations</h1>
+          <div className="flex items-center gap-1">
+            <h1 className="text-[30px] font-semibold leading-tight tracking-[-0.015em]">VPN Locations</h1>
+            <InfoTip topic="locations" />
+          </div>
           <p className="mt-1.5 max-w-[54ch] text-muted">
             Pick a server you configure. VPNFlow connects with the WireGuard profile you imported or created.
           </p>
@@ -155,6 +158,7 @@ export function Locations() {
           <RefreshCw size={15} aria-hidden />
           Refresh status
         </Button>
+        <InfoTip topic="locationFilters" />
       </div>
       <Segmented
         label="Filter locations"
@@ -408,6 +412,7 @@ export function Locations() {
           <label htmlFor={countryPreferenceId} className="text-muted">
             Quick Connect country
           </label>
+          <InfoTip topic="quickConnectCountry" />
           <select
             id={countryPreferenceId}
             value={settings.quick_connect_country ?? ""}
@@ -647,7 +652,10 @@ function ServerDetails({ profile, onClose }: { profile: ProfileView; onClose: ()
               </option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-muted">User-assigned. Geographic location is not verified.</p>
+          <p className="mt-1 text-xs text-muted">
+            User-assigned. Geographic location is not verified.
+            <InfoTip topic="serverDetails" />
+          </p>
         </div>
         <TextField label="City (optional)" value={city} onChange={setCity} />
         <TextField label="Region (optional)" value={region} onChange={setRegion} />

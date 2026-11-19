@@ -174,6 +174,82 @@ export const HELP = {
     tradeoff:
       "VPNFlow keeps running in the background. Choose Quit from the menu bar to close it fully; the VPN stays as it is.",
   },
+  locations: {
+    title: "VPN locations",
+    what: "Your list of servers, grouped by country. Each server is one WireGuard profile you imported or added.",
+    why: "Picking a country changes where websites think you are, and some servers are faster or more reliable than others.",
+    example: "Choose Japan, then Connect. Sites now see a Japanese address instead of yours.",
+    tradeoff:
+      "VPNFlow only connects to servers you add. The country on a server is the label you or the file gave it, and VPNFlow does not check it is true.",
+  },
+  locationFilters: {
+    title: "Show and refresh servers",
+    what: "Chooses which servers the list shows, and Refresh status updates what the app knows about the one you are connected to.",
+    why: "With many servers, filters help you find the right one. Status tells you which ones answered recently.",
+    example: "Pick Favorites to see only the servers you starred.",
+    tradeoff:
+      "Idle servers are never contacted just to check them, so a server that shows no response is not necessarily down, it just has not been used lately. Available servers only lists ones that answered in the last five minutes while a VPN was on.",
+    options: [
+      { name: "All countries", text: "Every server you have added." },
+      { name: "Favorites", text: "Only servers or countries you starred." },
+      { name: "Recently used", text: "Servers you connected to before, newest first." },
+      {
+        name: "Available servers",
+        text: "Only ones that answered in the last five minutes. Often empty until you have connected once.",
+      },
+    ],
+    pick: "Leave it on All countries. Switch to Favorites once you have a few servers you like.",
+  },
+  quickConnectCountry: {
+    title: "Quick Connect country",
+    what: "Limits Quick Connect to servers in one country.",
+    why: "So the one-click button always puts you where you want, such as a country with the best streaming or the nearest servers.",
+    example: "Set Japan. Quick Connect now only picks among your Japan servers.",
+    tradeoff:
+      "If the country you pick has no working server, Quick Connect has nothing to choose and says so. It does not fall back to another country.",
+    options: [
+      { name: "Any country", text: "Quick Connect picks the best server it knows about anywhere." },
+      { name: "A specific country", text: "Quick Connect picks only from that country." },
+    ],
+    pick: "Any country for most people. Choose one only if you always want to appear in the same place.",
+  },
+  serverDetails: {
+    title: "Server details",
+    what: "The label and switches for one server: its name, country, city, whether it is a favorite, and whether VPNFlow may connect to it.",
+    why: "Good labels make the list easy to search, and turning a server off keeps it saved without using it.",
+    example: "Rename a server to Tokyo home, mark it favorite, and it shows first under Favorites.",
+    tradeoff:
+      "Country, city and time zone are only labels you set. They do not change where the server really is. Turning off Enable connection attempts stops Connect and Quick Connect from using it. Some servers need you to register your key with the server owner before they will accept you.",
+  },
+  checks: {
+    title: "Checks",
+    what: "A fresh set of tests of this computer's VPN setup: kill switch, DNS, IPv6, internet, your public address, other VPN apps and browser DNS.",
+    why: "It shows what is protected right now and what to fix, instead of leaving you to trust the green connected light.",
+    example: "A yellow row such as Other VPN apps tells you what is running and how to stop it.",
+    tradeoff:
+      "These run on this computer and contact no outside site. They show your setup now, not a promise for later, so run them again after changing something.",
+  },
+  events: {
+    title: "Events",
+    what: "A running log of what VPNFlow did: connecting, disconnecting, reconnecting, and anything that went wrong.",
+    why: "When something breaks, this tells you what happened and when, in order.",
+    example: "Seeing Reconnecting at 10:02 and Connected at 10:03 explains a short internet pause.",
+    tradeoff:
+      "It is kept on this computer only. It lists server names and times, not what sites you visited. Switch to Warnings and errors to hide routine messages.",
+    options: [
+      { name: "All", text: "Every event, including normal ones." },
+      { name: "Warnings and errors", text: "Only problems." },
+    ],
+    pick: "Use Warnings and errors when hunting a problem, All when you need the full order of events.",
+  },
+  exportDiagnostics: {
+    title: "Export diagnostics",
+    what: "Saves the checks and recent events to a file you can send to someone who is helping you.",
+    why: "It gives a helper the facts without you describing them from memory.",
+    example: "Export, then attach the file to a support request or an issue report.",
+    tradeoff:
+      "The file contains public keys, server addresses and these events. It never contains private or preshared keys. Read it first if the server addresses are sensitive, since it is saved only where you choose.",
+  },
 } satisfies Record<string, HelpTopic>;
 
 export type HelpKey = keyof typeof HELP;

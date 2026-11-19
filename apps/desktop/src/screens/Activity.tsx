@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Button, Dot, Panel, Segmented, type Tone } from "../components/ui";
+import { Button, Dot, InfoTip, Panel, Segmented, type Tone } from "../components/ui";
 import { api } from "../lib/api";
 import { clock } from "../lib/format";
 import { useStore } from "../lib/store";
@@ -36,10 +36,11 @@ export function ActivityScreen() {
         <div className="flex gap-2">
           <Button onClick={refresh}>Run checks</Button>
           <Button onClick={() => run(api.exportDiagnostics)}>Export diagnostics</Button>
+          <InfoTip topic="exportDiagnostics" />
         </div>
       </header>
 
-      <Panel title="Checks">
+      <Panel title="Checks" help="checks">
         {!checks ? (
           <p className="py-3 text-muted">Running…</p>
         ) : (
@@ -68,6 +69,7 @@ export function ActivityScreen() {
 
       <Panel
         title="Events"
+        help="events"
         actions={
           <Segmented
             label="Event filter"
