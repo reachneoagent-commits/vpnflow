@@ -1,0 +1,9 @@
+VPNFlow
+Copyright (c) VPNFlow contributors
+
+VPNFlow is a derivative work of Aegis VPN (https://github.com/mikeholp87/aegis-vpn),
+by mikeholp87, licensed under the Apache License, Version 2.0 (see LICENSE-APACHE).
+Files changed from the original carry the changes made in this repository's git history.
+"Aegis VPN" and the original author's names and logos are not licensed for use as VPNFlow branding.
+
+WireGuard is a registered trademark of Jason A. Donenfeld.
