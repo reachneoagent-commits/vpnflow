@@ -8,6 +8,8 @@
 
 use std::net::SocketAddr;
 
+use ipnet::IpNet;
+
 /// Sub-anchor of `com.apple/*`, which macOS's stock /etc/pf.conf already
 /// evaluates, so no edit of the system ruleset is needed.
 pub const ANCHOR: &str = "com.apple/vpnflow";
@@ -31,6 +33,17 @@ pub fn ruleset(
     tunnel_if: Option<&str>,
     endpoints: &[SocketAddr],
     allow_lan: bool,
+) -> Result<String, PfError> {
+    ruleset_with_bypass(tunnel_if, endpoints, allow_lan, &[])
+}
+
+/// Like [`ruleset`], also passing traffic to and from the `bypass` networks
+/// (which the daemon routes around the tunnel).
+pub fn ruleset_with_bypass(
+    tunnel_if: Option<&str>,
+    endpoints: &[SocketAddr],
+    allow_lan: bool,
+    bypass: &[IpNet],
 ) -> Result<String, PfError> {
     if tunnel_if.is_some_and(|i| !valid_tunnel_interface(i)) {
         return Err(PfError::BadInterface);
@@ -63,6 +76,15 @@ pub fn ruleset(
         r.push_str(&format!("pass quick inet6 to {LAN_V6}\n"));
         r.push_str(&format!("pass quick inet6 from {LAN_V6}\n"));
     }
+    for net in bypass {
+        let fam = if net.addr().is_ipv4() {
+            "inet"
+        } else {
+            "inet6"
+        };
+        r.push_str(&format!("pass quick {fam} to {net}\n"));
+        r.push_str(&format!("pass quick {fam} from {net}\n"));
+    }
     // Last and quick: nothing evaluated after this anchor can re-allow traffic.
     r.push_str("block drop quick all\n");
     Ok(r)
@@ -83,6 +105,25 @@ mod tests {
         assert!(!valid_tunnel_interface("en0"));
         assert!(!valid_tunnel_interface("utun4 all\npass out"));
         assert!(!valid_tunnel_interface("utun12345"));
+    }
+
+    #[test]
+    fn bypass_networks_are_passed_before_the_final_block() {
+        let nets: Vec<IpNet> = vec![
+            "203.0.113.0/24".parse().unwrap(),
+            "fd00::/8".parse().unwrap(),
+        ];
+        let r =
+            ruleset_with_bypass(Some("utun4"), &[ep("203.0.113.7:51820")], false, &nets).unwrap();
+        assert!(r.contains("pass quick inet to 203.0.113.0/24\n"));
+        assert!(r.contains("pass quick inet from 203.0.113.0/24\n"));
+        assert!(r.contains("pass quick inet6 to fd00::/8\n"));
+        assert!(r.trim_end().ends_with("block drop quick all"));
+        assert!(
+            !ruleset(Some("utun4"), &[ep("203.0.113.7:51820")], false)
+                .unwrap()
+                .contains("203.0.113.0/24")
+        );
     }
 
     #[test]

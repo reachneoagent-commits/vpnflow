@@ -336,6 +336,9 @@ pub struct Settings {
     /// While the kill switch blocks, still allow private and link-local
     /// ranges (printers, NAS, router). Off by default.
     pub kill_switch_allow_lan: bool,
+    /// Destinations (IP or CIDR) that skip the VPN and use the normal
+    /// connection. Applies from the next connection. Empty by default.
+    pub bypass: Vec<String>,
     pub notifications: bool,
     /// User-controllable DNS checks through the configured tunnel resolver.
     pub connectivity_check: bool,
@@ -358,6 +361,7 @@ impl Default for Settings {
             reconnect_max_attempts: 8,
             kill_switch: false,
             kill_switch_allow_lan: false,
+            bypass: vec![],
             notifications: true,
             connectivity_check: true,
             check_updates: false,
@@ -384,4 +388,57 @@ pub enum SystemEvent {
     /// The way to the server may have changed (another Wi-Fi network, cable
     /// plugged in, primary connection switched).
     NetworkChanged,
+}
+
+/// Most bypass entries a profile of settings may hold.
+pub const MAX_BYPASS: usize = 64;
+
+/// Parse one bypass entry: an IP address or CIDR range, normalised to its
+/// network. `/0` is refused because it would route everything around the VPN.
+pub fn parse_bypass(entry: &str) -> crate::error::Result<ipnet::IpNet> {
+    let t = entry.trim();
+    let net = if let Ok(n) = t.parse::<ipnet::IpNet>() {
+        n
+    } else if let Ok(ip) = t.parse::<std::net::IpAddr>() {
+        ipnet::IpNet::from(ip)
+    } else {
+        return Err(crate::error::CoreError::invalid(format!(
+            "\"{t}\" is not an IP address or range such as 192.168.1.0/24"
+        )));
+    };
+    if net.prefix_len() == 0 {
+        return Err(crate::error::CoreError::invalid(
+            "a range that covers every address would turn the VPN off",
+        ));
+    }
+    Ok(net.trunc())
+}
+
+#[cfg(test)]
+mod bypass_tests {
+    use super::parse_bypass;
+
+    #[test]
+    fn accepts_addresses_and_ranges() {
+        assert_eq!(parse_bypass("10.0.0.5").unwrap().to_string(), "10.0.0.5/32");
+        assert_eq!(
+            parse_bypass(" 192.168.1.7/24 ").unwrap().to_string(),
+            "192.168.1.0/24"
+        );
+        assert_eq!(parse_bypass("fd00::1").unwrap().to_string(), "fd00::1/128");
+    }
+
+    #[test]
+    fn rejects_garbage_and_everything() {
+        for bad in [
+            "",
+            "hello",
+            "1.2.3.4/33",
+            "0.0.0.0/0",
+            "::/0",
+            "1.2.3.4 all",
+        ] {
+            assert!(parse_bypass(bad).is_err(), "{bad}");
+        }
+    }
 }

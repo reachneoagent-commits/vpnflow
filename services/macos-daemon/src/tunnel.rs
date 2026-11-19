@@ -39,6 +39,7 @@ struct Active {
     iface: String,
     child: Child,
     host_routes: Vec<IpAddr>,
+    bypass_routes: Vec<ipnet::IpNet>,
 }
 
 struct KillSpec {
@@ -51,6 +52,7 @@ struct KillSpec {
 struct State {
     active: Option<Active>,
     kill: Option<KillSpec>,
+    bypass: Vec<ipnet::IpNet>,
     pf_token: Option<String>,
 }
 
@@ -254,8 +256,9 @@ impl TunnelManager {
         }
     }
 
-    fn render(spec: &KillSpec, iface: Option<&str>) -> Result<String> {
-        pf::ruleset(iface, &spec.endpoints, spec.allow_lan).map_err(|e| match e {
+    fn render(spec: &KillSpec, iface: Option<&str>, bypass: &[ipnet::IpNet]) -> Result<String> {
+        pf::ruleset_with_bypass(iface, &spec.endpoints, spec.allow_lan, bypass).map_err(|e| match e
+        {
             pf::PfError::NoEndpoints => {
                 CoreError::invalid("the kill switch needs at least one server endpoint")
             }
@@ -280,9 +283,23 @@ impl TunnelManager {
             .as_ref()
             .filter(|a| a.id == id)
             .map(|a| a.iface.clone());
-        let rules = Self::render(&spec, iface.as_deref())?;
+        let rules = Self::render(&spec, iface.as_deref(), &st.bypass)?;
         self.pf_load(&mut st, &rules).await?;
         st.kill = Some(spec);
+        Ok(())
+    }
+
+    /// Replace the bypass list. Takes effect from the next `activate`, so the
+    /// list never changes under a running tunnel.
+    pub async fn set_bypass(&self, nets: &[String]) -> Result<()> {
+        let parsed = nets
+            .iter()
+            .map(|n| aegis_core::parse_bypass(n))
+            .collect::<Result<Vec<_>>>()?;
+        if parsed.len() > aegis_core::MAX_BYPASS {
+            return Err(CoreError::invalid("too many bypass entries"));
+        }
+        self.state.lock().await.bypass = parsed;
         Ok(())
     }
 
@@ -356,6 +373,7 @@ impl TunnelManager {
             iface: String::new(),
             child,
             host_routes: Vec::new(),
+            bypass_routes: Vec::new(),
         });
 
         let mut iface = None;
@@ -402,6 +420,18 @@ impl TunnelManager {
                 }
             }
         }
+        // Bypass networks go via the pre-VPN gateway; their longer prefix wins
+        // over the tunnel's split default routes.
+        let bypass = st.bypass.clone();
+        for net in &bypass {
+            let gw = if net.addr().is_ipv4() { &gw4 } else { &gw6 };
+            let Some(gw) = gw else { continue };
+            if run(ROUTE, &netcfg::route_add_bypass(net, gw)).await.is_ok()
+                && let Some(a) = st.active.as_mut()
+            {
+                a.bypass_routes.push(*net);
+            }
+        }
         for peer in &cfg.peers {
             for net in &peer.allowed_ips {
                 for n in netcfg::expand_route(net) {
@@ -414,7 +444,7 @@ impl TunnelManager {
 
         // A kill switch asked for before the interface existed now learns its name.
         if let Some(spec) = st.kill.as_ref().filter(|k| k.id == id) {
-            let rules = Self::render(spec, Some(&iface))?;
+            let rules = Self::render(spec, Some(&iface), &st.bypass)?;
             self.pf_load(st, &rules).await?;
         }
         tracing::info!("tunnel up on {iface}");
@@ -429,10 +459,16 @@ impl TunnelManager {
             for ip in &a.host_routes {
                 let _ = run(ROUTE, &netcfg::route_delete_host(*ip)).await;
             }
+            for net in &a.bypass_routes {
+                let _ = run(ROUTE, &netcfg::route_delete_net(net)).await;
+            }
             let _ = a.child.start_kill();
             let _ = a.child.wait().await;
             let _ = std::fs::remove_file(NAME_FILE);
-            let rules = st.kill.as_ref().and_then(|k| Self::render(k, None).ok());
+            let rules = st
+                .kill
+                .as_ref()
+                .and_then(|k| Self::render(k, None, &st.bypass).ok());
             if let Some(Err(e)) = match rules {
                 Some(r) => Some(self.pf_load(st, &r).await),
                 None => None,

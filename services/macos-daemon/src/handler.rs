@@ -129,6 +129,7 @@ impl Handler for Daemon {
                     .apply_kill_switch(id, &endpoints, allow_lan)
                     .await,
             ),
+            Request::SetBypass { nets } => done(self.tunnel.set_bypass(&nets).await),
             Request::RemoveKillSwitch => done(self.tunnel.remove_kill_switch().await),
             Request::KillSwitchActive => match self.tunnel.kill_switch_active().await {
                 Ok(active) => Response::Active { active },

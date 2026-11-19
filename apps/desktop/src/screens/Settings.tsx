@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { useId, useState } from "react";
 import { Button, Panel, Switch } from "../components/ui";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
@@ -13,6 +13,8 @@ export function SettingsScreen() {
   const themeId = useId();
   const prefId = useId();
   const attemptsId = useId();
+  const bypassId = useId();
+  const [bypassDraft, setBypassDraft] = useState("");
   if (!settings) return null;
   const set = (patch: Partial<Settings>) => saveSettings({ ...settings, ...patch });
   const ksUnsupported = caps?.kill_switch.status !== "supported";
@@ -105,6 +107,54 @@ export function SettingsScreen() {
           />
         </div>
       </Panel>
+
+      {caps?.backend === "macos_daemon" && (
+        <Panel title="Skip the VPN">
+          <div className="py-3 text-[13px]">
+            <label htmlFor={bypassId} className="font-medium">
+              Addresses that bypass the VPN
+            </label>
+            <p className="mt-0.5 max-w-[65ch] text-muted">
+              Traffic to these addresses uses your normal connection, not the VPN. Add an address like
+              192.168.1.20 or a range like 192.168.1.0/24. Applies from the next connection.
+            </p>
+            <form
+              className="mt-2 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const entry = bypassDraft.trim();
+                if (!entry) return;
+                if (settings.bypass.includes(entry)) {
+                  setBypassDraft("");
+                  return;
+                }
+                // A rejected entry shows up as an error toast and is not added.
+                void saveSettings({ ...settings, bypass: [...settings.bypass, entry] });
+                setBypassDraft("");
+              }}
+            >
+              <input
+                id={bypassId}
+                value={bypassDraft}
+                onChange={(e) => setBypassDraft(e.target.value)}
+                placeholder="192.168.1.20 or 10.0.0.0/24"
+                className="w-64 rounded-md border border-line bg-surface px-2.5 py-1.5 text-[13px]"
+              />
+              <Button type="submit">Add</Button>
+            </form>
+            <ul className="mt-2 flex flex-col gap-1">
+              {settings.bypass.map((entry) => (
+                <li key={entry} className="flex items-center justify-between">
+                  <code>{entry}</code>
+                  <Button onClick={() => void set({ bypass: settings.bypass.filter((b) => b !== entry) })}>
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Panel>
+      )}
 
       <Panel title="Protection">
         <Switch

@@ -247,6 +247,12 @@ mod imp {
             })
             .await
         }
+        async fn apply_bypass(&self, nets: &[ipnet::IpNet]) -> Result<()> {
+            expect_ok(Request::SetBypass {
+                nets: nets.iter().map(ToString::to_string).collect(),
+            })
+            .await
+        }
         async fn remove_kill_switch(&self) -> Result<()> {
             expect_ok(Request::RemoveKillSwitch).await
         }

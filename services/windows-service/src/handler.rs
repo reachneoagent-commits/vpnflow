@@ -158,6 +158,7 @@ impl Handler for Skeleton {
             },
             Request::Install { .. }
             | Request::Activate { .. }
+            | Request::SetBypass { .. }
             | Request::ApplyKillSwitch { .. } => Response::Error {
                 kind: ErrorKind::Unsupported,
                 message: NOT_YET.into(),

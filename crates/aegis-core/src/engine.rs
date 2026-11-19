@@ -645,6 +645,17 @@ impl<B: VpnBackend> Engine<B> {
         }
         s.favorite_countries.sort();
         s.favorite_countries.dedup();
+        if s.bypass.len() > crate::types::MAX_BYPASS {
+            return Err(CoreError::invalid("too many bypass entries"));
+        }
+        let mut nets = s
+            .bypass
+            .iter()
+            .map(|e| crate::types::parse_bypass(e))
+            .collect::<Result<Vec<_>>>()?;
+        nets.sort();
+        nets.dedup();
+        s.bypass = nets.iter().map(ToString::to_string).collect();
         s.reconnect_max_attempts = s.reconnect_max_attempts.clamp(1, 50);
         let preferred_changed = self.live().settings.preferred_profile != s.preferred_profile;
         self.store.save_settings(&s)?;
@@ -784,6 +795,15 @@ impl<B: VpnBackend> Engine<B> {
         self.log(Level::Info, format!("Connecting to \"{}\"", meta.name));
         // The block goes in before the tunnel exists, so nothing can slip out
         // while it comes up. Endpoints are IP literals, so NM needs no DNS.
+        let bypass = settings
+            .bypass
+            .iter()
+            .filter_map(|e| crate::types::parse_bypass(e).ok())
+            .collect::<Vec<_>>();
+        if let Err(e) = self.backend.apply_bypass(&bypass).await {
+            self.log(Level::Error, format!("Bypass list not applied: {e}"));
+            return Err(e);
+        }
         match &block {
             Some(endpoints) => {
                 if let Err(e) = self

@@ -78,6 +78,47 @@ pub fn route_add_endpoint(ip: IpAddr, gw: &Gateway) -> Vec<String> {
     v
 }
 
+/// Route a whole network via the pre-VPN gateway so it skips the tunnel.
+pub fn route_add_bypass(net: &IpNet, gw: &Gateway) -> Vec<String> {
+    let fam = if net.addr().is_ipv4() {
+        "-inet"
+    } else {
+        "-inet6"
+    };
+    let mut v = vec![
+        "-q".into(),
+        "-n".into(),
+        "add".into(),
+        fam.into(),
+        "-net".into(),
+        net.to_string(),
+    ];
+    match gw {
+        Gateway::Via(g) => v.push(g.to_string()),
+        Gateway::Interface(i) => {
+            v.push("-interface".into());
+            v.push(i.clone());
+        }
+    }
+    v
+}
+
+pub fn route_delete_net(net: &IpNet) -> Vec<String> {
+    let fam = if net.addr().is_ipv4() {
+        "-inet"
+    } else {
+        "-inet6"
+    };
+    vec![
+        "-q".into(),
+        "-n".into(),
+        "delete".into(),
+        fam.into(),
+        "-net".into(),
+        net.to_string(),
+    ]
+}
+
 pub fn route_delete_host(ip: IpAddr) -> Vec<String> {
     let fam = if ip.is_ipv4() { "-inet" } else { "-inet6" };
     vec![

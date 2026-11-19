@@ -9,6 +9,7 @@ publish = false
 
 [dependencies]
 aegis-core.workspace = true
+ipnet.workspace = true
 aegis-config.workspace = true
 # Wire protocol shared with the Windows service (extract to its own crate later).
 aegis-windows.workspace = true

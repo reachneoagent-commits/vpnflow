@@ -50,6 +50,7 @@ dependencies = [
  "aegis-macos",
  "aegis-windows",
  "glib",
+ "ipnet",
  "notify-rust",
  "serde",
  "serde_json",
@@ -96,6 +97,7 @@ dependencies = [
  "aegis-config",
  "aegis-core",
  "aegis-windows",
+ "ipnet",
  "tokio",
 ]
 

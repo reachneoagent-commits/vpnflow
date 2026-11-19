@@ -2,7 +2,7 @@ use std::future::Future;
 
 use aegis_config::WgConfig;
 
-use crate::error::Result;
+use crate::error::{CoreError, Result};
 use crate::types::{
     Capabilities, Feature, ProfileId, ProfileSummary, Protection, Settings, TunnelStatus,
 };
@@ -71,6 +71,22 @@ pub trait VpnBackend: Send + Sync + 'static {
         endpoints: &[std::net::SocketAddr],
         allow_lan: bool,
     ) -> impl Future<Output = Result<()>> + Send;
+
+    /// Destinations that must skip the tunnel on the next connection. Sent
+    /// before the kill switch and `activate`. Default: unsupported, so a
+    /// backend that cannot do it fails loudly instead of ignoring the list.
+    fn apply_bypass(&self, nets: &[ipnet::IpNet]) -> impl Future<Output = Result<()>> + Send {
+        let empty = nets.is_empty();
+        async move {
+            if empty {
+                Ok(())
+            } else {
+                Err(CoreError::unsupported(
+                    "the bypass list is not available on this system yet",
+                ))
+            }
+        }
+    }
 
     /// Remove the kill switch block. Removing when none exists is not an error.
     fn remove_kill_switch(&self) -> impl Future<Output = Result<()>> + Send;

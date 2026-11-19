@@ -14,7 +14,7 @@ use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use zeroize::Zeroizing;
 
 pub const PIPE_NAME: &str = r"\\.\pipe\aegis-vpn-service";
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 /// A config is at most `aegis_config::MAX_CONFIG_BYTES`; JSON escaping at most
 /// doubles it. Anything larger is refused before it is read.
 pub const MAX_FRAME: usize = 2 * aegis_config::MAX_CONFIG_BYTES + 4096;
@@ -72,6 +72,10 @@ pub enum Request {
     },
     RemoveKillSwitch,
     KillSwitchActive,
+    /// Destinations (IP or CIDR) that skip the tunnel. Sent before `Activate`.
+    SetBypass {
+        nets: Vec<String>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

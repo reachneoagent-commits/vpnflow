@@ -62,6 +62,7 @@ const settings: Settings = {
   reconnect_max_attempts: 8,
   kill_switch: false,
   kill_switch_allow_lan: false,
+  bypass: [],
   notifications: true,
   connectivity_check: true,
   check_updates: false,
