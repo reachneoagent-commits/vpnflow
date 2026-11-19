@@ -362,7 +362,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                   )}
                   <Switch
                     label="Kill switch"
-                    description="Blocks the internet if the VPN drops, so nothing leaks. Recommended."
+                    description="If the VPN drops, your internet pauses instead of leaking your real location. It switches off when you disconnect. Recommended."
                     checked={settings.kill_switch}
                     onChange={(v) => void saveSettings({ ...settings, kill_switch: v })}
                   />

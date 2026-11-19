@@ -48,6 +48,7 @@ const settings: Settings = {
   auto_reconnect: true,
   reconnect_max_attempts: 8,
   kill_switch: false,
+  kill_switch_chosen: false,
   kill_switch_allow_lan: false,
   bypass: [],
   dns_servers: [],

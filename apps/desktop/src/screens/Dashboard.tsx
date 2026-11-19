@@ -478,7 +478,7 @@ function LocationPicker({
         <ul
           id={listId}
           aria-label="Locations"
-          className="absolute inset-x-0 top-[54px] z-20 max-h-72 overflow-auto rounded-xl border border-line bg-surface p-1.5 text-fg shadow-(--modal-shadow)"
+          className="absolute inset-x-0 top-[54px] z-20 max-h-72 overflow-auto overscroll-contain rounded-xl border border-line bg-surface p-1.5 text-fg shadow-(--modal-shadow)"
         >
           {ordered.map((p) => (
             <li key={p.id}>

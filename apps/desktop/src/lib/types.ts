@@ -147,6 +147,7 @@ export interface Settings {
   auto_reconnect: boolean;
   reconnect_max_attempts: number;
   kill_switch: boolean;
+  kill_switch_chosen: boolean;
   kill_switch_allow_lan: boolean;
   bypass: string[];
   dns_servers: string[];

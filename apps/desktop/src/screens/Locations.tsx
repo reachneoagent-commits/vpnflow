@@ -502,7 +502,7 @@ export function Locations() {
           {profiles.length > 0 && (
             <div className="mt-5">
               <h3 className="mb-2 font-medium">Assign an existing profile</h3>
-              <ul className="flex max-h-52 flex-col gap-1 overflow-auto">
+              <ul className="flex max-h-52 flex-col gap-1 overflow-auto overscroll-contain">
                 {profiles.map((p) => (
                   <li key={p.id}>
                     <Button

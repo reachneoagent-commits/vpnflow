@@ -355,6 +355,9 @@ pub struct Settings {
     pub reconnect_max_attempts: u32,
     /// Requested by the user. Connecting fails if it cannot be established.
     pub kill_switch: bool,
+    /// The user has set the kill switch themselves. Until then it follows
+    /// the default: on wherever the system supports it.
+    pub kill_switch_chosen: bool,
     /// While the kill switch blocks, still allow private and link-local
     /// ranges (printers, NAS, router). Off by default.
     pub kill_switch_allow_lan: bool,
@@ -399,6 +402,7 @@ impl Default for Settings {
             auto_reconnect: true,
             reconnect_max_attempts: 8,
             kill_switch: false,
+            kill_switch_chosen: false,
             kill_switch_allow_lan: false,
             bypass: vec![],
             dns_servers: vec![],

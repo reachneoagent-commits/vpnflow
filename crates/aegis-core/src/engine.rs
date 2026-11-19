@@ -81,8 +81,16 @@ impl<B: VpnBackend> Engine<B> {
     pub async fn start(backend: B, data_dir: &Path) -> Result<Arc<Self>> {
         let store = Store::open(data_dir)?;
         let profiles = store.profiles()?;
-        let settings = store.settings()?;
+        let mut settings = store.settings()?;
         let caps = backend.capabilities().await?;
+        // Default-on where supported, until the user makes their own choice.
+        if !settings.kill_switch_chosen {
+            let want = caps.kill_switch.is_supported();
+            if settings.kill_switch != want {
+                settings.kill_switch = want;
+                store.save_settings(&settings)?;
+            }
+        }
         let (tx, _) = broadcast::channel(64);
         let engine = Arc::new(Self {
             backend: Arc::new(backend),
@@ -620,6 +628,9 @@ impl<B: VpnBackend> Engine<B> {
             let l = self.live();
             let changed = s.kill_switch != l.settings.kill_switch
                 || s.kill_switch_allow_lan != l.settings.kill_switch_allow_lan;
+            if s.kill_switch != l.settings.kill_switch {
+                s.kill_switch_chosen = true;
+            }
             if changed && (!l.state.is_idle() || l.blocking != Some(false)) {
                 return Err(CoreError::invalid(
                     "disconnect before changing the kill switch; it applies from the next connection",
