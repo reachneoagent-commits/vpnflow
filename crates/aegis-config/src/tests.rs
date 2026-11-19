@@ -264,3 +264,22 @@ proptest! {
         prop_assert_eq!(&c, &parse(&c.to_wg_quick()).unwrap());
     }
 }
+
+#[test]
+fn import_turns_ipv4_only_address_with_ipv6_route_into_ipv4_only() {
+    let text = format!(
+        "[Interface]\nPrivateKey = {PRIV}\nAddress = 10.2.0.2/32\nDNS = 10.2.0.1\n[Peer]\nPublicKey = {PEER}\nEndpoint = 198.51.100.1:51820\nAllowedIPs = 0.0.0.0/0, ::/0\n"
+    );
+    assert!(parse(&text).is_err());
+    let (cfg, fixed) = crate::parse_import(&text).unwrap();
+    assert!(fixed);
+    assert_eq!(cfg.route_kind(), RouteKind::FullIpv4Only);
+    // A file that is already consistent is untouched.
+    let ok = text.replace(
+        "Address = 10.2.0.2/32",
+        "Address = 10.2.0.2/32, fd00::2/128",
+    );
+    let (cfg, fixed) = crate::parse_import(&ok).unwrap();
+    assert!(!fixed);
+    assert_eq!(cfg.route_kind(), RouteKind::Full);
+}

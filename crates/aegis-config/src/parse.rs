@@ -40,6 +40,19 @@ enum Section {
 
 /// Parse and validate `wg-quick` text. Returns every error found, not just the first.
 pub fn parse(text: &str) -> Result<WgConfig, ConfigError> {
+    parse_with(text, false).map(|(cfg, _)| cfg)
+}
+
+/// Like [`parse`], for files the user imports. A file with only IPv4 tunnel
+/// addresses that still routes `::/0` (or lists IPv6 DNS) is imported as
+/// IPv4-only instead of rejected; the IPv6 entries are dropped, and the
+/// platform backends then block IPv6 so nothing leaks. The flag says whether
+/// anything was dropped.
+pub fn parse_import(text: &str) -> Result<(WgConfig, bool), ConfigError> {
+    parse_with(text, true)
+}
+
+fn parse_with(text: &str, ipv4_only_fix: bool) -> Result<(WgConfig, bool), ConfigError> {
     let mut issues = Vec::new();
     if text.len() > MAX_CONFIG_BYTES {
         issues.push(Issue::error(
@@ -247,7 +260,7 @@ pub fn parse(text: &str) -> Result<WgConfig, ConfigError> {
             )),
         }
     }
-    let cfg = WgConfig {
+    let mut cfg = WgConfig {
         interface: Interface {
             private_key,
             addresses: iface.addresses,
@@ -258,9 +271,22 @@ pub fn parse(text: &str) -> Result<WgConfig, ConfigError> {
         },
         peers: out_peers,
     };
+    let mut fixed = false;
+    let a = &cfg.interface.addresses;
+    if ipv4_only_fix && !a.is_empty() && !a.iter().any(|n| n.addr().is_ipv6()) {
+        let before =
+            cfg.interface.dns.len() + cfg.peers.iter().map(|p| p.allowed_ips.len()).sum::<usize>();
+        cfg.interface.dns.retain(|d| d.is_ipv4());
+        for p in &mut cfg.peers {
+            p.allowed_ips.retain(|n| n.addr().is_ipv4());
+        }
+        let after =
+            cfg.interface.dns.len() + cfg.peers.iter().map(|p| p.allowed_ips.len()).sum::<usize>();
+        fixed = after < before;
+    }
     issues.extend(crate::validate(&cfg));
     if issues.is_empty() {
-        Ok(cfg)
+        Ok((cfg, fixed))
     } else {
         Err(ConfigError { issues })
     }

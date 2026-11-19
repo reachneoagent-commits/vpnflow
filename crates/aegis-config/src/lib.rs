@@ -21,7 +21,7 @@ use ipnet::IpNet;
 use zeroize::Zeroizing;
 
 pub use key::{InvalidKey, KEY_LEN, PublicKey, SecretKey};
-pub use parse::{MAX_CONFIG_BYTES, parse};
+pub use parse::{MAX_CONFIG_BYTES, parse, parse_import};
 pub use validate::{validate, warnings};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

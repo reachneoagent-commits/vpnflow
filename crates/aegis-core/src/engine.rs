@@ -339,7 +339,7 @@ impl<B: VpnBackend> Engine<B> {
 
     pub async fn import_text(&self, name: &str, text: &str) -> Result<ProfileView> {
         let _g = self.op_lock.lock().await;
-        let cfg = aegis_config::parse(text)?;
+        let (cfg, _ipv4_only) = aegis_config::parse_import(text)?;
         let (name, server) = match registry::provider_label(text) {
             Some((label, location)) => (
                 label,
