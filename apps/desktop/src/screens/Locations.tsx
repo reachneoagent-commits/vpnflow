@@ -1,7 +1,8 @@
 import { ChevronDown, ChevronRight, Globe, Plus, RefreshCw, Star, Upload, Zap } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { Button, Confirm, Dot, InfoTip, Modal, TextField } from "../components/ui";
+import { Button, Confirm, Dot, InfoTip, Modal, SelectBar, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
+import { bulkSummary, removeMany } from "../lib/bulk";
 import { isActive, isBusy, stateHeadline, stateTone } from "../lib/connection";
 import { ago } from "../lib/format";
 import { hasRecentResponse, type LocationSort, locationGroups, locationLabel } from "../lib/locations";
@@ -24,7 +25,8 @@ export function CountryFlag({ code }: { code?: string }) {
 }
 
 export function Locations() {
-  const { profiles, countries, snapshot, settings, run, saveSettings, caps, refreshProfiles } = useStore();
+  const { profiles, countries, snapshot, settings, run, saveSettings, caps, refreshProfiles, notify } =
+    useStore();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<LocationSort>("favorites");
   const [country, setCountry] = useState<string | null | undefined>(undefined);
@@ -34,6 +36,8 @@ export function Locations() {
   const [deleting, setDeleting] = useState<ProfileView | null>(null);
   const [managing, setManaging] = useState<ProfileView | null>(null);
   const [working, setWorking] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState(false);
   const [guide, setGuide] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
@@ -49,6 +53,7 @@ export function Locations() {
   const busy = working || isBusy(state) || state.state === "reconnecting";
   const unsafe = state.state === "uncertain";
   const activeId = isActive(state) && "profile" in state ? state.profile : null;
+  const chosenServers = profiles.filter((p) => picked.has(p.id) && p.id !== activeId);
   const groups = locationGroups(profiles, countries, settings, snapshot.health, query, "all", sort, now);
   const recent = profiles
     .filter((p) => p.server.last_connected_ms)
@@ -237,101 +242,132 @@ export function Locations() {
                       )}
                     </div>
                     {open && (
-                      <ul
-                        id="location-servers"
-                        aria-label="Available servers"
-                        className="flex flex-col gap-2 pl-6"
-                      >
-                        {g.servers.map((p) => {
-                          const current = p.id === activeId;
-                          const confirmed =
-                            current && state.state === "connected" && state.peer === "confirmed";
-                          const failed = state.state === "failed" && state.profile === p.id;
-                          const isFocus = detail?.id === p.id;
-                          return (
-                            <li
-                              key={p.id}
-                              className={`flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] border-[1.5px] bg-surface px-3.5 py-1.5 ${isFocus || current ? "border-accent" : "border-line"}`}
-                            >
-                              <button
-                                type="button"
-                                aria-label={`Details for ${p.name}`}
-                                aria-pressed={isFocus}
-                                onClick={() => setFocusId(p.id)}
-                                className="flex min-w-0 flex-1 items-center gap-3 py-1.5 text-left"
+                      <div className="flex flex-col gap-2 pl-6">
+                        <SelectBar
+                          total={g.servers.filter((p) => p.id !== activeId).length}
+                          selected={g.servers.filter((p) => picked.has(p.id)).length}
+                          disabled={busy || unsafe}
+                          onToggleAll={() =>
+                            setPicked((s) => {
+                              const ids = g.servers.filter((p) => p.id !== activeId).map((p) => p.id);
+                              return ids.every((i) => s.has(i)) ? new Set() : new Set(ids);
+                            })
+                          }
+                          onClear={() => setPicked(new Set())}
+                          onDelete={() => setBulk(true)}
+                        />
+                        <ul
+                          id="location-servers"
+                          aria-label="Available servers"
+                          className="flex flex-col gap-2"
+                        >
+                          {g.servers.map((p) => {
+                            const current = p.id === activeId;
+                            const confirmed =
+                              current && state.state === "connected" && state.peer === "confirmed";
+                            const failed = state.state === "failed" && state.profile === p.id;
+                            const isFocus = detail?.id === p.id;
+                            return (
+                              <li
+                                key={p.id}
+                                className={`flex min-h-12 flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] border-[1.5px] bg-surface px-3.5 py-1.5 ${isFocus || current ? "border-accent" : "border-line"}`}
                               >
-                                <CountryFlag code={p.server.location?.country_code} />
-                                <span className="min-w-0">
-                                  <span className="block truncate text-[13.5px] font-semibold">{p.name}</span>
-                                  <span className="block truncate text-xs text-muted">
-                                    {locationLabel(p, countries)}
-                                  </span>
-                                </span>
-                                {(current || failed) && (
-                                  <span
-                                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${failed ? "bg-danger-soft text-danger" : confirmed ? "bg-ok-soft text-ok" : "bg-chip text-muted"}`}
-                                  >
-                                    {failed ? "Failed" : confirmed ? "Connected" : "Current"}
-                                  </span>
-                                )}
-                              </button>
-                              <button
-                                type="button"
-                                aria-label={`Favorite ${p.name}`}
-                                aria-pressed={p.server.favorite}
-                                disabled={busy}
-                                onClick={() => favorite(p)}
-                                className="grid size-8 place-items-center rounded-full text-faint hover:bg-chip"
-                              >
-                                <Star
-                                  size={16}
-                                  aria-hidden
-                                  className={p.server.favorite ? "fill-current text-focus" : ""}
+                                <input
+                                  type="checkbox"
+                                  aria-label={`Select ${p.name}`}
+                                  checked={picked.has(p.id)}
+                                  disabled={current}
+                                  title={current ? "Disconnect to select this server" : undefined}
+                                  onChange={() =>
+                                    setPicked((s) => {
+                                      const n = new Set(s);
+                                      if (!n.delete(p.id)) n.add(p.id);
+                                      return n;
+                                    })
+                                  }
                                 />
-                              </button>
-                              <Button
-                                variant="ghost"
-                                className="h-8 px-3 text-[12.5px] text-muted"
-                                aria-label={`Manage ${p.name}`}
-                                onClick={() => setManaging(p)}
-                              >
-                                Manage
-                              </Button>
-                              {current ? (
-                                <Button
-                                  disabled={state.state === "disconnecting"}
-                                  onClick={() =>
-                                    perform(
-                                      ["preparing", "connecting", "reconnecting"].includes(state.state)
-                                        ? api.cancel
-                                        : api.disconnect,
-                                    )
-                                  }
+                                <button
+                                  type="button"
+                                  aria-label={`Details for ${p.name}`}
+                                  aria-pressed={isFocus}
+                                  onClick={() => setFocusId(p.id)}
+                                  className="flex min-w-0 flex-1 items-center gap-3 py-1.5 text-left"
                                 >
-                                  {["preparing", "connecting", "reconnecting"].includes(state.state)
-                                    ? "Cancel"
-                                    : "Disconnect"}
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="primary"
-                                  disabled={
-                                    busy ||
-                                    unsafe ||
-                                    !!activeId ||
-                                    !p.server.enabled ||
-                                    p.server.registration_pending ||
-                                    caps?.available.status !== "supported"
-                                  }
-                                  onClick={() => perform(() => api.connect(p.id))}
+                                  <CountryFlag code={p.server.location?.country_code} />
+                                  <span className="min-w-0">
+                                    <span className="block truncate text-[13.5px] font-semibold">
+                                      {p.name}
+                                    </span>
+                                    <span className="block truncate text-xs text-muted">
+                                      {locationLabel(p, countries)}
+                                    </span>
+                                  </span>
+                                  {(current || failed) && (
+                                    <span
+                                      className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${failed ? "bg-danger-soft text-danger" : confirmed ? "bg-ok-soft text-ok" : "bg-chip text-muted"}`}
+                                    >
+                                      {failed ? "Failed" : confirmed ? "Connected" : "Current"}
+                                    </span>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  aria-label={`Favorite ${p.name}`}
+                                  aria-pressed={p.server.favorite}
+                                  disabled={busy}
+                                  onClick={() => favorite(p)}
+                                  className="grid size-8 place-items-center rounded-full text-faint hover:bg-chip"
                                 >
-                                  {activeId ? "Disconnect to switch" : "Connect"}
+                                  <Star
+                                    size={16}
+                                    aria-hidden
+                                    className={p.server.favorite ? "fill-current text-focus" : ""}
+                                  />
+                                </button>
+                                <Button
+                                  variant="ghost"
+                                  className="h-8 px-3 text-[12.5px] text-muted"
+                                  aria-label={`Manage ${p.name}`}
+                                  onClick={() => setManaging(p)}
+                                >
+                                  Manage
                                 </Button>
-                              )}
-                            </li>
-                          );
-                        })}
-                      </ul>
+                                {current ? (
+                                  <Button
+                                    disabled={state.state === "disconnecting"}
+                                    onClick={() =>
+                                      perform(
+                                        ["preparing", "connecting", "reconnecting"].includes(state.state)
+                                          ? api.cancel
+                                          : api.disconnect,
+                                      )
+                                    }
+                                  >
+                                    {["preparing", "connecting", "reconnecting"].includes(state.state)
+                                      ? "Cancel"
+                                      : "Disconnect"}
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="primary"
+                                    disabled={
+                                      busy ||
+                                      unsafe ||
+                                      !!activeId ||
+                                      !p.server.enabled ||
+                                      p.server.registration_pending ||
+                                      caps?.available.status !== "supported"
+                                    }
+                                    onClick={() => perform(() => api.connect(p.id))}
+                                  >
+                                    {activeId ? "Disconnect to switch" : "Connect"}
+                                  </Button>
+                                )}
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
                     )}
                   </li>
                 );
@@ -595,6 +631,33 @@ export function Locations() {
           const p = deleting;
           setDeleting(null);
           if (p) void perform(() => api.deleteProfile(p.id));
+        }}
+      />
+      <Confirm
+        open={bulk}
+        title={`Delete ${chosenServers.length} server${chosenServers.length === 1 ? "" : "s"}?`}
+        body={
+          <>
+            These servers, their history and stored keys are removed from this computer. This cannot be undone
+            unless you still have the original configuration files.
+            <ul className="mt-2 max-h-40 list-disc overflow-auto pl-5 text-muted">
+              {chosenServers.map((p) => (
+                <li key={p.id}>{p.name}</li>
+              ))}
+            </ul>
+          </>
+        }
+        confirmLabel={`Delete ${chosenServers.length}`}
+        danger
+        onCancel={() => setBulk(false)}
+        onConfirm={() => {
+          setBulk(false);
+          void perform(async () => {
+            const r = await removeMany(chosenServers, api.deleteProfile);
+            setPicked(new Set());
+            await refreshProfiles();
+            notify({ tone: r.failed.length ? "error" : "info", text: bulkSummary(r) });
+          });
         }}
       />
       {guide && (

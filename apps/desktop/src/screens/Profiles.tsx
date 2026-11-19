@@ -1,17 +1,20 @@
 import { Check, Copy, Download, FileText, KeyRound, Pencil, Plus, Star, Trash2, Upload } from "lucide-react";
 import { useId, useMemo, useState } from "react";
-import { Button, Confirm, Modal, Segmented, TextField } from "../components/ui";
+import { Button, Confirm, Modal, Segmented, SelectBar, TextField } from "../components/ui";
 import { api, asUiError } from "../lib/api";
+import { bulkSummary, removeMany } from "../lib/bulk";
 import { routeLabel } from "../lib/format";
 import { useStore } from "../lib/store";
 import type { Issue, KeyAction, PeerDraft, ProfileDraft, ProfileView } from "../lib/types";
 
 export function Profiles() {
-  const { profiles, settings, run, saveSettings } = useStore();
+  const { profiles, settings, run, saveSettings, refreshProfiles, notify } = useStore();
   const [q, setQ] = useState("");
   const [editing, setEditing] = useState<{ id: string | null; draft: ProfileDraft } | null>(null);
   const [deleting, setDeleting] = useState<ProfileView | null>(null);
   const [exporting, setExporting] = useState<ProfileView | null>(null);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState(false);
   const searchId = useId();
 
   const shown = useMemo(() => {
@@ -23,6 +26,24 @@ export function Profiles() {
         p.summary.endpoints.some((e) => e.toLowerCase().includes(needle)),
     );
   }, [profiles, q]);
+
+  const pickable = shown.filter((p) => !p.active);
+  const chosen = profiles.filter((p) => picked.has(p.id) && !p.active);
+  const toggle = (id: string) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (!n.delete(id)) n.add(id);
+      return n;
+    });
+  const toggleAll = () =>
+    setPicked((s) => (pickable.every((p) => s.has(p.id)) ? new Set() : new Set(pickable.map((p) => p.id))));
+  const deleteChosen = async () => {
+    setBulk(false);
+    const r = await removeMany(chosen, api.deleteProfile);
+    setPicked(new Set());
+    await refreshProfiles();
+    notify({ tone: r.failed.length ? "error" : "info", text: bulkSummary(r) });
+  };
 
   const edit = (id: string) => run(async () => setEditing({ id, draft: await api.draft(id) }));
   const create = () => run(async () => setEditing({ id: null, draft: await api.newDraft() }));
@@ -112,66 +133,102 @@ export function Profiles() {
       ) : shown.length === 0 ? (
         <p className="py-6 text-muted">No profile matches “{q}”.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
-          {shown.map((p) => (
-            <li
-              key={p.id}
-              className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] bg-surface px-4 py-3 shadow-(--shadow)"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <span className="truncate font-medium">{p.name}</span>
-                  {p.active && (
-                    <span className="rounded-full bg-ok-soft px-2.5 py-0.5 text-[11.5px] font-bold text-ok">
-                      Active
+        <>
+          <SelectBar
+            total={pickable.length}
+            selected={chosen.filter((p) => shown.some((s) => s.id === p.id)).length}
+            onToggleAll={toggleAll}
+            onClear={() => setPicked(new Set())}
+            onDelete={() => setBulk(true)}
+          />
+          <ul className="flex flex-col gap-2">
+            {shown.map((p) => (
+              <li
+                key={p.id}
+                className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] bg-surface px-4 py-3 shadow-(--shadow)"
+              >
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${p.name}`}
+                  checked={picked.has(p.id)}
+                  disabled={p.active}
+                  title={p.active ? "Disconnect to select this server" : undefined}
+                  onChange={() => toggle(p.id)}
+                />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="truncate font-medium">{p.name}</span>
+                    {p.active && (
+                      <span className="rounded-full bg-ok-soft px-2.5 py-0.5 text-[11.5px] font-bold text-ok">
+                        Active
+                      </span>
+                    )}
+                    <span
+                      className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${
+                        p.summary.route_kind === "split" ? "bg-chip text-muted" : "bg-chip text-fg"
+                      }`}
+                    >
+                      {routeLabel[p.summary.route_kind]}
                     </span>
-                  )}
-                  <span
-                    className={`rounded-full px-2.5 py-0.5 text-[11.5px] font-bold ${
-                      p.summary.route_kind === "split" ? "bg-chip text-muted" : "bg-chip text-fg"
-                    }`}
+                    {p.summary.warnings.length > 0 && (
+                      <span className="text-[11.5px] text-pending" title={p.summary.warnings.join("\n")}>
+                        {p.summary.warnings.length} warning{p.summary.warnings.length > 1 ? "s" : ""}
+                      </span>
+                    )}
+                  </div>
+                  <div className="mt-0.5 truncate font-mono text-[12.5px] text-muted">
+                    {p.summary.endpoints.join(", ") || "No endpoint"} · {p.summary.addresses.join(", ")}
+                  </div>
+                </div>
+                <div className="flex items-center gap-1">
+                  <IconButton
+                    label={p.preferred ? `Unset ${p.name} as preferred` : `Set ${p.name} as preferred`}
+                    onClick={() => setPreferred(p)}
+                    pressed={p.preferred}
                   >
-                    {routeLabel[p.summary.route_kind]}
-                  </span>
-                  {p.summary.warnings.length > 0 && (
-                    <span className="text-[11.5px] text-pending" title={p.summary.warnings.join("\n")}>
-                      {p.summary.warnings.length} warning{p.summary.warnings.length > 1 ? "s" : ""}
-                    </span>
-                  )}
+                    <Star size={15} className={p.preferred ? "fill-accent text-accent" : ""} />
+                  </IconButton>
+                  <IconButton label={`Edit ${p.name}`} onClick={() => edit(p.id)} disabled={p.active}>
+                    <Pencil size={15} />
+                  </IconButton>
+                  <IconButton
+                    label={`Duplicate ${p.name}`}
+                    onClick={() => run(() => api.duplicateProfile(p.id), `Duplicated ${p.name}`)}
+                  >
+                    <Copy size={15} />
+                  </IconButton>
+                  <IconButton label={`Export ${p.name}`} onClick={() => setExporting(p)}>
+                    <Download size={15} />
+                  </IconButton>
+                  <IconButton label={`Delete ${p.name}`} onClick={() => setDeleting(p)} disabled={p.active}>
+                    <Trash2 size={15} />
+                  </IconButton>
                 </div>
-                <div className="mt-0.5 truncate font-mono text-[12.5px] text-muted">
-                  {p.summary.endpoints.join(", ") || "No endpoint"} · {p.summary.addresses.join(", ")}
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <IconButton
-                  label={p.preferred ? `Unset ${p.name} as preferred` : `Set ${p.name} as preferred`}
-                  onClick={() => setPreferred(p)}
-                  pressed={p.preferred}
-                >
-                  <Star size={15} className={p.preferred ? "fill-accent text-accent" : ""} />
-                </IconButton>
-                <IconButton label={`Edit ${p.name}`} onClick={() => edit(p.id)} disabled={p.active}>
-                  <Pencil size={15} />
-                </IconButton>
-                <IconButton
-                  label={`Duplicate ${p.name}`}
-                  onClick={() => run(() => api.duplicateProfile(p.id), `Duplicated ${p.name}`)}
-                >
-                  <Copy size={15} />
-                </IconButton>
-                <IconButton label={`Export ${p.name}`} onClick={() => setExporting(p)}>
-                  <Download size={15} />
-                </IconButton>
-                <IconButton label={`Delete ${p.name}`} onClick={() => setDeleting(p)} disabled={p.active}>
-                  <Trash2 size={15} />
-                </IconButton>
-              </div>
-            </li>
-          ))}
-        </ul>
+              </li>
+            ))}
+          </ul>
+        </>
       )}
 
+      <Confirm
+        open={bulk}
+        title={`Delete ${chosen.length} server${chosen.length === 1 ? "" : "s"}?`}
+        body={
+          <>
+            These profiles and their keys are removed from this computer. This cannot be undone unless you
+            still have the original .conf files.
+            <ul className="mt-2 max-h-40 list-disc overflow-auto pl-5 text-muted">
+              {chosen.map((p) => (
+                <li key={p.id}>{p.name}</li>
+              ))}
+            </ul>
+          </>
+        }
+        confirmLabel={`Delete ${chosen.length}`}
+        danger
+        onCancel={() => setBulk(false)}
+        onConfirm={() => void deleteChosen()}
+      />
       {editing && (
         <Editor
           key={editing.id ?? "new"}

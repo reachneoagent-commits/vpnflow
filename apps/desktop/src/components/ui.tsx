@@ -395,3 +395,49 @@ export function Segmented<T extends string>({
     </fieldset>
   );
 }
+
+/** Bar above a list: select-all checkbox, a count, and a bulk action. */
+export function SelectBar({
+  total,
+  selected,
+  onToggleAll,
+  onClear,
+  onDelete,
+  disabled,
+}: {
+  total: number;
+  selected: number;
+  onToggleAll: () => void;
+  onClear: () => void;
+  onDelete: () => void;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  const all = total > 0 && selected === total;
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-[10px] bg-surface px-4 py-2 shadow-(--shadow)">
+      <input
+        id={id}
+        type="checkbox"
+        checked={all}
+        ref={(el) => {
+          if (el) el.indeterminate = selected > 0 && !all;
+        }}
+        onChange={onToggleAll}
+        disabled={total === 0}
+      />
+      <label htmlFor={id} className="text-[13px] font-medium">
+        {selected > 0 ? `${selected} selected` : "Select all"}
+      </label>
+      <InfoTip topic="bulkDelete" />
+      {selected > 0 && (
+        <div className="ml-auto flex gap-2">
+          <Button onClick={onClear}>Clear</Button>
+          <Button variant="danger" disabled={disabled} onClick={onDelete}>
+            Delete selected ({selected})
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}

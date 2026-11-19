@@ -64,6 +64,15 @@ export const HELP = {
     tradeoff:
       "It installs two files in /usr/local/libexec/vpnflow and starts them in the background. VPNFlow checks both files are exactly the ones inside the app before it starts them. Nothing is sent anywhere. If you press Cancel, nothing changes. We recommend setting it up: it is required to connect. Remove it any time with scripts/macos/install-daemon.sh uninstall.",
   },
+  bulkDelete: {
+    title: "Select and delete several",
+    what: "Tick the boxes next to servers to pick several at once, or tick the top box to pick everything shown. Then press Delete selected to remove them all in one go.",
+    why: "After importing a whole folder of config files, removing them one by one takes a long time.",
+    example:
+      'Search for "NL", tick the top box to select every Netherlands server, press Delete selected, then confirm.',
+    tradeoff:
+      "Deleting removes the profile and its keys from this computer and cannot be undone unless you still have the original .conf file. The server you are connected to can't be selected; disconnect first. You always get a confirmation that lists how many will go. Recommendation: use the search box to narrow the list first so you only select what you mean to remove.",
+  },
   speedTest: {
     title: "Connection speed",
     what: "Measures how fast data moves through the VPN right now. By default it runs once on its own, a few seconds after each connection is stable, and shows the result in Connection details.",
