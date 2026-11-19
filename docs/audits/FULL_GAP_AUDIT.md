@@ -1,4 +1,4 @@
-# Aegis VPN gap audit
+# VPNFlow gap audit
 
 Baseline: main at 548523e, with existing worktree changes to the helper,
 Windows adapter, workflows, VM harness and documentation. Those changes form

@@ -6,7 +6,7 @@ Written 2026-11-17 at the end of the Linux work. Read this, then
 
 ## Goal
 
-Aegis VPN establishes a real, protected WireGuard tunnel to the user's own
+VPNFlow establishes a real, protected WireGuard tunnel to the user's own
 servers on Windows 11, with the same honest-state behaviour as Linux. Reuse the
 official WireGuard implementation (embeddable-dll-service); never write
 crypto or a tunnel.
@@ -65,7 +65,7 @@ A LocalSystem Windows service. The only privileged Windows code, like
     (`aegis_config::validate`) in the service. Never trust the app's check.
   - `Status`: `TunnelStatus` with `interface`, rx/tx bytes and
     `last_handshake_ms` (see below). `Activate` resolves only once the link is up.
-- **Config storage:** `%ProgramData%\Aegis VPN\`, DPAPI-protected (machine
+- **Config storage:** `%ProgramData%\VPNFlow\`, DPAPI-protected (machine
   scope, because the service is LocalSystem), ACL SYSTEM + Administrators only.
 - **Tunnel service:** per D16, install `WireGuardTunnel$aegis-<24 hex>` through
   the SCM exactly as the embeddable-dll-service README says:

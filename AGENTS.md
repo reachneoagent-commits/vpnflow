@@ -1,4 +1,4 @@
-# Agent instructions: Aegis VPN
+# Agent instructions: VPNFlow
 
 Durable rules for any coding agent (Codex, Claude Code, others) working in
 this repository. `CLAUDE.md` imports this file; edit only this one.

@@ -220,7 +220,7 @@ plaintext `<name>.conf` or **`<name>.conf.dpapi`**. For `.dpapi` it calls
 `CryptUnprotectData` (flags `CRYPTPROTECT_UI_FORBIDDEN` only: user scope of the
 calling account, no extra entropy) and requires the DPAPI description to equal
 the tunnel name. The tunnel service and our service are both LocalSystem, so the
-service stores `ProgramData\Aegis VPN\<name>.conf.dpapi` encrypted with
+service stores `ProgramData\VPNFlow\<name>.conf.dpapi` encrypted with
 `CryptProtectData(description = name)` and the tunnel reads it directly: **no
 plaintext config ever touches disk**, which replaces the earlier plaintext plan.
 Implemented in `services/windows-service/src/{dpapi,store}.rs`. The full profile

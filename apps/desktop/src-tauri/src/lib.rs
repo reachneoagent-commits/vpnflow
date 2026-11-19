@@ -137,7 +137,7 @@ pub fn run() {
         ])
         .run(tauri::generate_context!());
     if let Err(e) = result {
-        tracing::error!("Aegis VPN exited with an error: {e}");
+        tracing::error!("VPNFlow exited with an error: {e}");
         std::process::exit(1);
     }
 }
@@ -206,7 +206,7 @@ fn notify_transition(
             "VPN connected"
         }
         ConnectionState::Reconnecting { attempt: 1, .. } => "VPN connection lost. Reconnecting.",
-        ConnectionState::Failed { .. } => "VPN connection failed. Open Aegis VPN for details.",
+        ConnectionState::Failed { .. } => "VPN connection failed. Open VPNFlow for details.",
         _ => return,
     };
     show_notification(body);
@@ -216,7 +216,7 @@ fn notify_transition(
 /// our tokio runtime), WinRT toasts on Windows. Failures are logged, never fatal.
 fn show_notification(body: &'static str) {
     let mut n = notify_rust::Notification::new();
-    n.appname("Aegis VPN").summary("Aegis VPN").body(body);
+    n.appname("VPNFlow").summary("VPNFlow").body(body);
     #[cfg(all(unix, not(target_os = "macos")))]
     tauri::async_runtime::spawn(async move {
         if let Err(e) = n.show_async().await {

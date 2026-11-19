@@ -226,7 +226,7 @@ done
 cat > ~/.local/share/applications/aegis-desktop.desktop <<'EOF'
 [Desktop Entry]
 Type=Application
-Name=Aegis VPN
+Name=VPNFlow
 Exec=aegis-desktop
 Icon=aegis-desktop
 StartupWMClass=aegis-desktop

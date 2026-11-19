@@ -20,7 +20,7 @@ Out of scope: vulnerabilities in WireGuard itself, NetworkManager, or the OS
 
 ## Status
 
-Aegis VPN is pre-alpha and has not been independently audited. See
+VPNFlow is pre-alpha and has not been independently audited. See
 `docs/security/THREAT_MODEL.md` for what is and is not mitigated.
 
 ## Locations and server switching
