@@ -25,6 +25,7 @@ pub enum Action {
 
 /// The router address (`aa:bb:cc:dd:ee:ff`) from `route -n get default` and
 /// `arp -n <gateway>` output. None when there is no usable default route.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn parse_router_id(route: &str, arp: &str) -> Option<String> {
     let _ = route;
     let at = arp.split(" at ").nth(1)?;
@@ -42,6 +43,7 @@ pub fn parse_router_id(route: &str, arp: &str) -> Option<String> {
     })
 }
 
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 pub fn gateway_of(route: &str) -> Option<String> {
     route
         .lines()
