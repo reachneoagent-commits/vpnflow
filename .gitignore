@@ -11,3 +11,7 @@ apps/desktop/src-tauri/gen/schemas/
 # WireGuard configs contain private keys
 *.conf
 vpnflow-configs/
+
+# Local design assets and reference material, not for GitHub
+/brand/
+/Surfshark ref/
