@@ -5,6 +5,7 @@ import countriesArt from "../assets/onboarding/countries.svg?raw";
 import finishArt from "../assets/onboarding/finish.svg?raw";
 import serverFilesArt from "../assets/onboarding/server-files.svg?raw";
 import welcomeArt from "../assets/onboarding/welcome.svg?raw";
+import { HelperBanner } from "../components/HelperBanner";
 import { Shield } from "../components/Shield";
 import { Button, Panel, Switch } from "../components/ui";
 import { api } from "../lib/api";
@@ -188,6 +189,7 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
 
         <div className="grid min-h-0 flex-1 gap-12 min-[860px]:grid-cols-[minmax(0,1fr)_280px]">
           <div className="flex h-full min-h-0 min-w-0 max-w-[640px] flex-col">
+            <HelperBanner />
             {step === 0 && (
               <section className="flex min-h-0 flex-1 flex-col overflow-y-auto pr-1">
                 <h1 className="text-2xl font-bold">Welcome to VPNFlow</h1>
@@ -256,7 +258,9 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
                     "Step 2, platform: pick the one for this computer (macOS, Windows or GNU/Linux).",
                     "Step 3, options: leave NAT-PMP and VPN Accelerator as they are.",
                     'Step 4, server: click the "Free server configs" tab. Each country is a button.',
-                    "Click a country you want, then Create, then Download. Repeat for each country (the free ones are Canada, Japan, Mexico, Netherlands, Norway, Poland, Romania, Singapore, Switzerland and the United States).",
+                    "Click a country you want, then Create, then Download. The free countries are Canada, Japan, Netherlands, Norway, Poland, Romania, Singapore, Switzerland and the United States.",
+                    "Each country lists many servers. The percentage is how busy a server is: green is lightly used and fastest, yellow is busy, red is very busy. This only changes speed, not privacy, so pick a green one when you can.",
+                    "You can download more than one. Two or three servers in each country you want is a good start, so you have a backup if one is slow. Every file you download is added here.",
                     "Return here. Your servers appear below within a few seconds.",
                   ]}
                 />
