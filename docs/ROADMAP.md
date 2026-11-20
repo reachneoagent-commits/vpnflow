@@ -26,13 +26,18 @@ Ordered by value to a non-technical user. Done items link to their test record i
 ## Next, from the Surfshark and GitHub comparison
 - (built, awaiting live test) Pause VPN for 5 min, 30 min or 2 h, then auto-reconnect.
 - (built, awaiting live test) Browser add-ons card in Settings: links to Consent-O-Matic (cookie pop-ups) and uBlock Origin.
-- Check whether the preferred-profile setting already covers a pinned server, then show it plainly.
-- Self-healing tunnel (retry on drop) beyond the current reconnect.
-- Rotating IP: connect to a different server of the same country.
+- Pinned server: covered by the preferred server setting. Self-healing and failover already exist.
+- Skipped: rotating IP, per-app split tunneling.
 - More DNS presets only where the provider is confirmed.
 
+## Android (in progress)
+- (code written, not yet built) Android phone app: Kotlin plugin drives Android's VPN service with the official WireGuard library; built on GitHub (`.github/workflows/android.yml`), nothing installed on the Mac. Not yet built or run anywhere.
+- Not done yet: phone-sized layout, a "?" card for the Android kill switch (system setting "Block connections without VPN"), IPv6 check, opening links on Android.
+- Then: Android TV / Google TV layout with QR-code config import, Fire TV packaging (same APK, sideloaded).
+- iOS: can build on GitHub but cannot be installed without an Apple developer account (declined). Roku: not possible (router-level VPN only).
+
 ## Later
-- Developer ID signing and notarization (blocks wide distribution).
+- Developer ID signing and notarization: declined for now; people accept the unsigned warning.
 - Windows MSI, universal (Apple Silicon + Intel) Mac build.
 - Per-app split tunneling (hard on macOS).
 - Linux kill-switch verification, SECURITY.md, DESIGN.md.

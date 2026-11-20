@@ -18,6 +18,8 @@ pub enum AnyBackend {
     Mac(aegis_macos::ServiceBackend),
     #[cfg(windows)]
     Win(aegis_windows::ServiceBackend),
+    #[cfg(target_os = "android")]
+    Android(aegis_android::AndroidBackend),
     Unavailable(String),
 }
 
@@ -53,6 +55,21 @@ pub async fn select() -> AnyBackend {
     }
 }
 
+/// Like [`select`], but Android needs the app handle to reach its VPN plugin.
+pub async fn select_for(app: &tauri::AppHandle) -> AnyBackend {
+    #[cfg(target_os = "android")]
+    {
+        if std::env::var("AEGIS_BACKEND").as_deref() != Ok("mock") {
+            return match aegis_android::AndroidBackend::new(app) {
+                Ok(b) => AnyBackend::Android(b),
+                Err(e) => AnyBackend::Unavailable(e),
+            };
+        }
+    }
+    let _ = app;
+    select().await
+}
+
 fn unavailable(reason: &str) -> CoreError {
     CoreError::unsupported(format!("no VPN backend is available: {reason}"))
 }
@@ -67,6 +84,8 @@ macro_rules! delegate {
             AnyBackend::Mac($b) => $call,
             #[cfg(windows)]
             AnyBackend::Win($b) => $call,
+            #[cfg(target_os = "android")]
+            AnyBackend::Android($b) => $call,
             AnyBackend::Unavailable(r) => Err(unavailable(r)),
         }
     };
@@ -126,6 +145,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.protection(profile, settings),
             #[cfg(windows)]
             AnyBackend::Win(b) => b.protection(profile, settings),
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.protection(profile, settings),
             AnyBackend::Unavailable(_) => Protection::off(),
         }
     }
@@ -143,6 +164,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.check_reachability(profile, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.check_reachability(profile, status).await,
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.check_reachability(profile, status).await,
             AnyBackend::Unavailable(_) => aegis_core::Feature::Off,
         }
     }
@@ -161,6 +184,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.verify_protection(profile, settings, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.verify_protection(profile, settings, status).await,
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.verify_protection(profile, settings, status).await,
             AnyBackend::Unavailable(_) => Protection::off(),
         }
     }
@@ -174,6 +199,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.system_events(),
             #[cfg(windows)]
             AnyBackend::Win(b) => b.system_events(),
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.system_events(),
             AnyBackend::Unavailable(_) => None,
         }
     }
@@ -212,6 +239,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.kill_switch_active().await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.kill_switch_active().await,
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.kill_switch_active().await,
             AnyBackend::Unavailable(_) => Ok(false),
         }
     }
@@ -225,6 +254,8 @@ impl VpnBackend for AnyBackend {
             AnyBackend::Mac(b) => b.check_public_ip(profile, status).await,
             #[cfg(windows)]
             AnyBackend::Win(b) => b.check_public_ip(profile, status).await,
+            #[cfg(target_os = "android")]
+            AnyBackend::Android(b) => b.check_public_ip(profile, status).await,
             AnyBackend::Unavailable(_) => Feature::Off,
         }
     }

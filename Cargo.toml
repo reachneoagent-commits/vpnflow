@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "crates/aegis-android",
     "crates/aegis-config",
     "crates/aegis-core",
     "crates/aegis-linux",
@@ -20,6 +21,7 @@ repository = "https://github.com/mikeholp87/aegis-vpn"
 rust-version = "1.88"
 
 [workspace.dependencies]
+aegis-android = { path = "crates/aegis-android" }
 aegis-config = { path = "crates/aegis-config" }
 aegis-core = { path = "crates/aegis-core" }
 aegis-linux = { path = "crates/aegis-linux" }

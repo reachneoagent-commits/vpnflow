@@ -9,6 +9,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
+name = "aegis-android"
+version = "0.1.9"
+dependencies = [
+ "aegis-config",
+ "aegis-core",
+ "ipnet",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-plugin",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "aegis-config"
 version = "0.1.9"
 dependencies = [
@@ -44,6 +60,7 @@ dependencies = [
 name = "aegis-desktop"
 version = "0.1.9"
 dependencies = [
+ "aegis-android",
  "aegis-config",
  "aegis-core",
  "aegis-linux",

@@ -5,7 +5,24 @@ mod onboarding;
 mod pause;
 mod schedule;
 mod speed;
+#[cfg(desktop)]
 mod tray;
+/// Phones have no menu-bar/tray icon: same calls, nothing to do.
+#[cfg(not(desktop))]
+mod tray {
+    use std::sync::Arc;
+
+    use aegis_core::Engine;
+    use tauri::AppHandle;
+
+    use crate::backend::AnyBackend;
+
+    pub fn create(_: &AppHandle, _: &Arc<Engine<AnyBackend>>) -> tauri::Result<()> {
+        Err(tauri::Error::UnknownPath)
+    }
+
+    pub fn refresh(_: &AppHandle, _: &Engine<AnyBackend>) {}
+}
 mod trusted;
 
 use std::sync::Arc;
@@ -15,8 +32,10 @@ use commands::AppState;
 use tauri::{DragDropEvent, Emitter, Manager, WindowEvent};
 
 /// Page zoom applied at startup; 1.2 turns the 13-14 px body text into ~16-17 px.
+#[cfg(desktop)]
 const UI_ZOOM: f64 = 1.2;
 
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tracing_subscriber::fmt()
         .with_env_filter(
@@ -25,17 +44,22 @@ pub fn run() {
         )
         .init();
 
-    let result = tauri::Builder::default()
+    let builder = tauri::Builder::default();
+    #[cfg(desktop)]
+    let builder = builder
         .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             show_main(app)
         }))
-        .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
-        ))
+        ));
+    #[cfg(target_os = "android")]
+    let builder = builder.plugin(aegis_android::init());
+    let result = builder
+        .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
-            let backend = tauri::async_runtime::block_on(backend::select());
+            let backend = tauri::async_runtime::block_on(backend::select_for(app.handle()));
             let dir = if matches!(backend, backend::AnyBackend::Mock(_)) {
                 let simulation = tempfile::Builder::new()
                     .prefix("aegis-simulation-")
@@ -68,6 +92,7 @@ pub fn run() {
             // Larger text for readability: the UI uses fixed px sizes, so scale the
             // whole page (text and spacing together) like browser zoom.
             // Ctrl+= / Ctrl+- / Ctrl+0 adjust it further (zoomHotkeysEnabled).
+            #[cfg(desktop)]
             if let Some(w) = app.get_webview_window("main")
                 && let Err(e) = w.set_zoom(UI_ZOOM)
             {
@@ -148,6 +173,7 @@ pub fn run() {
     }
 }
 
+#[cfg(desktop)]
 pub(crate) fn show_main(app: &tauri::AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -215,11 +241,15 @@ fn notify_transition(
         ConnectionState::Failed { .. } => "VPN connection failed. Open VPNFlow for details.",
         _ => return,
     };
+    #[cfg(desktop)]
     show_notification(body);
+    #[cfg(not(desktop))]
+    let _ = body;
 }
 
 /// Desktop notification via notify-rust: freedesktop D-Bus on Linux (zbus 6 on
 /// our tokio runtime), WinRT toasts on Windows. Failures are logged, never fatal.
+#[cfg(desktop)]
 fn show_notification(body: &'static str) {
     let mut n = notify_rust::Notification::new();
     n.appname("VPNFlow").summary("VPNFlow").body(body);

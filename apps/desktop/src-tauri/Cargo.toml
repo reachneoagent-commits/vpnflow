@@ -9,6 +9,7 @@ publish = false
 
 [lib]
 name = "aegis_desktop_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
 tauri-build = { version = "2.7", features = [] }
@@ -18,10 +19,8 @@ sha2 = "0.10"
 aegis-core.workspace = true
 ipnet.workspace = true
 aegis-config.workspace = true
-tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
+tauri = { version = "2.12", features = ["image-png"] }
 tauri-plugin-dialog = "2.8"
-tauri-plugin-single-instance = "2.5"
-tauri-plugin-autostart = "2.7"
 serde.workspace = true
 serde_json.workspace = true
 tempfile = "3"
@@ -30,9 +29,18 @@ ureq = { version = "3", default-features = false, features = ["rustls"] }
 tokio.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
+
+# Desktop only: tray, single instance, start at login, desktop notifications.
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri = { version = "2.12", features = ["tray-icon", "image-png"] }
+tauri-plugin-single-instance = "2.5"
+tauri-plugin-autostart = "2.7"
 # Plain notify-rust instead of tauri-plugin-notification: it uses zbus 6 on our
 # tokio runtime (the plugin still pulls in unmaintained zbus 5 crates).
 notify-rust = { version = "4.19", default-features = false, features = ["z-with-tokio"] }
+
+[target.'cfg(target_os = "android")'.dependencies]
+aegis-android.workspace = true
 
 [target.'cfg(target_os = "linux")'.dependencies]
 aegis-linux.workspace = true

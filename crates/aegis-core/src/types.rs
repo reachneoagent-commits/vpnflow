@@ -115,6 +115,7 @@ pub enum BackendKind {
     NetworkManager,
     WindowsService,
     MacosDaemon,
+    AndroidVpn,
     /// No usable backend detected.
     None,
 }

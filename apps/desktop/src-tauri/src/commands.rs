@@ -13,6 +13,7 @@ use aegis_core::{
 };
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
+#[cfg(desktop)]
 use tauri_plugin_autostart::ManagerExt as _;
 use tauri_plugin_dialog::DialogExt;
 
@@ -159,6 +160,7 @@ pub fn settings(st: State<'_, AppState>) -> Settings {
 pub fn set_settings(app: AppHandle, st: State<'_, AppState>, settings: Settings) -> R<Settings> {
     let before = st.engine.settings();
     let settings = st.engine.set_settings(settings)?;
+    #[cfg(desktop)]
     if settings.launch_on_login != before.launch_on_login {
         let al = app.autolaunch();
         let r = if settings.launch_on_login {
