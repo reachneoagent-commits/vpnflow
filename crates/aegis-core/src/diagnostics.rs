@@ -254,7 +254,7 @@ pub(crate) async fn run<B: VpnBackend>(e: &Engine<B>) -> Vec<Check> {
             "Browser DNS",
             Warn,
             format!(
-                "{} uses its own secure DNS, so it ignores the DNS service you chose here (and ad blocking). Turn it off: Chrome and Edge, Settings > Privacy and security > Security > Use secure DNS. Firefox, Settings > Privacy & Security > DNS over HTTPS > Off.",
+                "{} uses its own secure DNS, so it ignores the DNS service you chose here (and ad blocking). Turn it off: Chrome, Edge, Brave, Arc and Vivaldi, Settings > Privacy and security > Security > Use secure DNS (Brave: Privacy and security > Security). Firefox, Settings > Privacy & Security > DNS over HTTPS > Off.",
                 own.join(" and ")
             ),
         )
@@ -263,7 +263,7 @@ pub(crate) async fn run<B: VpnBackend>(e: &Engine<B>) -> Vec<Check> {
             "browser_dns",
             "Browser DNS",
             Skipped,
-            "no Chrome, Edge or Firefox settings found",
+            "no Chrome, Edge, Brave, Arc, Vivaldi or Firefox settings found",
         )
     } else {
         check(

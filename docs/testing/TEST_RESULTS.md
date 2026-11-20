@@ -1007,3 +1007,9 @@ Not run: the admin-password install itself, the restart afterwards, a cancelled 
 
 Dashboard orb now scales with the window and its rings are sized relative to it, so the timer no longer sits inside them. Locations: country rows with inline server rows and a sticky detail panel. Onboarding reworked after on-screen feedback: real shield logo in the header, compact "Step n of 5" progress bar instead of the wrapping stepper, buttons never wrap, smaller per-step illustration panel shown only on wide windows; steps, text and buttons unchanged. The panel now uses five Streamline Bangalore illustrations (CC BY 4.0, credited on About), inlined as SVG and recoloured to the brand with theme-aware CSS (`.ill` in styles.css).
 Ran: UI typecheck, Biome (0 errors, 1 existing `noDescendingSpecificity` warning) and 33 Vitest tests, all passing. Not run: the app itself, so none of this has been looked at on screen.
+
+## 2026-11-19, after 0.1.7 (not yet released)
+- macOS firewall (`pf.rs`): loopback is now passed with an explicit `pass quick on lo0 all` first, replacing `set skip on lo0` (a global option pf does not apply inside an anchor; suspected cause of localhost being blocked with the VPN on). Unit test added. NOT live-tested: needs a Mac with the daemon updated, VPN connected, and a local dev server reached at http://localhost.
+- Browser DNS check now also reads Brave, Arc and Vivaldi settings. Unit tests only.
+- Leak test rows show a plain "why this status" sentence (`statusExplain.ts`); "Not tested" on Browser DNS reads "Nothing to check". Proton site button (opens the existing fixed link), Advanced WireGuard open by default, top bar shows server name. Unit/UI tests only; not visually checked.
+- Ran: cargo fmt, clippy -D warnings, aegis-core and aegis-macos tests, tsc, Biome (known CSS warning only), Vitest 36 pass.

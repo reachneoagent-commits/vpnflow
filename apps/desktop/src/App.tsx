@@ -147,9 +147,7 @@ function Shell() {
             <div className="mx-auto max-w-[940px] px-8 pt-7 pb-12 max-[720px]:px-4 max-[720px]:pt-5">
               <HelperBanner />
               {screen === "dashboard" && <Dashboard goTo={setScreen} />}
-              {(screen === "locations" || screen === "profiles") && (
-                <LocationsPage showAdvanced={screen === "profiles"} />
-              )}
+              {(screen === "locations" || screen === "profiles") && <LocationsPage />}
               {screen === "activity" && <ActivityScreen />}
               {screen === "settings" && <SettingsScreen />}
               {screen === "about" && <About />}
@@ -163,9 +161,11 @@ function Shell() {
 }
 
 function TopBar() {
-  const { snapshot, settings, saveSettings } = useStore();
+  const { snapshot, settings, saveSettings, profiles } = useStore();
   const tone = stateTone(snapshot?.state);
-  const headline = snapshot ? stateHeadline(snapshot.state) : "Starting";
+  const st = snapshot?.state;
+  const activeName = st && "profile" in st ? profiles.find((p) => p.id === st.profile)?.name : undefined;
+  const headline = snapshot ? stateHeadline(snapshot.state, activeName) : "Starting";
   const systemDark =
     typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches === true;
   const dark = settings?.theme === "dark" || (settings?.theme !== "light" && systemDark);

@@ -230,10 +230,32 @@ fn chromium_local_state_paths() -> Vec<(&'static str, PathBuf)> {
         ));
         v.push(("Chrome", h.join(".config/google-chrome/Local State")));
         v.push(("Edge", h.join(".config/microsoft-edge/Local State")));
+        v.push((
+            "Brave",
+            h.join("Library/Application Support/BraveSoftware/Brave-Browser/Local State"),
+        ));
+        v.push((
+            "Arc",
+            h.join("Library/Application Support/Arc/User Data/Local State"),
+        ));
+        v.push((
+            "Vivaldi",
+            h.join("Library/Application Support/Vivaldi/Local State"),
+        ));
+        v.push((
+            "Brave",
+            h.join(".config/BraveSoftware/Brave-Browser/Local State"),
+        ));
+        v.push(("Vivaldi", h.join(".config/vivaldi/Local State")));
     }
     if let Some(l) = std::env::var_os("LOCALAPPDATA").map(PathBuf::from) {
         v.push(("Chrome", l.join("Google/Chrome/User Data/Local State")));
         v.push(("Edge", l.join("Microsoft/Edge/User Data/Local State")));
+        v.push((
+            "Brave",
+            l.join("BraveSoftware/Brave-Browser/User Data/Local State"),
+        ));
+        v.push(("Vivaldi", l.join("Vivaldi/User Data/Local State")));
     }
     v
 }

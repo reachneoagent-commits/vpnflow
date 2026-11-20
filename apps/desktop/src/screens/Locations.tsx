@@ -1,6 +1,7 @@
 import {
   ChevronDown,
   ChevronRight,
+  ExternalLink,
   FolderOpen,
   Globe,
   Plus,
@@ -141,6 +142,11 @@ export function Locations() {
             Import folder
           </Button>
           <InfoTip topic="importFolder" />
+          <Button disabled={busy} onClick={() => perform(() => api.openLink("wireguard"))}>
+            <ExternalLink size={15} aria-hidden />
+            Proton site
+          </Button>
+          <InfoTip topic="protonSite" />
           <Button disabled={busy} onClick={() => setAdding(true)}>
             <Plus size={15} aria-hidden />
             Other ways
@@ -310,8 +316,8 @@ export function Locations() {
                                   className="flex min-w-0 flex-1 items-center gap-3 py-1.5 text-left"
                                 >
                                   <CountryFlag code={p.server.location?.country_code} />
-                                  <span className="min-w-0">
-                                    <span className="block truncate text-[13.5px] font-semibold">
+                                  <span className="min-w-[6.5rem]">
+                                    <span className="block break-words text-[13.5px] font-semibold">
                                       {p.name}
                                     </span>
                                     <span className="block truncate text-xs text-muted">

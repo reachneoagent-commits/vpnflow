@@ -53,7 +53,10 @@ pub fn ruleset_with_bypass(
         return Err(PfError::NoEndpoints);
     }
     let mut r = String::new();
-    r.push_str("set skip on lo0\n");
+    // `set skip` is a global option that pf does not apply inside an anchor, so
+    // loopback (localhost dev servers, local tools) is passed with explicit
+    // rules, first, in both directions and for both IP families.
+    r.push_str("pass quick on lo0 all\n");
     if let Some(tunnel_if) = tunnel_if {
         r.push_str(&format!("pass quick on {tunnel_if} all\n"));
     }
@@ -102,6 +105,15 @@ mod tests {
 
     fn ep(s: &str) -> SocketAddr {
         s.parse().unwrap()
+    }
+
+    #[test]
+    fn loopback_is_passed_first_so_localhost_keeps_working() {
+        let r = ruleset(Some("utun4"), &[ep("203.0.113.7:51820")], false).unwrap();
+        assert!(r.starts_with("pass quick on lo0 all\n"));
+        assert!(!r.contains("set skip"));
+        let r = ruleset(None, &[ep("203.0.113.7:51820")], false).unwrap();
+        assert!(r.starts_with("pass quick on lo0 all\n"));
     }
 
     #[test]

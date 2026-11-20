@@ -342,7 +342,6 @@ describe("App", () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
     await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
-    await userEvent.click(screen.getByRole("button", { name: /Advanced WireGuard/ }));
     await userEvent.click(screen.getByRole("button", { name: "Delete Office" }));
     expect(mockApi.deleteProfile).not.toHaveBeenCalled();
     await userEvent.click(await screen.findByRole("button", { name: "Delete profile", hidden: true }));
@@ -354,7 +353,6 @@ describe("App", () => {
     setup();
     await screen.findByRole("heading", { name: "Not connected" });
     await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Locations" }));
-    await userEvent.click(screen.getByRole("button", { name: /Advanced WireGuard/ }));
     await userEvent.click(screen.getByRole("button", { name: "Export Office" }));
     expect(await screen.findByText(/contains the private key/i)).toBeInTheDocument();
     expect(mockApi.exportProfile).not.toHaveBeenCalled();

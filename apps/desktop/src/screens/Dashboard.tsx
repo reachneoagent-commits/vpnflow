@@ -23,6 +23,7 @@ import { featureText, featureTone, isActive, isBusy, stateHeadline, stateTone } 
 import { ago, bytes, clock, duration, rate, routeLabel } from "../lib/format";
 import type { HelpKey } from "../lib/help";
 import { locationLabel } from "../lib/locations";
+import { statusExplain } from "../lib/statusExplain";
 import { useStore } from "../lib/store";
 import type { Check, CheckStatus, Feature, ProfileView, SpeedResult } from "../lib/types";
 import { CountryFlag } from "./Locations";
@@ -900,7 +901,8 @@ function LeakSection({
             detail = c?.detail ?? "";
           } else if (c) {
             tone = leakTone[c.status];
-            tag = leakText[c.status];
+            tag =
+              row.id === "browser_dns" && c.status === "skipped" ? "Nothing to check" : leakText[c.status];
             detail = c.detail;
           } else if (f) {
             tone = featureTone(f);
@@ -921,6 +923,9 @@ function LeakSection({
                   {row.help && <InfoTip topic={row.help} />}
                 </p>
                 {detail && <p className="text-[12.5px] break-words text-muted">{detail}</p>}
+                {!busy && (c || f) && statusExplain(row.id, tone) && (
+                  <p className="mt-0.5 text-[12.5px] break-words">{statusExplain(row.id, tone)}</p>
+                )}
                 {row.id === "other_vpn" && c?.status === "warn" && (
                   <div className="mt-1.5">
                     <Button onClick={stopOthers} disabled={stopping || busy}>

@@ -208,6 +208,15 @@ export const HELP = {
     tradeoff:
       "Every .conf in the folder is imported, so keep unrelated configs out of it. Recommended: use a folder that holds only the servers you want.",
   },
+  protonSite: {
+    title: "Proton site",
+    what: "Opens Proton's WireGuard download page in your normal web browser, so you can sign in and download server files without leaving this app's flow.",
+    why: "VPNFlow uses the WireGuard files Proton gives you. They can only be downloaded from your Proton account.",
+    example:
+      "Press Proton site, sign in, pick a country, press Create for each server you want, download the .conf files into one folder, then come back and press Import folder.",
+    tradeoff:
+      "It only opens a web page. VPNFlow never sees your Proton password and sends nothing to Proton. The page is Proton's own, not ours. Recommended: download all the servers you want into one empty folder, then use Import folder.",
+  },
   locations: {
     title: "VPN locations",
     what: "Your list of servers, grouped by country. Each server is one WireGuard profile you imported or added.",
