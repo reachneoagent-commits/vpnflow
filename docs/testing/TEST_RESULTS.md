@@ -1013,3 +1013,14 @@ Ran: UI typecheck, Biome (0 errors, 1 existing `noDescendingSpecificity` warning
 - Browser DNS check now also reads Brave, Arc and Vivaldi settings. Unit tests only.
 - Leak test rows show a plain "why this status" sentence (`statusExplain.ts`); "Not tested" on Browser DNS reads "Nothing to check". Proton site button (opens the existing fixed link), Advanced WireGuard open by default, top bar shows server name. Unit/UI tests only; not visually checked.
 - Ran: cargo fmt, clippy -D warnings, aegis-core and aegis-macos tests, tsc, Biome (known CSS warning only), Vitest 36 pass.
+
+## 2026-11-19: Pause VPN and Browser add-ons card (built, not run live)
+- Pause VPN (`pause.rs`): real disconnect (kill switch released) for 5 min, 30 min or 2 h, then reconnect to the same server. Dashboard buttons, tray submenu, help card. Manual connect/disconnect clears the pause. Quitting while paused does not reconnect.
+- Settings > Browser add-ons: opens fixed links (Consent-O-Matic, uBlock Origin) via the `open_link` whitelist.
+- Ran: cargo fmt, clippy `-D warnings`, `cargo test --workspace`, tsc, Biome (known CSS warning only), 38 Vitest tests. New unit tests: pause lengths, stale timer, link whitelist; 2 new UI tests.
+- Failures: 3 `aegis-helper` (Linux helper) tests fail on this Mac with "unsafe helper runtime directory". That crate is unmodified (no changes under `services/`); they check Linux root-owned runtime directories and are expected to fail on macOS. Not run on Linux.
+- Not run: a real pause/resume on a live connection, sleep/wake during a pause, the tray menu on screen.
+- Release 0.1.8 workflow (run 44648166130): all jobs succeeded.
+
+## 2026-11-19: Main program renamed (config only, not built)
+`mainBinaryName: "vpnflow"` added to tauri.conf.json so macOS Login Items shows "vpnflow" instead of "aegis-desktop" (the Rust package name). Desktop crate tests pass. Not run: a bundled build to confirm `Contents/MacOS/vpnflow`, or the Login Items entry after an update.

@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-resume-vpn"
+description = "Enables the resume_vpn command without any pre-configured scope."
+commands.allow = ["resume_vpn"]
+
+[[permission]]
+identifier = "deny-resume-vpn"
+description = "Denies the resume_vpn command without any pre-configured scope."
+commands.deny = ["resume_vpn"]

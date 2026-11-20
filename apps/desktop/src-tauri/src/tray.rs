@@ -106,6 +106,36 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
         &refs,
     )?;
 
+    let paused = app.try_state::<AppState>().and_then(|st| st.pause.info());
+    let connected = matches!(snap.state, ConnectionState::Connected { .. });
+    let pause_menu = if paused.is_some() {
+        Submenu::with_id_and_items(
+            app,
+            "pause",
+            "Paused",
+            true,
+            &[&MenuItem::with_id(
+                app,
+                "resume",
+                "Resume now",
+                true,
+                None::<&str>,
+            )?],
+        )?
+    } else {
+        Submenu::with_id_and_items(
+            app,
+            "pause",
+            "Pause VPN",
+            connected,
+            &[
+                &MenuItem::with_id(app, "pause:5", "For 5 minutes", true, None::<&str>)?,
+                &MenuItem::with_id(app, "pause:30", "For 30 minutes", true, None::<&str>)?,
+                &MenuItem::with_id(app, "pause:120", "For 2 hours", true, None::<&str>)?,
+            ],
+        )?
+    };
+
     let open = MenuItem::with_id(app, "open", "Open VPNFlow", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit (VPN stays as it is)", true, None::<&str>)?;
@@ -118,6 +148,7 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
             &quick,
             &connect,
             &disconnect,
+            &pause_menu,
             &pref,
             &sep()?,
             &open,
@@ -149,6 +180,7 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
         let id = ev.id().as_ref().to_owned();
         match id.as_str() {
             "connect" => {
+                app.state::<AppState>().pause.clear(app);
                 if let Some(pid) = engine.settings().preferred_profile {
                     tauri::async_runtime::spawn(async move {
                         let _ = engine.connect(pid).await;
@@ -156,13 +188,22 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
                 }
             }
             "quick" => {
+                app.state::<AppState>().pause.clear(app);
                 tauri::async_runtime::spawn(async move {
                     let _ = engine.quick_connect().await;
                 });
             }
             "disconnect" => {
+                app.state::<AppState>().pause.clear(app);
                 tauri::async_runtime::spawn(async move {
                     let _ = engine.disconnect().await;
+                });
+            }
+            "resume" => {
+                let app = app.clone();
+                tauri::async_runtime::spawn(async move {
+                    let st = app.state::<AppState>();
+                    let _ = crate::pause::resume_now(&st.pause, &app, &st.engine).await;
                 });
             }
             "open" => crate::show_main(app),
@@ -172,7 +213,13 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
             }
             "quit" => app.exit(0),
             other => {
-                if let Some(pid) = other.strip_prefix("pref:").and_then(uuid_from) {
+                if let Some(mins) = other.strip_prefix("pause:").and_then(|m| m.parse().ok()) {
+                    let app = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        let st = app.state::<AppState>();
+                        let _ = crate::pause::start(&st.pause, &app, &st.engine, mins).await;
+                    });
+                } else if let Some(pid) = other.strip_prefix("pref:").and_then(uuid_from) {
                     let mut s = engine.settings();
                     s.preferred_profile = if s.preferred_profile == Some(pid) {
                         None

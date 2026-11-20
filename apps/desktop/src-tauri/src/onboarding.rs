@@ -13,6 +13,8 @@ pub fn link(which: &str) -> Option<&'static str> {
         "login" => "https://account.proton.me/login",
         "wireguard" => "https://account.proton.me/u/0/vpn/WireGuard",
         "help" => "https://protonvpn.com/support/wireguard-configurations",
+        "consent" => "https://consentomatic.au.dk/",
+        "ublock" => "https://github.com/gorhill/uBlock",
         _ => return None,
     })
 }
@@ -86,6 +88,8 @@ mod tests {
                 .unwrap()
                 .starts_with("https://account.proton.me/")
         );
+        assert_eq!(link("consent"), Some("https://consentomatic.au.dk/"));
+        assert_eq!(link("ublock"), Some("https://github.com/gorhill/uBlock"));
         assert!(link("https://evil.example").is_none());
         assert!(link("").is_none());
     }

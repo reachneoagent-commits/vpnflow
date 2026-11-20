@@ -1,7 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "VPNFlow",
-  "version": "0.1.8",
+  "mainBinaryName": "vpnflow",
+  "version": "0.1.9",
   "identifier": "org.vpnflow.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",

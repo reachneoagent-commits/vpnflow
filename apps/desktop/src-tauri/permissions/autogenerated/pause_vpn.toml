@@ -1,0 +1,11 @@
+# Automatically generated - DO NOT EDIT!
+
+[[permission]]
+identifier = "allow-pause-vpn"
+description = "Enables the pause_vpn command without any pre-configured scope."
+commands.allow = ["pause_vpn"]
+
+[[permission]]
+identifier = "deny-pause-vpn"
+description = "Denies the pause_vpn command without any pre-configured scope."
+commands.deny = ["pause_vpn"]

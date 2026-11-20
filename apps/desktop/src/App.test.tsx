@@ -92,6 +92,9 @@ const snap = (state: Snapshot["state"], p: ProfileView | null = null): Snapshot 
 });
 
 const mockApi = vi.hoisted(() => ({
+  pauseStatus: vi.fn(),
+  pauseVpn: vi.fn(),
+  resumeVpn: vi.fn(),
   appInfo: vi.fn(),
   capabilities: vi.fn(),
   snapshot: vi.fn(),
@@ -155,6 +158,7 @@ function setup(
   ]);
   mockApi.profiles.mockResolvedValue(opts.profiles ?? [profile]);
   mockApi.settings.mockResolvedValue(settings);
+  mockApi.pauseStatus.mockResolvedValue(null);
   mockApi.events.mockResolvedValue([]);
   mockApi.diagnostics.mockResolvedValue([]);
   mockApi.connect.mockResolvedValue(undefined);
@@ -288,6 +292,23 @@ describe("App", () => {
     expect(screen.getByText("Cannot read tunnel status")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Disconnect" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Connect" })).not.toBeInTheDocument();
+  });
+
+  it("offers fixed pause lengths only while connected, and pauses on a click", async () => {
+    mockApi.pauseVpn.mockResolvedValue({ until_ms: Date.now() + 300000 });
+    setup({
+      snapshot: snap({ state: "connected", profile: "p1", since_ms: Date.now(), peer: "confirmed" }, profile),
+    });
+    expect(await screen.findByRole("button", { name: "30 min" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "2 hours" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "5 min" }));
+    expect(mockApi.pauseVpn).toHaveBeenCalledWith(5);
+  });
+
+  it("shows no pause buttons when not connected", async () => {
+    setup({});
+    await screen.findByRole("heading", { name: "Not connected" });
+    expect(screen.queryByRole("button", { name: "30 min" })).not.toBeInTheDocument();
   });
 
   it("says when the kill switch is still blocking and offers to stop it", async () => {

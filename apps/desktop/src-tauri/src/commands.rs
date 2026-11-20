@@ -21,6 +21,7 @@ use crate::backend::AnyBackend;
 pub struct AppState {
     pub engine: Arc<Engine<AnyBackend>>,
     pub tray_available: bool,
+    pub pause: Arc<crate::pause::Pause>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -144,7 +145,8 @@ pub async fn refresh_server_health(st: State<'_, AppState>) -> R<Vec<ServerHealt
 }
 
 #[tauri::command]
-pub async fn quick_connect(st: State<'_, AppState>) -> R<QuickConnectChoice> {
+pub async fn quick_connect(app: AppHandle, st: State<'_, AppState>) -> R<QuickConnectChoice> {
+    st.pause.clear(&app);
     Ok(st.engine.quick_connect().await?)
 }
 
@@ -175,13 +177,38 @@ pub fn set_settings(app: AppHandle, st: State<'_, AppState>, settings: Settings)
 }
 
 #[tauri::command]
-pub async fn connect(st: State<'_, AppState>, id: ProfileId) -> R<()> {
+pub async fn connect(app: AppHandle, st: State<'_, AppState>, id: ProfileId) -> R<()> {
+    st.pause.clear(&app);
     Ok(st.engine.connect(id).await?)
 }
 
 #[tauri::command]
-pub async fn disconnect(st: State<'_, AppState>) -> R<()> {
+pub async fn disconnect(app: AppHandle, st: State<'_, AppState>) -> R<()> {
+    st.pause.clear(&app);
     Ok(st.engine.disconnect().await?)
+}
+
+#[tauri::command]
+pub async fn pause_vpn(
+    app: AppHandle,
+    st: State<'_, AppState>,
+    minutes: u32,
+) -> R<crate::pause::PauseInfo> {
+    crate::pause::start(&st.pause, &app, &st.engine, minutes)
+        .await
+        .map_err(UiError::msg)
+}
+
+#[tauri::command]
+pub async fn resume_vpn(app: AppHandle, st: State<'_, AppState>) -> R<()> {
+    crate::pause::resume_now(&st.pause, &app, &st.engine)
+        .await
+        .map_err(UiError::msg)
+}
+
+#[tauri::command]
+pub fn pause_status(st: State<'_, AppState>) -> Option<crate::pause::PauseInfo> {
+    st.pause.info()
 }
 
 #[tauri::command]

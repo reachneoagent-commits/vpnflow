@@ -14,7 +14,7 @@ Ordered by value to a non-technical user. Done items link to their test record i
 ## Next
 1. (built, awaiting live test) Auto-connect on launch/login (both off by default), and reconnect after sleep or a network change (on by default; Mac and Linux detect wake and network change).
 2. (built, awaiting live test) Trusted networks: skip the VPN on home Wi-Fi, always connect on others. Networks are identified by router address because macOS hides Wi-Fi names.
-3. Menu bar icon: status, one-click connect, quick server switch.
+3. (built, seen running on macOS) Menu bar icon: status, one-click connect, quick server switch, Pause VPN submenu.
 4. (built; follows the default "on where supported" until the user chooses; wording still to review) Kill switch on by default, with clearer wording.
 5. (first-run screens built, awaiting live test) Folder auto-import of Proton configs and a first-run guide.
 6. Fastest-server quick connect using measured speed and ping; show both in Locations.
@@ -23,6 +23,14 @@ Ordered by value to a non-technical user. Done items link to their test record i
 9. (built, awaiting live test) Scheduled connect and disconnect at set times and days.
 10. (live-verified on macOS: blocks ad and tracker domains) Custom DNS and ad blocking: pick AdGuard, Cloudflare malware, Quad9 or your own servers (macOS; needs the updated daemon).
 
+## Next, from the Surfshark and GitHub comparison
+- (built, awaiting live test) Pause VPN for 5 min, 30 min or 2 h, then auto-reconnect.
+- (built, awaiting live test) Browser add-ons card in Settings: links to Consent-O-Matic (cookie pop-ups) and uBlock Origin.
+- Check whether the preferred-profile setting already covers a pinned server, then show it plainly.
+- Self-healing tunnel (retry on drop) beyond the current reconnect.
+- Rotating IP: connect to a different server of the same country.
+- More DNS presets only where the provider is confirmed.
+
 ## Later
 - Developer ID signing and notarization (blocks wide distribution).
 - Windows MSI, universal (Apple Silicon + Intel) Mac build.
@@ -30,4 +38,4 @@ Ordered by value to a non-technical user. Done items link to their test record i
 - Linux kill-switch verification, SECURITY.md, DESIGN.md.
 
 ## Not planned
-Obfuscated servers, multi-hop: need server-side support that free Proton configs do not provide. (Ad/tracker blocking is done through custom DNS, item 10.)
+Obfuscated servers, multi-hop, quantum-resistant tunnels, DAITA: need server-side support that free Proton configs do not provide. (Ad/tracker blocking is done through custom DNS, item 10.)

@@ -1,3 +1,4 @@
+import { ExternalLink } from "lucide-react";
 import { useId, useState } from "react";
 import { Button, InfoTip, Panel, Switch } from "../components/ui";
 import { api } from "../lib/api";
@@ -40,7 +41,7 @@ function supportNote(s: Support | undefined, what: string) {
 }
 
 export function SettingsScreen() {
-  const { settings, saveSettings, caps, profiles, info, snapshot } = useStore();
+  const { settings, saveSettings, caps, profiles, info, snapshot, run } = useStore();
   const themeId = useId();
   const prefId = useId();
   const attemptsId = useId();
@@ -442,6 +443,22 @@ export function SettingsScreen() {
           configured DNS resolver (example.com reachability and whoami for public IP). Idle VPN servers are
           never probed.
         </p>
+      </Panel>
+
+      <Panel title="Browser add-ons" help="browserAddons">
+        <p className="py-3 text-[13px] text-muted">
+          Free add-ons for jobs a VPN cannot do. VPNFlow only opens their project pages; it installs nothing.
+        </p>
+        <div className="flex flex-wrap gap-2 border-t border-line py-3">
+          <Button onClick={() => run(() => api.openLink("consent"))}>
+            <ExternalLink size={15} aria-hidden />
+            Cookie pop-ups
+          </Button>
+          <Button onClick={() => run(() => api.openLink("ublock"))}>
+            <ExternalLink size={15} aria-hidden />
+            Ad blocker
+          </Button>
+        </div>
       </Panel>
 
       <Panel title="Appearance">

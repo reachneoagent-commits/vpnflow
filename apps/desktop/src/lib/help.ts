@@ -208,6 +208,30 @@ export const HELP = {
     tradeoff:
       "Every .conf in the folder is imported, so keep unrelated configs out of it. Recommended: use a folder that holds only the servers you want.",
   },
+  browserAddons: {
+    title: "Browser add-ons",
+    what: "Two free, open-source browser add-ons that do jobs a VPN cannot: hiding cookie pop-ups and blocking ads inside web pages.",
+    why: "A VPN protects your connection, not the page itself. Cookie banners and in-page ads are part of the page, so only a browser add-on can remove them.",
+    example:
+      "Press Cookie pop-ups, read the project page, and install the add-on from your browser's official store. Pop-ups then answer themselves with your saved choices.",
+    tradeoff:
+      "VPNFlow only opens the project's own web page; it installs nothing and sends nothing. Add-ons can see the pages you visit, so install them from your browser's official store and check the publisher name first. Recommended: install both, from the official store linked on those pages.",
+  },
+  pauseVpn: {
+    title: "Pause VPN",
+    what: "Turns the VPN off for a set time, then turns it back on by itself, to the same server.",
+    why: "Some banking, work or streaming sites refuse VPN connections. Pausing lets you use them without forgetting to reconnect.",
+    example:
+      "Press 30 minutes, do your banking, and VPNFlow reconnects on its own when the time is up. Press Resume now to come back sooner.",
+    tradeoff:
+      "While paused you are NOT protected: sites and your internet provider see your real address, and the kill switch is off too, otherwise nothing would load. If you quit VPNFlow while paused it will not reconnect on its own. Recommended: pick the shortest time that works.",
+    options: [
+      { name: "5 minutes", text: "A quick check or a single page." },
+      { name: "30 minutes", text: "A short task such as banking or a call." },
+      { name: "2 hours", text: "A longer session. Only if you really need it." },
+    ],
+    pick: "5 or 30 minutes for most things.",
+  },
   protonSite: {
     title: "Proton site",
     what: "Opens Proton's WireGuard download page in your normal web browser, so you can sign in and download server files without leaving this app's flow.",

@@ -27,6 +27,8 @@ export interface AppStore {
   profiles: ProfileView[];
   countries: Country[];
   settings: Settings | null;
+  /** Set while the VPN is paused: when it will turn back on. */
+  pause: { until_ms: number } | null;
   events: LogEntry[];
   notices: Notice[];
   notify: (n: Omit<Notice, "id">) => void;
@@ -55,6 +57,7 @@ export function useAppStore(): AppStore {
   const [countries, setCountries] = useState<Country[]>([]);
   const [profiles, setProfiles] = useState<ProfileView[]>([]);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const [pause, setPause] = useState<{ until_ms: number } | null>(null);
   const [events, setEvents] = useState<LogEntry[]>([]);
   const [notices, setNotices] = useState<Notice[]>([]);
 
@@ -97,6 +100,7 @@ export function useAppStore(): AppStore {
       let sawProfiles = false;
       let sawSettings = false;
       const listeners = await Promise.all([
+        listen<{ until_ms: number } | null>("pause", (e) => alive && setPause(e.payload)),
         listen<string>("settings-error", (e) => notify({ tone: "error", text: e.payload })),
         onEngineEvent((e) => {
           if (!alive) return;
@@ -138,6 +142,8 @@ export function useAppStore(): AppStore {
         api.countries(),
       ]);
       if (!alive) return;
+      setPause(await api.pauseStatus());
+      if (!alive) return;
       setCountries(countries);
       setInfo(i);
       setCaps(c);
@@ -168,6 +174,7 @@ export function useAppStore(): AppStore {
     profiles,
     countries,
     settings,
+    pause,
     events,
     notices,
     notify,

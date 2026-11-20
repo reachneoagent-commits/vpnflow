@@ -2,6 +2,7 @@ mod backend;
 mod commands;
 mod helper;
 mod onboarding;
+mod pause;
 mod schedule;
 mod speed;
 mod tray;
@@ -58,6 +59,7 @@ pub fn run() {
             app.manage(AppState {
                 engine: Arc::clone(&engine),
                 tray_available,
+                pause: Arc::new(pause::Pause::default()),
             });
             forward_events(app.handle().clone(), Arc::clone(&engine));
             trusted::spawn(Arc::clone(&engine));
@@ -116,6 +118,9 @@ pub fn run() {
             commands::set_settings,
             commands::connect,
             commands::disconnect,
+            commands::pause_vpn,
+            commands::resume_vpn,
+            commands::pause_status,
             commands::cancel,
             commands::import_dialog,
             commands::import_folder_dialog,

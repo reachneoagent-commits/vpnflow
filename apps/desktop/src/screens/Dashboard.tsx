@@ -88,11 +88,11 @@ function useSpeedTest(
 }
 
 export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
-  const { snapshot, profiles, settings, events, run, caps } = useStore();
+  const { snapshot, profiles, settings, events, run, caps, pause } = useStore();
   const headId = useId();
   const state = snapshot?.state ?? { state: "disconnected" as const };
   const active = isActive(state);
-  const now = useNow(state.state === "connected");
+  const now = useNow(state.state === "connected" || !!pause);
   const speed = useSpeedTest(
     state.state === "connected",
     state.state === "connected" && state.peer === "confirmed" && now - state.since_ms >= 8000,
@@ -227,16 +227,18 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
               className="mt-3 mb-1.5 text-[26px] leading-tight font-semibold tracking-[-0.02em] text-balance"
               aria-live="polite"
             >
-              {stateHeadline(state, selected?.name)}
+              {pause ? "VPN paused" : stateHeadline(state, selected?.name)}
             </h1>
             <p
               className={`min-h-10 max-w-[300px] text-[13px] ${state.state === "failed" || uncertain ? "text-[#f0786a]" : "text-(--h-mute)"}`}
             >
-              {state.state === "failed" || state.state === "uncertain"
-                ? state.reason
-                : state.state === "reconnecting"
-                  ? `Retrying, attempt ${state.attempt}`
-                  : statusSub(state.state)}
+              {pause
+                ? `Not protected. Back on in ${duration(Math.max(0, pause.until_ms - now))}`
+                : state.state === "failed" || state.state === "uncertain"
+                  ? state.reason
+                  : state.state === "reconnecting"
+                    ? `Retrying, attempt ${state.attempt}`
+                    : statusSub(state.state)}
               {connected && ` for ${duration(now - state.since_ms)}`}
             </p>
             {!active && snapshot?.protection.kill_switch.status === "verified" && (
@@ -245,6 +247,7 @@ export function Dashboard({ goTo }: { goTo: (s: ScreenId) => void }) {
               </p>
             )}
             <Orb selected={selected} />
+            <PauseControl paused={!!pause} connected={state.state === "connected"} />
             {connected && (
               <p className="mb-5 font-mono text-[clamp(26px,3vw,34px)] leading-none tabular-nums">
                 {duration(now - state.since_ms)}
@@ -453,6 +456,37 @@ function Detail({
       >
         {state === "pending" ? (children ?? "Pending") : (children ?? "Unavailable")}
       </dd>
+    </div>
+  );
+}
+
+/** Pause VPN: three fixed lengths while connected; Resume now while paused. */
+function PauseControl({ paused, connected }: { paused: boolean; connected: boolean }) {
+  const { run } = useStore();
+  if (paused) {
+    return (
+      <div className="mb-4 flex items-center justify-center gap-2">
+        <Button variant="primary" onClick={() => run(api.resumeVpn)}>
+          Resume now
+        </Button>
+        <InfoTip topic="pauseVpn" />
+      </div>
+    );
+  }
+  if (!connected) return null;
+  return (
+    <div className="mb-4 flex flex-wrap items-center justify-center gap-2">
+      <span className="text-[13px] text-(--h-mute)">Pause for</span>
+      {[
+        [5, "5 min"],
+        [30, "30 min"],
+        [120, "2 hours"],
+      ].map(([m, label]) => (
+        <Button key={m} onClick={() => run(() => api.pauseVpn(m as number))}>
+          {label}
+        </Button>
+      ))}
+      <InfoTip topic="pauseVpn" />
     </div>
   );
 }
