@@ -54,7 +54,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - runner: macos-14
+          - runner: macos-15-intel
             target: aarch64-apple-darwin
           - runner: macos-15-intel
             target: x86_64-apple-darwin
@@ -82,7 +82,7 @@ jobs:
           set -euo pipefail
           go version
           git clone --quiet --depth 1 --branch 0.0.20250522 https://git.zx2c4.com/wireguard-go "$RUNNER_TEMP/wg-src"
-          (cd "$RUNNER_TEMP/wg-src" && CGO_ENABLED=0 GOOS=darwin GOARCH="$(go env GOARCH)" \
+          (cd "$RUNNER_TEMP/wg-src" && CGO_ENABLED=0 GOOS=darwin GOARCH="$([ "${{ matrix.target }}" = aarch64-apple-darwin ] && echo arm64 || echo amd64)" \
             go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/wireguard-go" .)
           cargo build --release --locked -p vpnflow-daemon --target ${{ matrix.target }}
           scripts/macos/stage-helper.sh "target/${{ matrix.target }}/release/vpnflow-daemon" "$RUNNER_TEMP/wireguard-go"
