@@ -102,14 +102,14 @@ jobs:
           cd target/${{ matrix.target }}/release/bundle/dmg
           test "$(ls *.dmg | wc -l)" -eq 1
           shasum -a 256 *.dmg > "SHA256SUMS-${{ matrix.target }}.txt"
-          gh release upload "$TAG" --repo "${{ github.repository }}" *.dmg "SHA256SUMS-${{ matrix.target }}.txt"
+          gh release upload --clobber "$TAG" --repo "${{ github.repository }}" *.dmg "SHA256SUMS-${{ matrix.target }}.txt"
           # The in-app updater installs this file after checking its signature.
           cd ../macos
           test -s VPNFlow.app.tar.gz && test -s VPNFlow.app.tar.gz.sig
           arch="${{ matrix.target }}"; arch="${arch%%-*}"
           cp VPNFlow.app.tar.gz "update-darwin-$arch.app.tar.gz"
           cp VPNFlow.app.tar.gz.sig "update-darwin-$arch.app.tar.gz.sig"
-          gh release upload "$TAG" --repo "${{ github.repository }}" "update-darwin-$arch.app.tar.gz" "update-darwin-$arch.app.tar.gz.sig"
+          gh release upload --clobber "$TAG" --repo "${{ github.repository }}" "update-darwin-$arch.app.tar.gz" "update-darwin-$arch.app.tar.gz.sig"
 
   windows:
     needs: create-release
@@ -144,7 +144,7 @@ jobs:
           test "$(ls *.msi | wc -l)" -eq 1
           sha256sum *.msi > SHA256SUMS-windows.txt
           test -s *.msi.sig
-          gh release upload "$TAG" --repo "${{ github.repository }}" *.msi *.msi.sig SHA256SUMS-windows.txt
+          gh release upload --clobber "$TAG" --repo "${{ github.repository }}" *.msi *.msi.sig SHA256SUMS-windows.txt
 
   update-manifest:
     # Publishes latest.json, the file the app's updater reads. It lists each
@@ -185,4 +185,4 @@ jobs:
           EOF
           cd ..
           cat latest.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["version"], list(d["platforms"]))'
-          gh release upload "$TAG" --repo "$REPO" latest.json
+          gh release upload --clobber "$TAG" --repo "$REPO" latest.json
