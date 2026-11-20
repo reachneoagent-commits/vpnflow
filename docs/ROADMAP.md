@@ -29,9 +29,12 @@ Ordered by value to a non-technical user. Done items link to their test record i
 - Check for updates: About page and menu bar item; compares with the latest public GitHub release and offers a Download link.
 - DNS list: the default entry now says it blocks nothing and who answers.
 
-## Built for 0.1.14 (awaiting live check)
+## Built for 0.1.14 (released; awaiting live check)
 - About page links now open in the browser (they did nothing before).
 - Download and install from inside the app: update files are signed with our own key (private key backup in ~/.vpnflow-keys, secret `TAURI_SIGNING_PRIVATE_KEY` on GitHub), the app refuses anything else, then restarts. Needs one manual install of 0.1.14; first real test is 0.1.14 to 0.1.15.
+
+## 0.1.15 (awaiting live check)
+- No feature changes. Exists only to test Download and install from 0.1.14.
 
 ## Next, from the Surfshark and GitHub comparison
 - (built, awaiting live test) Pause VPN for 5 min, 30 min or 2 h, then auto-reconnect.
