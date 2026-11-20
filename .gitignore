@@ -17,3 +17,8 @@ vpnflow-configs/
 /Surfshark ref/
 /docs/testing/verify-report-*.txt
 /Config files/
+
+# Local/generated files (repo audit)
+.DS_Store
+/security_best_practices_report.md
+*.log

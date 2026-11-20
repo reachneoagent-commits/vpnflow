@@ -683,10 +683,10 @@ Not run: visual review of the running app (no screenshots by policy); `tauri dev
 - Fresh `cargo audit -d /tmp/aegis-security-advisory-db --json --no-yanked`:
   0 classified vulnerabilities; 1 unsoundness warning (GLib 0.18.5) and
   4 unmaintained-package warnings. Yanked releases were not checked.
-- `sh /home/mikeh/.npm-global/bin/pnpm audit --json` in `apps/desktop`:
+- `sh /home/<user>/.npm-global/bin/pnpm audit --json` in `apps/desktop`:
   0 advisories, including development dependencies.
 
-Report and suggested fixes: [security_best_practices_report.md](../../security_best_practices_report.md).
+Report: removed from the repository (it was an old audit snapshot).
 No disruptive VM/host-network test, privileged exploit test, Windows runtime
 check or Gitleaks scan was run during this audit. No application fixes applied.
 
