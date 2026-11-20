@@ -28,6 +28,7 @@ kotlin {
 
 dependencies {
     implementation("androidx.core:core-ktx:1.9.0")
+    implementation("androidx.activity:activity-ktx:1.9.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     // Official WireGuard tunnel library (userspace Go backend on Android's VpnService).
     implementation("com.wireguard.android:tunnel:1.0.20230706")
