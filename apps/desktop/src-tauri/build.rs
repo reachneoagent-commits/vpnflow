@@ -16,6 +16,7 @@ const COMMANDS: &[&str] = &[
     "connect",
     "disconnect",
     "pause_vpn",
+    "check_for_updates",
     "resume_vpn",
     "pause_status",
     "cancel",

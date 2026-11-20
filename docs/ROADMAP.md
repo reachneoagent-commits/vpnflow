@@ -23,6 +23,12 @@ Ordered by value to a non-technical user. Done items link to their test record i
 9. (built, awaiting live test) Scheduled connect and disconnect at set times and days.
 10. (live-verified on macOS: blocks ad and tracker domains) Custom DNS and ad blocking: pick AdGuard, Cloudflare malware, Quad9 or your own servers (macOS; needs the updated daemon).
 
+## Built for 0.1.12 (awaiting live check)
+- Header button (Disconnect / Cancel / Stop blocking) on every screen except Dashboard and Locations, which already have them.
+- Menu bar shows read-only details while connected: server and country, public address when known, time connected, kill switch on/off.
+- Check for updates: About page and menu bar item; compares with the latest public GitHub release and offers a Download link. No auto-install (needs a signing key).
+- DNS list: the default entry now says it blocks nothing and who answers.
+
 ## Next, from the Surfshark and GitHub comparison
 - (built, awaiting live test) Pause VPN for 5 min, 30 min or 2 h, then auto-reconnect.
 - (built, awaiting live test) Browser add-ons card in Settings: links to Consent-O-Matic (cookie pop-ups) and uBlock Origin.

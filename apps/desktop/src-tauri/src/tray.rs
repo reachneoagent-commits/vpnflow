@@ -33,6 +33,60 @@ fn status_text(s: &ConnectionState) -> &'static str {
     }
 }
 
+/// "2 h 05 min", "12 min", "under a minute".
+fn elapsed_text(ms: u64) -> String {
+    let mins = ms / 60_000;
+    match (mins / 60, mins % 60) {
+        (0, 0) => "under a minute".into(),
+        (0, m) => format!("{m} min"),
+        (h, m) => format!("{h} h {m:02} min"),
+    }
+}
+
+/// Read-only lines shown while the tunnel is up. No speeds or totals.
+fn detail_lines(snap: &aegis_core::Snapshot) -> Vec<String> {
+    let ConnectionState::Connected { since_ms, .. } = &snap.state else {
+        return Vec::new();
+    };
+    let mut out = Vec::new();
+    if let Some(p) = &snap.profile {
+        let country = p
+            .meta
+            .server
+            .location
+            .as_ref()
+            .and_then(|l| aegis_core::registry::country(&l.country_code))
+            .map(|c| c.name.as_str());
+        out.push(match country {
+            Some(c) => format!("Server: {} ({c})", p.meta.name),
+            None => format!("Server: {}", p.meta.name),
+        });
+    }
+    if let aegis_core::Feature::Verified(ip) = &snap.public_ip {
+        out.push(format!("Public address: {ip}"));
+    }
+    let now = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis() as u64)
+        .unwrap_or(0);
+    out.push(format!(
+        "Connected: {}",
+        elapsed_text(now.saturating_sub(*since_ms))
+    ));
+    out.push(
+        if matches!(
+            snap.protection.kill_switch,
+            aegis_core::Feature::Verified(_)
+        ) {
+            "Kill switch: on"
+        } else {
+            "Kill switch: off"
+        }
+        .into(),
+    );
+    out
+}
+
 fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Menu<Wry>> {
     let snap = engine.snapshot();
     let profiles = engine.profiles();
@@ -139,24 +193,38 @@ fn build_menu(app: &AppHandle, engine: &Engine<AnyBackend>) -> tauri::Result<Men
     let open = MenuItem::with_id(app, "open", "Open VPNFlow", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
     let quit = MenuItem::with_id(app, "quit", "Quit (VPN stays as it is)", true, None::<&str>)?;
+    let updates = MenuItem::with_id(app, "updates", "Check for updates…", true, None::<&str>)?;
+    let details: Vec<MenuItem<Wry>> = detail_lines(&snap)
+        .into_iter()
+        .enumerate()
+        .map(|(i, t)| MenuItem::with_id(app, format!("detail:{i}"), t, false, None::<&str>))
+        .collect::<tauri::Result<_>>()?;
     let sep = || PredefinedMenuItem::separator(app);
-    Menu::with_items(
-        app,
-        &[
-            &status,
-            &sep()?,
-            &quick,
-            &connect,
-            &disconnect,
-            &pause_menu,
-            &pref,
-            &sep()?,
-            &open,
-            &settings_item,
-            &sep()?,
-            &quit,
-        ],
-    )
+    let (s1, s2, s3, s4) = (sep()?, sep()?, sep()?, sep()?);
+    let mut items: Vec<&dyn tauri::menu::IsMenuItem<Wry>> = vec![
+        &status,
+        &s1,
+        &quick,
+        &connect,
+        &disconnect,
+        &pause_menu,
+        &pref,
+        &s2,
+        &open,
+        &settings_item,
+        &updates,
+        &s3,
+    ];
+    if !details.is_empty() {
+        items.extend(
+            details
+                .iter()
+                .map(|d| d as &dyn tauri::menu::IsMenuItem<Wry>),
+        );
+        items.push(&s4);
+    }
+    items.push(&quit);
+    Menu::with_items(app, &items)
 }
 
 pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Result<()> {
@@ -210,6 +278,11 @@ pub fn create(app: &AppHandle, engine: &Arc<Engine<AnyBackend>>) -> tauri::Resul
             "settings" => {
                 crate::show_main(app);
                 let _ = app.emit("navigate", "settings");
+            }
+            "updates" => {
+                crate::show_main(app);
+                let _ = app.emit("navigate", "about");
+                let _ = app.emit("check-updates", ());
             }
             "quit" => app.exit(0),
             other => {

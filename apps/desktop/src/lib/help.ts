@@ -13,6 +13,26 @@ export type HelpTopic = {
 };
 
 export const HELP = {
+  quickDisconnect: {
+    title: "Quick disconnect button",
+    what: "A button at the top of every screen that turns the VPN off (or cancels a connection in progress) without going back to the Dashboard.",
+    why: "Some changes need the VPN off. This saves a trip back to the Dashboard.",
+    example:
+      "You are in Settings and want to change the DNS. Press Disconnect at the top, change it, then connect again from the Dashboard.",
+    tradeoff:
+      "Disconnecting also releases the kill switch, so your traffic goes over your normal connection and shows your real address. If only the kill switch is blocking, the button says Stop blocking.",
+    pick: "Use it whenever you need the VPN off for a moment. Use Pause VPN if you want it to come back on by itself.",
+  },
+  updates: {
+    title: "Check for updates",
+    what: "Asks GitHub whether a newer VPNFlow has been released and, if so, gives you a Download button that opens the release page.",
+    why: "Fixes and new protection arrive in new versions. Until now you had to go through the launcher.",
+    example:
+      "You are on 0.1.11, the latest is 0.1.12. The page shows 0.1.12 is available. Press Download, install it, and you are current.",
+    tradeoff:
+      "It only asks for the latest public version number. Nothing about you or your VPN is sent, though GitHub sees your internet address like any website would. It never installs by itself.",
+    pick: "Check now and then, or after we tell you a fix is out.",
+  },
   killSwitch: {
     title: "Kill switch",
     what: "A safety net that blocks your internet if the VPN connection drops.",

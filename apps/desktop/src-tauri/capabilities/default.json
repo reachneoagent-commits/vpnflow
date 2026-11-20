@@ -23,6 +23,7 @@
     "allow-connect",
     "allow-disconnect",
     "allow-pause-vpn",
+    "allow-check-for-updates",
     "allow-resume-vpn",
     "allow-pause-status",
     "allow-cancel",

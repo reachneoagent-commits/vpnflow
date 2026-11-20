@@ -1,5 +1,58 @@
-import { Panel, Row } from "../components/ui";
+import { listen } from "@tauri-apps/api/event";
+import { useCallback, useEffect, useState } from "react";
+import { Button, InfoTip, Panel, Row } from "../components/ui";
+import { api } from "../lib/api";
 import { useStore } from "../lib/store";
+import type { UpdateInfo } from "../lib/types";
+
+type UpdateState =
+  | { kind: "idle" }
+  | { kind: "checking" }
+  | { kind: "error"; message: string }
+  | { kind: "done"; info: UpdateInfo };
+
+function UpdateRow() {
+  const [state, setState] = useState<UpdateState>({ kind: "idle" });
+  const check = useCallback(async () => {
+    setState({ kind: "checking" });
+    try {
+      setState({ kind: "done", info: await api.checkForUpdates() });
+    } catch (e) {
+      const m = (e as { message?: string })?.message;
+      setState({ kind: "error", message: m ?? "Could not check for updates." });
+    }
+  }, []);
+  useEffect(() => {
+    // The menu bar's "Check for updates" opens this page and asks for a check.
+    const p = listen("check-updates", () => void check());
+    return () => void p.then((un) => un());
+  }, [check]);
+  return (
+    <div className="flex flex-wrap items-center gap-3 py-3 text-[13px]">
+      <Button onClick={() => void check()} disabled={state.kind === "checking"}>
+        {state.kind === "checking" ? "Checking…" : "Check for updates"}
+      </Button>
+      <InfoTip topic="updates" />
+      <span role="status" className="text-muted">
+        {state.kind === "error" && state.message}
+        {state.kind === "done" && !state.info.newer && `You have the latest version (${state.info.current}).`}
+        {state.kind === "done" &&
+          state.info.newer &&
+          `Version ${state.info.latest} is available (you have ${state.info.current}).`}
+      </span>
+      {state.kind === "done" && state.info.newer && (
+        <a
+          className="inline-flex h-9 items-center rounded-[10px] bg-accent px-5 font-bold text-accent-fg"
+          href={state.info.url}
+          target="_blank"
+          rel="noreferrer"
+        >
+          Download
+        </a>
+      )}
+    </div>
+  );
+}
 
 export function About() {
   const { info, caps } = useStore();
@@ -12,6 +65,9 @@ export function About() {
           Free, local-first WireGuard client. MIT or Apache-2.0. Part of FlowApps.
         </p>
       </section>
+      <Panel title="Updates">
+        <UpdateRow />
+      </Panel>
       <Panel title="Details">
         <dl>
           <Row label="Version">{info?.version}</Row>

@@ -269,9 +269,8 @@ mod imp {
                 let fb = crate::verify::FALLBACK_SERVER.to_string();
                 let via = crate::verify::route_interface(&run("/sbin/route", &["-n", "get", &fb]));
                 if via.as_deref() == Some(iface.as_str()) {
-                    let second = crate::verify::judge_public_ip(
-                        crate::verify::lookup_public_ip_fallback(),
-                    );
+                    let second =
+                        crate::verify::judge_public_ip(crate::verify::lookup_public_ip_fallback());
                     if matches!(second, Feature::Verified(_)) {
                         return second;
                     }

@@ -19,6 +19,7 @@ import type {
   Snapshot,
   SpeedResult,
   UiError,
+  UpdateInfo,
 } from "./types";
 
 export const api = {
@@ -38,6 +39,7 @@ export const api = {
   disconnect: () => invoke<void>("disconnect"),
   pauseVpn: (minutes: number) => invoke<{ until_ms: number }>("pause_vpn", { minutes }),
   resumeVpn: () => invoke<void>("resume_vpn"),
+  checkForUpdates: () => invoke<UpdateInfo>("check_for_updates"),
   pauseStatus: () => invoke<{ until_ms: number } | null>("pause_status"),
   cancel: () => invoke<void>("cancel"),
   importDialog: () => invoke<ProfileView[]>("import_dialog"),

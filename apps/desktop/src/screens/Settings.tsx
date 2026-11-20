@@ -6,7 +6,12 @@ import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
 const DNS_PRESETS: { id: string; label: string; note: string; servers: string[] }[] = [
-  { id: "vpn", label: "The VPN's own (default)", note: "Private, no blocking.", servers: [] },
+  {
+    id: "vpn",
+    label: "The VPN's own: private, no blocking (default)",
+    note: "Your VPN provider answers, so no extra company sees your lookups. Nothing is blocked: ads and trackers load as usual.",
+    servers: [],
+  },
   {
     id: "adguard",
     label: "AdGuard: blocks ads and trackers",

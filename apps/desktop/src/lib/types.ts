@@ -229,3 +229,5 @@ export interface SpeedResult {
   provider: string;
   notes: string[];
 }
+
+export type UpdateInfo = { current: string; latest: string; newer: boolean; url: string };

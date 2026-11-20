@@ -191,6 +191,11 @@ pub async fn disconnect(app: AppHandle, st: State<'_, AppState>) -> R<()> {
 }
 
 #[tauri::command]
+pub async fn check_for_updates() -> R<crate::update::UpdateInfo> {
+    crate::update::check().await.map_err(UiError::msg)
+}
+
+#[tauri::command]
 pub async fn pause_vpn(
     app: AppHandle,
     st: State<'_, AppState>,

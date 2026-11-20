@@ -93,6 +93,7 @@ const snap = (state: Snapshot["state"], p: ProfileView | null = null): Snapshot 
 
 const mockApi = vi.hoisted(() => ({
   pauseStatus: vi.fn(),
+  checkForUpdates: vi.fn(),
   pauseVpn: vi.fn(),
   resumeVpn: vi.fn(),
   appInfo: vi.fn(),
@@ -559,6 +560,57 @@ describe("Locations cancellation and retained protection", () => {
     await openLocations();
     await userEvent.click(screen.getByRole("button", { name: "Stop blocking" }));
     expect(mockApi.disconnect).toHaveBeenCalled();
+  });
+});
+
+describe("Header quick disconnect and updates", () => {
+  const goTo = async (name: string) => {
+    await screen.findByRole("heading", { level: 1 });
+    await userEvent.click(
+      within(screen.getByRole("navigation", { name: "Main" })).getByRole("button", { name }),
+    );
+  };
+
+  it("offers Disconnect in the header on other screens while connected", async () => {
+    const p = located("SG");
+    setup({ profiles: [p] });
+    await goTo("Settings");
+    expect(screen.queryByRole("button", { name: "Disconnect" })).not.toBeInTheDocument();
+    const updated = snap({ state: "connected", profile: p.id, since_ms: Date.now(), peer: "confirmed" }, p);
+    await act(async () => engineEvents.listener?.({ type: "snapshot", data: updated }));
+    await userEvent.click(screen.getByRole("button", { name: "Disconnect" }));
+    expect(mockApi.disconnect).toHaveBeenCalled();
+  });
+
+  it("says when a newer version exists and links to the release page", async () => {
+    mockApi.checkForUpdates.mockResolvedValue({
+      current: "0.1.11",
+      latest: "0.1.12",
+      newer: true,
+      url: "https://github.com/reachneoagent-commits/vpnflow/releases/latest",
+    });
+    setup();
+    await goTo("About");
+    await userEvent.click(screen.getByRole("button", { name: "Check for updates" }));
+    expect(await screen.findByText(/Version 0.1.12 is available/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute(
+      "href",
+      "https://github.com/reachneoagent-commits/vpnflow/releases/latest",
+    );
+  });
+
+  it("says you are up to date", async () => {
+    mockApi.checkForUpdates.mockResolvedValue({
+      current: "0.1.11",
+      latest: "0.1.11",
+      newer: false,
+      url: "x",
+    });
+    setup();
+    await goTo("About");
+    await userEvent.click(screen.getByRole("button", { name: "Check for updates" }));
+    expect(await screen.findByText(/You have the latest version/)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Download" })).not.toBeInTheDocument();
   });
 });
 

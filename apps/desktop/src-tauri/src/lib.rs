@@ -24,6 +24,7 @@ mod tray {
     pub fn refresh(_: &AppHandle, _: &Engine<AnyBackend>) {}
 }
 mod trusted;
+mod update;
 
 use std::sync::Arc;
 
@@ -144,6 +145,7 @@ pub fn run() {
             commands::connect,
             commands::disconnect,
             commands::pause_vpn,
+            commands::check_for_updates,
             commands::resume_vpn,
             commands::pause_status,
             commands::cancel,
