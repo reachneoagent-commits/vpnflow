@@ -57,6 +57,10 @@ pub fn ruleset_with_bypass(
     // loopback (localhost dev servers, local tools) is passed with explicit
     // rules, first, in both directions and for both IP families.
     r.push_str("pass quick on lo0 all\n");
+    // AirDrop, AirPlay and Sidecar talk to nearby Apple devices over Apple's
+    // direct radio links (awdl0, llw0). That traffic never reaches the internet.
+    r.push_str("pass quick on awdl0 all\n");
+    r.push_str("pass quick on llw0 all\n");
     if let Some(tunnel_if) = tunnel_if {
         r.push_str(&format!("pass quick on {tunnel_if} all\n"));
     }
@@ -114,6 +118,14 @@ mod tests {
         assert!(!r.contains("set skip"));
         let r = ruleset(None, &[ep("203.0.113.7:51820")], false).unwrap();
         assert!(r.starts_with("pass quick on lo0 all\n"));
+    }
+
+    #[test]
+    fn airdrop_links_are_passed_before_the_final_block() {
+        let r = ruleset(Some("utun4"), &[ep("203.0.113.7:51820")], false).unwrap();
+        let awdl = r.find("pass quick on awdl0 all\n").unwrap();
+        assert!(awdl < r.find("block drop quick all").unwrap());
+        assert!(r.contains("pass quick on llw0 all\n"));
     }
 
     #[test]

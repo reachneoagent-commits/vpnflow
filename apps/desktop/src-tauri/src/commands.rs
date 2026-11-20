@@ -312,6 +312,18 @@ fn conf_files_in(dir: &std::path::Path) -> Vec<PathBuf> {
 
 #[tauri::command]
 pub async fn import_folder_dialog(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
+    // Phones have no folder picker; they import single files instead.
+    #[cfg(mobile)]
+    {
+        let _ = (&app, &st);
+        return Ok(Vec::new());
+    }
+    #[cfg(desktop)]
+    import_folder_desktop(app, st).await
+}
+
+#[cfg(desktop)]
+async fn import_folder_desktop(app: AppHandle, st: State<'_, AppState>) -> R<Vec<ProfileView>> {
     let (tx, rx) = tokio::sync::oneshot::channel();
     app.dialog()
         .file()

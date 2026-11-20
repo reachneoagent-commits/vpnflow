@@ -18,7 +18,7 @@ mod tray {
     use crate::backend::AnyBackend;
 
     pub fn create(_: &AppHandle, _: &Arc<Engine<AnyBackend>>) -> tauri::Result<()> {
-        Err(tauri::Error::UnknownPath)
+        Ok(())
     }
 
     pub fn refresh(_: &AppHandle, _: &Engine<AnyBackend>) {}
