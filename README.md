@@ -33,18 +33,29 @@ VPNFlow connects to a WireGuard server and then checks that the tunnel, the DNS 
 
 **Easiest:** install and update it with the [FlowApps launcher](https://github.com/reachneoagent-commits/FlowApps-Launcher/releases/latest), one app that also manages the other FlowApps on Mac and Windows. Or download an installer yourself below.
 
-Download the installer for your system (latest version, 0.1.1).
+Download the installer for your system (latest version, 0.1.15).
 
 | Platform                          | Installer |
 | --------------------------------- | --------- |
-| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_aarch64.dmg) |
-| macOS Intel                       | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64.dmg) |
-| Windows x64                       | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.1/VPNFlow_0.1.1_x64_en-US.msi) (preview, cannot connect yet) |
+| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_aarch64.dmg) |
+| macOS Intel                       | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_x64.dmg) |
+| Windows x64                       | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_x64_en-US.msi) (preview, cannot connect yet) |
+| Android phone, Google TV, Fire TV | [APK](https://github.com/reachneoagent-commits/vpnflow/releases/download/android-preview-1/vpnflow-android-aarch64.apk) (untested preview; [how to install](#android-google-tv-and-fire-tv)) |
 | Linux                             | [Build from source](#build-it-yourself) |
 
 Older versions are on the [Releases page](https://github.com/reachneoagent-commits/vpnflow/releases). Every release lists SHA-256 checksums so you can check the files.
 
 VPNFlow isn't signed with a paid Apple or Microsoft certificate (that costs money every year, and VPNFlow is free). Your computer will warn you the first time you open it. The warning is expected, and the steps below get past it once.
+
+### Android, Google TV and Fire TV
+
+An untested preview. The screens are made for a phone, not a TV remote yet.
+
+1. Download the `.apk` from the table above. On a Fire TV, install the free **Downloader** app, open it and type the APK link.
+2. Allow installing from this source when asked (Fire TV: Settings, My Fire TV, Developer options, Install unknown apps).
+3. Open VPNFlow. On Fire TV it is under **Your apps & channels**.
+
+Preview builds use a temporary signing key, so uninstall the old one before installing a newer one.
 
 ### Mac
 
