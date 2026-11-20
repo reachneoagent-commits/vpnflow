@@ -9,7 +9,6 @@ apps/desktop/src-tauri/gen/schemas/
 !tests/fixtures/**/*.conf
 
 # WireGuard configs contain private keys
-*.conf
 vpnflow-configs/
 
 # Local design assets and reference material, not for GitHub
@@ -19,6 +18,4 @@ vpnflow-configs/
 /Config files/
 
 # Local/generated files (repo audit)
-.DS_Store
 /security_best_practices_report.md
-*.log
