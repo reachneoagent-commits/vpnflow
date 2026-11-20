@@ -143,7 +143,7 @@ function Shell() {
           </ul>
         </nav>
         <div className="flex min-w-0 flex-1 flex-col">
-          <TopBar screen={screen} />
+          <TopBar />
           <main className="min-w-0 flex-1 overflow-y-auto [scrollbar-gutter:stable_both-edges]">
             <div className="mx-auto max-w-[940px] px-8 pt-7 pb-12 max-[720px]:px-4 max-[720px]:pt-5">
               <HelperBanner />
@@ -161,7 +161,7 @@ function Shell() {
   );
 }
 
-function TopBar({ screen }: { screen: ScreenId }) {
+function TopBar() {
   const { snapshot, settings, saveSettings, profiles, run } = useStore();
   const tone = stateTone(snapshot?.state);
   const st = snapshot?.state;
@@ -175,17 +175,8 @@ function TopBar({ screen }: { screen: ScreenId }) {
   const active = st ? isActive(st) : false;
   const blocking = !active && snapshot?.protection.kill_switch.status === "verified";
   const cancelling = st?.state === "connecting" || st?.state === "preparing" || st?.state === "reconnecting";
-  // Dashboard and Locations already carry these buttons; the header covers the other screens.
-  const ownsButtons = screen === "dashboard" || screen === "locations" || screen === "profiles";
-  const quickLabel = ownsButtons
-    ? null
-    : cancelling
-      ? "Cancel"
-      : active
-        ? "Disconnect"
-        : blocking
-          ? "Stop blocking"
-          : null;
+  // Always visible on every screen, even where the page has its own button.
+  const quickLabel = cancelling ? "Cancel" : active ? "Disconnect" : blocking ? "Stop blocking" : null;
   return (
     <header className="flex h-[60px] shrink-0 items-center gap-3 border-b border-line bg-surface px-6">
       <span
@@ -199,7 +190,7 @@ function TopBar({ screen }: { screen: ScreenId }) {
         <Button
           className="h-8 px-4"
           disabled={st ? isBusy(st) && !cancelling : false}
-          onClick={() => void run(api.disconnect)}
+          onClick={() => void run(cancelling ? api.cancel : api.disconnect)}
         >
           {quickLabel}
         </Button>

@@ -19,7 +19,7 @@ export function Button({
   return (
     <button
       type="button"
-      className={`inline-flex items-center justify-center gap-1.5 h-9 whitespace-nowrap shrink-0 rounded-[10px] border px-5 text-[13px] font-bold transition-[background-color,filter] disabled:cursor-not-allowed disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`inline-flex items-center justify-center gap-1.5 h-9 whitespace-nowrap shrink-0 rounded-[10px] border px-5 text-[13px] font-bold transition-[background-color,filter,transform] active:scale-[0.97] active:brightness-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:brightness-100 ${variants[variant]} ${className}`}
       {...props}
     />
   );

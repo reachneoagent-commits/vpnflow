@@ -291,7 +291,7 @@ describe("App", () => {
     });
     expect(await screen.findByRole("heading", { name: "Tunnel status unknown" })).toBeInTheDocument();
     expect(screen.getByText("Cannot read tunnel status")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Disconnect" })).toBeEnabled();
+    expect(screen.getAllByRole("button", { name: "Disconnect" })[0] as HTMLElement).toBeEnabled();
     expect(screen.queryByRole("button", { name: "Connect" })).not.toBeInTheDocument();
   });
 
@@ -321,7 +321,7 @@ describe("App", () => {
       },
     });
     expect(await screen.findByText(/kill switch is blocking ordinary traffic/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Stop blocking" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Stop blocking" })[0] as HTMLElement);
     expect(mockApi.disconnect).toHaveBeenCalled();
   });
 
@@ -489,7 +489,7 @@ describe("Locations", () => {
     await openLocations();
     const updated = snap({ state: "connected", profile: p.id, since_ms: Date.now(), peer: "confirmed" }, p);
     await act(async () => engineEvents.listener?.({ type: "snapshot", data: updated }));
-    expect(screen.getByRole("button", { name: "Disconnect" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Disconnect" })[0] as HTMLElement).toBeInTheDocument();
     await userEvent.click(within(screen.getByRole("navigation")).getByRole("button", { name: "Dashboard" }));
     expect(screen.getByRole("heading", { name: "Connected to Office" })).toBeInTheDocument();
     expect(screen.getByText("Singapore city, Singapore")).toBeInTheDocument();
@@ -505,8 +505,8 @@ describe("Locations", () => {
     });
     await openLocations();
     expect(screen.getByRole("button", { name: "Quick Connect" })).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getAllByRole("button", { name: "Cancel" })[0] as HTMLElement).toBeEnabled();
+    await userEvent.click(screen.getAllByRole("button", { name: "Cancel" })[0] as HTMLElement);
     expect(mockApi.cancel).toHaveBeenCalled();
   });
 
@@ -543,8 +543,8 @@ describe("Locations cancellation and retained protection", () => {
     await act(async () =>
       engineEvents.listener?.({ type: "snapshot", data: snap({ state: "connecting", profile: p.id }, p) }),
     );
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getAllByRole("button", { name: "Cancel" })[0] as HTMLElement).toBeEnabled();
+    await userEvent.click(screen.getAllByRole("button", { name: "Cancel" })[0] as HTMLElement);
     expect(mockApi.cancel).toHaveBeenCalled();
     await act(async () => finish());
   });
@@ -558,7 +558,7 @@ describe("Locations cancellation and retained protection", () => {
     snapshot.protection.kill_switch = { status: "verified", detail: "Traffic blocked" };
     setup({ profiles: [p], snapshot });
     await openLocations();
-    await userEvent.click(screen.getByRole("button", { name: "Stop blocking" }));
+    await userEvent.click(screen.getAllByRole("button", { name: "Stop blocking" })[0] as HTMLElement);
     expect(mockApi.disconnect).toHaveBeenCalled();
   });
 });
@@ -580,6 +580,16 @@ describe("Header quick disconnect and updates", () => {
     await act(async () => engineEvents.listener?.({ type: "snapshot", data: updated }));
     await userEvent.click(screen.getByRole("button", { name: "Disconnect" }));
     expect(mockApi.disconnect).toHaveBeenCalled();
+  });
+
+  it("keeps the header Disconnect on the Dashboard too", async () => {
+    const p = located("SG");
+    setup({ profiles: [p] });
+    await screen.findByRole("heading", { level: 1 });
+    const updated = snap({ state: "connected", profile: p.id, since_ms: Date.now(), peer: "confirmed" }, p);
+    await act(async () => engineEvents.listener?.({ type: "snapshot", data: updated }));
+    const header = screen.getAllByRole("banner")[0] as HTMLElement;
+    expect(within(header).getByRole("button", { name: "Disconnect" })).toBeEnabled();
   });
 
   it("says when a newer version exists and links to the release page", async () => {
