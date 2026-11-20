@@ -9,7 +9,8 @@ type UpdateState =
   | { kind: "idle" }
   | { kind: "checking" }
   | { kind: "error"; message: string }
-  | { kind: "done"; info: UpdateInfo };
+  | { kind: "done"; info: UpdateInfo }
+  | { kind: "installing"; percent: number | null; info: UpdateInfo };
 
 function UpdateRow() {
   const [state, setState] = useState<UpdateState>({ kind: "idle" });
@@ -21,6 +22,21 @@ function UpdateRow() {
       const m = (e as { message?: string })?.message;
       setState({ kind: "error", message: m ?? "Could not check for updates." });
     }
+  }, []);
+  const install = useCallback(async (info: UpdateInfo) => {
+    setState({ kind: "installing", percent: null, info });
+    try {
+      await api.installUpdate();
+    } catch (e) {
+      const m = (e as { message?: string })?.message;
+      setState({ kind: "error", message: m ?? "Could not install the update." });
+    }
+  }, []);
+  useEffect(() => {
+    const p = listen<number | null>("update-progress", (ev) =>
+      setState((s) => (s.kind === "installing" ? { ...s, percent: ev.payload } : s)),
+    );
+    return () => void p.then((un) => un());
   }, []);
   useEffect(() => {
     // The menu bar's "Check for updates" opens this page and asks for a check.
@@ -39,16 +55,22 @@ function UpdateRow() {
         {state.kind === "done" &&
           state.info.newer &&
           `Version ${state.info.latest} is available (you have ${state.info.current}).`}
+        {state.kind === "installing" &&
+          `Installing version ${state.info.latest}${state.percent === null ? "…" : ` (${state.percent}%)`}. VPNFlow will restart.`}
       </span>
       {state.kind === "done" && state.info.newer && (
-        <a
-          className="inline-flex h-9 items-center rounded-[10px] bg-accent px-5 font-bold text-accent-fg"
-          href={state.info.url}
-          target="_blank"
-          rel="noreferrer"
-        >
-          Download
-        </a>
+        <>
+          <Button variant="primary" onClick={() => void install(state.info)}>
+            Download and install
+          </Button>
+          <button
+            type="button"
+            className="text-focus underline-offset-2 hover:underline"
+            onClick={() => void api.openLink("release")}
+          >
+            Open release page
+          </button>
+        </>
       )}
     </div>
   );
@@ -87,24 +109,22 @@ export function About() {
           </Row>
           <Row label="License">MIT or Apache-2.0</Row>
           <Row label="Source">
-            <a
+            <button
+              type="button"
               className="text-focus underline-offset-2 hover:underline"
-              href="https://github.com/reachneoagent-commits/vpnflow"
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => void api.openLink("source")}
             >
               github.com/reachneoagent-commits/vpnflow
-            </a>
+            </button>
           </Row>
           <Row label="Security policy">
-            <a
+            <button
+              type="button"
               className="text-focus underline-offset-2 hover:underline"
-              href="https://github.com/reachneoagent-commits/vpnflow/blob/main/SECURITY.md"
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => void api.openLink("security")}
             >
               SECURITY.md
-            </a>
+            </button>
           </Row>
         </dl>
       </Panel>
@@ -122,14 +142,13 @@ export function About() {
           </p>
           <p>
             Setup illustrations: Bangalore set by{" "}
-            <a
+            <button
+              type="button"
               className="text-focus underline-offset-2 hover:underline"
-              href="https://www.streamlinehq.com"
-              target="_blank"
-              rel="noreferrer"
+              onClick={() => void api.openLink("streamline")}
             >
               Streamline
-            </a>
+            </button>
             , licensed CC BY 4.0, recoloured to the VPNFlow palette.
           </p>
           <p>VPNFlow has not been independently security-audited.</p>

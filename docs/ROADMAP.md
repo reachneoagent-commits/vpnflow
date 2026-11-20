@@ -24,10 +24,14 @@ Ordered by value to a non-technical user. Done items link to their test record i
 10. (live-verified on macOS: blocks ad and tracker domains) Custom DNS and ad blocking: pick AdGuard, Cloudflare malware, Quad9 or your own servers (macOS; needs the updated daemon).
 
 ## Built for 0.1.12 (awaiting live check)
-- Header button (Disconnect / Cancel / Stop blocking) on every screen except Dashboard and Locations, which already have them.
+- Header button (Disconnect / Cancel / Stop blocking) on every screen, including Dashboard and Locations (0.1.13). Buttons also have pressed, focus and disabled looks.
 - Menu bar shows read-only details while connected: server and country, public address when known, time connected, kill switch on/off.
-- Check for updates: About page and menu bar item; compares with the latest public GitHub release and offers a Download link. No auto-install (needs a signing key).
+- Check for updates: About page and menu bar item; compares with the latest public GitHub release and offers a Download link.
 - DNS list: the default entry now says it blocks nothing and who answers.
+
+## Built for 0.1.14 (awaiting live check)
+- About page links now open in the browser (they did nothing before).
+- Download and install from inside the app: update files are signed with our own key (private key backup in ~/.vpnflow-keys, secret `TAURI_SIGNING_PRIVATE_KEY` on GitHub), the app refuses anything else, then restarts. Needs one manual install of 0.1.14; first real test is 0.1.14 to 0.1.15.
 
 ## Next, from the Surfshark and GitHub comparison
 - (built, awaiting live test) Pause VPN for 5 min, 30 min or 2 h, then auto-reconnect.

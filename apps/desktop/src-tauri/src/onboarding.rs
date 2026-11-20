@@ -15,6 +15,10 @@ pub fn link(which: &str) -> Option<&'static str> {
         "help" => "https://protonvpn.com/support/wireguard-configurations",
         "consent" => "https://consentomatic.au.dk/",
         "ublock" => "https://github.com/gorhill/uBlock",
+        "release" => "https://github.com/reachneoagent-commits/vpnflow/releases/latest",
+        "source" => "https://github.com/reachneoagent-commits/vpnflow",
+        "security" => "https://github.com/reachneoagent-commits/vpnflow/blob/main/SECURITY.md",
+        "streamline" => "https://www.streamlinehq.com",
         _ => return None,
     })
 }

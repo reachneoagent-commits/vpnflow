@@ -195,6 +195,14 @@ pub async fn check_for_updates() -> R<crate::update::UpdateInfo> {
     crate::update::check().await.map_err(UiError::msg)
 }
 
+/// Downloads the newest release, checks its signature against the key built
+/// into this app, installs it and restarts. The tunnel belongs to the
+/// background helper, so a connected VPN stays up through the restart.
+#[tauri::command]
+pub async fn install_update(app: AppHandle) -> R<()> {
+    crate::update::install(&app).await.map_err(UiError::msg)
+}
+
 #[tauri::command]
 pub async fn pause_vpn(
     app: AppHandle,

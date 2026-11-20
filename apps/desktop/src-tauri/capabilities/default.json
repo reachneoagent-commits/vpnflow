@@ -24,6 +24,7 @@
     "allow-disconnect",
     "allow-pause-vpn",
     "allow-check-for-updates",
+    "allow-install-update",
     "allow-resume-vpn",
     "allow-pause-status",
     "allow-cancel",

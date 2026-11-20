@@ -81,11 +81,14 @@ jobs:
             go build -trimpath -ldflags="-s -w" -o "$RUNNER_TEMP/wireguard-go" .)
           cargo build --release --locked -p vpnflow-daemon --target ${{ matrix.target }}
           scripts/macos/stage-helper.sh "target/${{ matrix.target }}/release/vpnflow-daemon" "$RUNNER_TEMP/wireguard-go"
-      - name: Build the disk image
+      - name: Build the disk image and the signed update file
         working-directory: apps/desktop
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           pnpm install --frozen-lockfile
-          pnpm tauri build --ci --target ${{ matrix.target }} --bundles dmg -- --locked
+          pnpm tauri build --ci --target ${{ matrix.target }} --bundles app,dmg --config '{"bundle":{"createUpdaterArtifacts":true}}' -- --locked
       - name: Upload with checksum
         env:
           GH_TOKEN: ${{ github.token }}
@@ -95,6 +98,13 @@ jobs:
           test "$(ls *.dmg | wc -l)" -eq 1
           shasum -a 256 *.dmg > "SHA256SUMS-${{ matrix.target }}.txt"
           gh release upload "$TAG" --repo "${{ github.repository }}" *.dmg "SHA256SUMS-${{ matrix.target }}.txt"
+          # The in-app updater installs this file after checking its signature.
+          cd ../macos
+          test -s VPNFlow.app.tar.gz && test -s VPNFlow.app.tar.gz.sig
+          arch="${{ matrix.target }}"; arch="${arch%%-*}"
+          cp VPNFlow.app.tar.gz "update-darwin-$arch.app.tar.gz"
+          cp VPNFlow.app.tar.gz.sig "update-darwin-$arch.app.tar.gz.sig"
+          gh release upload "$TAG" --repo "${{ github.repository }}" "update-darwin-$arch.app.tar.gz" "update-darwin-$arch.app.tar.gz.sig"
 
   windows:
     needs: create-release
@@ -110,12 +120,15 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-      - name: Build the installer
+      - name: Build the installer and the signed update file
         working-directory: apps/desktop
         shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           pnpm install --frozen-lockfile
-          pnpm tauri build --ci --bundles msi -- --locked
+          pnpm tauri build --ci --bundles msi --config '{"bundle":{"createUpdaterArtifacts":true}}' -- --locked
       - name: Upload with checksum
         shell: bash
         env:
@@ -125,4 +138,46 @@ jobs:
           cd target/release/bundle/msi
           test "$(ls *.msi | wc -l)" -eq 1
           sha256sum *.msi > SHA256SUMS-windows.txt
-          gh release upload "$TAG" --repo "${{ github.repository }}" *.msi SHA256SUMS-windows.txt
+          test -s *.msi.sig
+          gh release upload "$TAG" --repo "${{ github.repository }}" *.msi *.msi.sig SHA256SUMS-windows.txt
+
+  update-manifest:
+    # Publishes latest.json, the file the app's updater reads. It lists each
+    # signed update file and its signature. Windows cannot connect yet, but its
+    # entry is kept so the app can still update itself there.
+    needs: [macos, windows]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Build and upload latest.json
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.confirm_version }}
+        run: |
+          set -euo pipefail
+          mkdir sigs && cd sigs
+          gh release download "$TAG" --repo "$REPO" --pattern '*.sig'
+          ls
+          python3 - <<'EOF'
+          import glob, json, os, datetime
+          repo, tag, ver = os.environ["REPO"], os.environ["TAG"], os.environ["VERSION"]
+          base = f"https://github.com/{repo}/releases/download/{tag}/"
+          def sig(name): return open(name).read().strip()
+          platforms = {}
+          for arch in ("aarch64", "x86_64"):
+              f = f"update-darwin-{arch}.app.tar.gz"
+              platforms[f"darwin-{arch}"] = {"signature": sig(f + ".sig"), "url": base + f}
+          msi = glob.glob("*.msi.sig")
+          assert len(msi) == 1, msi
+          platforms["windows-x86_64"] = {"signature": sig(msi[0]), "url": base + msi[0][:-4]}
+          doc = {
+              "version": ver,
+              "notes": f"VPNFlow {ver}",
+              "pub_date": datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+              "platforms": platforms,
+          }
+          json.dump(doc, open("../latest.json", "w"), indent=2)
+          EOF
+          cd ..
+          cat latest.json | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["version"], list(d["platforms"]))'
+          gh release upload "$TAG" --repo "$REPO" latest.json

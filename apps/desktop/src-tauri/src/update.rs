@@ -1,6 +1,7 @@
 //! Update check: asks GitHub for the latest public release and compares it with
 //! the running version. Sends nothing about the user (a plain anonymous GET) and
-//! never installs anything; the UI only offers a link to the release page.
+//! only offers the release page. Installing is separate (`install`) and is
+//! verified against the signing key built into the app.
 
 use std::time::Duration;
 
@@ -74,6 +75,42 @@ pub async fn check() -> Result<UpdateInfo, String> {
         newer,
         url: RELEASES_PAGE,
     })
+}
+
+/// Desktop only. Installs only a download whose signature matches the public
+/// key in tauri.conf.json; anything else is refused by the updater.
+#[cfg(desktop)]
+pub async fn install(app: &tauri::AppHandle) -> Result<(), String> {
+    use tauri::Emitter;
+    use tauri_plugin_updater::UpdaterExt;
+
+    let fail =
+        |_| "Could not install the update. Download it from the release page instead.".to_string();
+    let updater = app.updater().map_err(fail)?;
+    let update = updater
+        .check()
+        .await
+        .map_err(|_| "Could not reach GitHub. Check your connection and try again.".to_string())?
+        .ok_or_else(|| "You already have the latest version.".to_string())?;
+    let mut done: u64 = 0;
+    let handle = app.clone();
+    update
+        .download_and_install(
+            move |chunk, total| {
+                done += chunk as u64;
+                let pct = total.filter(|t| *t > 0).map(|t| (done * 100 / t).min(100));
+                let _ = handle.emit("update-progress", pct);
+            },
+            || {},
+        )
+        .await
+        .map_err(fail)?;
+    app.restart()
+}
+
+#[cfg(not(desktop))]
+pub async fn install(_app: &tauri::AppHandle) -> Result<(), String> {
+    Err("Updates install from the release page on this device.".into())
 }
 
 #[cfg(test)]

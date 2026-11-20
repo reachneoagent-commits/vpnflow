@@ -2,7 +2,7 @@
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "VPNFlow",
   "mainBinaryName": "vpnflow",
-  "version": "0.1.13",
+  "version": "0.1.14",
   "identifier": "org.vpnflow.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
@@ -38,7 +38,7 @@
       "nsis"
     ],
     "category": "Utility",
-    "shortDescription": "VPNFlow — WireGuard VPN client",
+    "shortDescription": "VPNFlow \u2014 WireGuard VPN client",
     "longDescription": "VPNFlow is a lightweight open-source WireGuard VPN client for Linux, Windows, and macOS.",
     "license": "MIT OR Apache-2.0",
     "copyright": "VPNFlow contributors",
@@ -77,6 +77,14 @@
         },
         "preRemoveScript": "packaging/rpm-preun.sh"
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYyRDMxN0FENDRBQzJENTgKUldSWUxheEVyUmZUWW1pWGpvM0RaSzVEZVE0bHZ4TjBid01SNS8rRnpCSUlJNHo1MXhrQXBvcUkK",
+      "endpoints": [
+        "https://github.com/reachneoagent-commits/vpnflow/releases/latest/download/latest.json"
+      ]
     }
   }
 }

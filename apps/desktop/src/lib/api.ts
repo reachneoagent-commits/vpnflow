@@ -40,6 +40,7 @@ export const api = {
   pauseVpn: (minutes: number) => invoke<{ until_ms: number }>("pause_vpn", { minutes }),
   resumeVpn: () => invoke<void>("resume_vpn"),
   checkForUpdates: () => invoke<UpdateInfo>("check_for_updates"),
+  installUpdate: () => invoke<void>("install_update"),
   pauseStatus: () => invoke<{ until_ms: number } | null>("pause_status"),
   cancel: () => invoke<void>("cancel"),
   importDialog: () => invoke<ProfileView[]>("import_dialog"),

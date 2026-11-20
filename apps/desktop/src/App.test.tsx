@@ -94,6 +94,8 @@ const snap = (state: Snapshot["state"], p: ProfileView | null = null): Snapshot 
 const mockApi = vi.hoisted(() => ({
   pauseStatus: vi.fn(),
   checkForUpdates: vi.fn(),
+  openLink: vi.fn(),
+  installUpdate: vi.fn(() => new Promise(() => {})),
   pauseVpn: vi.fn(),
   resumeVpn: vi.fn(),
   appInfo: vi.fn(),
@@ -603,10 +605,11 @@ describe("Header quick disconnect and updates", () => {
     await goTo("About");
     await userEvent.click(screen.getByRole("button", { name: "Check for updates" }));
     expect(await screen.findByText(/Version 0.1.12 is available/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Download" })).toHaveAttribute(
-      "href",
-      "https://github.com/reachneoagent-commits/vpnflow/releases/latest",
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Open release page" }));
+    expect(mockApi.openLink).toHaveBeenCalledWith("release");
+    await userEvent.click(screen.getByRole("button", { name: "Download and install" }));
+    expect(mockApi.installUpdate).toHaveBeenCalled();
+    expect(await screen.findByText(/Installing version 0.1.12/)).toBeInTheDocument();
   });
 
   it("says you are up to date", async () => {
@@ -620,7 +623,7 @@ describe("Header quick disconnect and updates", () => {
     await goTo("About");
     await userEvent.click(screen.getByRole("button", { name: "Check for updates" }));
     expect(await screen.findByText(/You have the latest version/)).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "Download" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Download and install" })).not.toBeInTheDocument();
   });
 });
 

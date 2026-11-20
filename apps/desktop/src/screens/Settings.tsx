@@ -440,8 +440,8 @@ export function SettingsScreen() {
           description="Desktop alerts for connect, disconnect, and failure events when the system supports them."
         />
         <p className="border-t border-line py-3 text-[13px] text-muted">
-          Automatic updates are not available yet — release signing has not been set up, so VPNFlow makes no
-          update requests.
+          VPNFlow never checks for updates by itself. Open the About page and press Check for updates; if
+          there is a newer version you can install it from there.
         </p>
         <p className="border-t border-line py-3 text-[13px] text-muted">
           VPNFlow collects no analytics and needs no account. Connectivity checks contact only the tunnel's

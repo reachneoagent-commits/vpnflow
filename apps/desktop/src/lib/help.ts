@@ -25,12 +25,12 @@ export const HELP = {
   },
   updates: {
     title: "Check for updates",
-    what: "Asks GitHub whether a newer VPNFlow has been released and, if so, gives you a Download button that opens the release page.",
-    why: "Fixes and new protection arrive in new versions. Until now you had to go through the launcher.",
+    what: "Asks GitHub whether a newer VPNFlow has been released. If so, Download and install fetches it, checks it is really ours, installs it and restarts the app. The release page link is there as a backup.",
+    why: "Fixes and new protection arrive in new versions, and you should not have to hunt for them.",
     example:
-      "You are on 0.1.11, the latest is 0.1.12. The page shows 0.1.12 is available. Press Download, install it, and you are current.",
+      "You are on 0.1.14, the latest is 0.1.15. The page says 0.1.15 is available. Press Download and install, wait a moment, and the app reopens on 0.1.15.",
     tradeoff:
-      "It only asks for the latest public version number. Nothing about you or your VPN is sent, though GitHub sees your internet address like any website would. It never installs by itself.",
+      "It only asks for the latest public version number. Nothing about you or your VPN is sent, though GitHub sees your internet address like any website would. It never installs by itself, only when you press the button. A download that is not signed with our key is refused. A connected VPN stays connected while the app restarts. Versions before 0.1.14 cannot update this way and need one manual install.",
     pick: "Check now and then, or after we tell you a fix is out.",
   },
   killSwitch: {

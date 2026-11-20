@@ -54,7 +54,8 @@ pub fn run() {
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
-        ));
+        ))
+        .plugin(tauri_plugin_updater::Builder::new().build());
     #[cfg(target_os = "android")]
     let builder = builder.plugin(aegis_android::init());
     let result = builder
@@ -146,6 +147,7 @@ pub fn run() {
             commands::disconnect,
             commands::pause_vpn,
             commands::check_for_updates,
+            commands::install_update,
             commands::resume_vpn,
             commands::pause_status,
             commands::cancel,
