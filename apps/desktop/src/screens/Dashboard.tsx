@@ -669,7 +669,9 @@ function PublicIpRow({
     );
   } else if (feature.status === "configured") {
     body = feature.detail;
-  } else if (feature.status === "failed" || feature.status === "unsupported") {
+  } else if (feature.status === "unsupported") {
+    body = <span className="text-(--h-pending)">{feature.detail}</span>;
+  } else if (feature.status === "failed") {
     body = <span className="text-[#f0786a]">{feature.detail}</span>;
   } else if (connected) {
     body = "Enable connectivity check in Settings";

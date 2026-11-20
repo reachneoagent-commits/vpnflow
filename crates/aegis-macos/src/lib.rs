@@ -260,7 +260,23 @@ mod imp {
                         via.as_deref().unwrap_or("no route")
                     ));
                 }
-                crate::verify::judge_public_ip(crate::verify::lookup_public_ip(server))
+                let first = crate::verify::judge_public_ip(crate::verify::lookup_public_ip(server));
+                if matches!(first, Feature::Verified(_)) {
+                    return first;
+                }
+                // The profile's DNS does not answer: ask a second source, but
+                // only if that question would travel through the tunnel.
+                let fb = crate::verify::FALLBACK_SERVER.to_string();
+                let via = crate::verify::route_interface(&run("/sbin/route", &["-n", "get", &fb]));
+                if via.as_deref() == Some(iface.as_str()) {
+                    let second = crate::verify::judge_public_ip(
+                        crate::verify::lookup_public_ip_fallback(),
+                    );
+                    if matches!(second, Feature::Verified(_)) {
+                        return second;
+                    }
+                }
+                first
             })
             .await
             .unwrap_or(Feature::Off)

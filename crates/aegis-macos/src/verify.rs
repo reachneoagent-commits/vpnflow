@@ -176,12 +176,15 @@ pub fn dns_a_records(id: u16, reply: &[u8]) -> Option<Vec<Ipv4Addr>> {
 pub fn judge_public_ip(addrs: Option<Vec<Ipv4Addr>>) -> Feature {
     match addrs {
         Some(list) if !list.is_empty() => Feature::Verified(list[0].to_string()),
-        Some(_) => {
-            Feature::Failed("the tunnel DNS answered whoami but returned no IPv4 address".into())
-        }
-        None => {
-            Feature::Failed("no whoami answer from the tunnel's DNS server within 3 seconds".into())
-        }
+        // Not a leak or a broken tunnel: many DNS servers simply do not answer
+        // this question. Shown as "not available", never as a failure.
+        Some(_) => Feature::Unsupported(
+            "Not available: this DNS server does not report it. Your connection is not affected."
+                .into(),
+        ),
+        None => Feature::Unsupported(
+            "Not available: no answer within 3 seconds. Your connection is not affected.".into(),
+        ),
     }
 }
 
@@ -195,6 +198,17 @@ pub fn lookup(server: IpAddr) -> Option<u8> {
 /// Ask `server` for [`WHOAMI_NAME`] and return its A records. Blocking.
 pub fn lookup_public_ip(server: IpAddr) -> Option<Vec<Ipv4Addr>> {
     let (id, reply) = exchange(server, WHOAMI_NAME)?;
+    dns_a_records(id, &reply)
+}
+
+/// Second source when the profile's DNS does not answer [`WHOAMI_NAME`]:
+/// OpenDNS answers `myip.opendns.com` with the address the question came from.
+/// Only asked through the tunnel (the caller checks the route first).
+pub const FALLBACK_SERVER: Ipv4Addr = Ipv4Addr::new(208, 67, 222, 222);
+pub const FALLBACK_NAME: &str = "myip.opendns.com";
+
+pub fn lookup_public_ip_fallback() -> Option<Vec<Ipv4Addr>> {
+    let (id, reply) = exchange(IpAddr::V4(FALLBACK_SERVER), FALLBACK_NAME)?;
     dns_a_records(id, &reply)
 }
 
@@ -289,11 +303,11 @@ mod tests {
         );
         assert!(matches!(
             super::judge_public_ip(Some(vec![])),
-            aegis_core::Feature::Failed(_)
+            aegis_core::Feature::Unsupported(_)
         ));
         assert!(matches!(
             super::judge_public_ip(None),
-            aegis_core::Feature::Failed(_)
+            aegis_core::Feature::Unsupported(_)
         ));
         assert_eq!(super::dns_a_records(0x2222, &reply), None);
     }
