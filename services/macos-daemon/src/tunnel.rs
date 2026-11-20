@@ -32,7 +32,9 @@ const NETWORKSETUP: &str = "/usr/sbin/networksetup";
 const PFCTL: &str = "/sbin/pfctl";
 const NAME_FILE: &str = "/var/run/vpnflow-tun.name";
 const DNS_BACKUP: &str = "dns-backup.json";
-const DEFAULT_MTU: u16 = 1420;
+/// Safe on IPv4 and IPv6 servers and on home connections that add their own
+/// headers (PPPoE, some routers). 1420 can make some sites hang on those.
+const DEFAULT_MTU: u16 = 1380;
 
 struct Active {
     id: ProfileId,

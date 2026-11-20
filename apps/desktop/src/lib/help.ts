@@ -29,7 +29,7 @@ export const HELP = {
     example:
       "Printing to the office printer or opening a shared folder still works while the kill switch is blocking.",
     tradeoff:
-      "Devices on your local network can see and reach your computer outside the VPN. On a shared or public Wi-Fi, leave this off.",
+      "Devices on your local network can see and reach your computer outside the VPN. On a shared or public Wi-Fi, leave this off. AirDrop, AirPlay and Handoff work either way; they use a direct link to nearby Apple devices that never touches the internet. Recommended: on at home, off on public Wi-Fi.",
   },
   dnsProtection: {
     title: "DNS leak protection",
@@ -222,7 +222,7 @@ export const HELP = {
     what: "Turns the VPN off for a set time, then turns it back on by itself, to the same server.",
     why: "Some banking, work or streaming sites refuse VPN connections. Pausing lets you use them without forgetting to reconnect.",
     example:
-      "Press 30 minutes, do your banking, and VPNFlow reconnects on its own when the time is up. Press Resume now to come back sooner.",
+      "Press 30 minutes, do your banking, and VPNFlow reconnects on its own when the time is up. Press Resume now to come back sooner. Hotel or airport Wi-Fi with a sign-in page: pause for 5 minutes, sign in, and VPNFlow reconnects. If you are not connected and nothing loads, press Stop blocking instead.",
     tradeoff:
       "While paused you are NOT protected: sites and your internet provider see your real address, and the kill switch is off too, otherwise nothing would load. If you quit VPNFlow while paused it will not reconnect on its own. Recommended: pick the shortest time that works.",
     options: [
