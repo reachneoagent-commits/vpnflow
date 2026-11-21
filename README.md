@@ -1,7 +1,7 @@
 <p align="left">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.png">
-    <img src="assets/header-light.png" width="600" height="160" alt="VPNFlow logo and name">
+    <img src="assets/header-light.png" width="600" height="160" alt="vpnflow logo and name">
   </picture>
 </p>
 
