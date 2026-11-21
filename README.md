@@ -1,11 +1,11 @@
-<p align="center">
-  <img src="apps/desktop/src-tauri/icons/128x128.png" width="128" height="128" alt="VPNFlow icon">
+<p align="left">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="assets/header-dark.png">
+    <img src="assets/header-light.png" width="600" height="160" alt="VPNFlow logo and name">
+  </picture>
 </p>
 
-<div align="center">
-  <h1>VPNFlow</h1>
-  <p><strong>A free VPN client that shows you whether it is really protecting you. Open source, on your own computer.</strong></p>
-</div>
+<p align="center"><b>A free VPN client that shows you whether it is really protecting you. Open source, on your own computer.</b></p>
 
 > VPNFlow is a fork of [Aegis VPN](https://github.com/mikeholp87/aegis-vpn) by mikeholp87, with our own name, look and defaults. Thank you to its author and contributors for the WireGuard client, the leak checks and everything under the hood. See [NOTICE](NOTICE) for details. WireGuard is a registered trademark of Jason A. Donenfeld.
 
