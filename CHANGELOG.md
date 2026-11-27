@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- "Skip the VPN for these sites" checks the name as you type: a red message
+  under the box says what to fix (missing .com ending, spaces, an email or a
+  number address, already listed), and a valid entry shows the name it will
+  be saved as. www. and https:// stay optional. A wrong entry is no longer
+  cleared from the box.
 - New installs start with friendlier defaults: Allow local network and Let
   Tailscale through are on, and setup turns on Start VPNFlow when you sign in
   and Connect on launch. Existing settings are not changed.

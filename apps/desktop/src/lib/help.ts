@@ -141,7 +141,7 @@ export const HELP = {
     what: "Websites on this list open over your normal internet connection instead of the VPN. Everything else stays on the VPN.",
     why: "Some sites, such as phone carriers, banks and streaming services, refuse to work or keep asking you to sign in when they see a VPN.",
     example:
-      "Add metrobyt-mobile.com. The site then sees you as a normal home visitor and loads, while your other browsing still goes through the VPN.",
+      "Add metrobyt-mobile.com (www. and https:// are optional, and both the name and its www. form are covered). If the name is missing a part, such as the .com ending, a red message under the box says what to fix. The site then sees you as a normal home visitor and loads, while your other browsing still goes through the VPN.",
     tradeoff:
       "These sites see your real internet address and location, and your internet provider can see that you visit them (not what you do there, since the sites use encryption). VPNFlow looks the sites up through the VPN, so the lookups stay private. Big sites share addresses with others, so a few other sites on the same servers may skip the VPN too. Some sites load parts of the page from other names; if one still complains, add that name as well. Works while you are connected; the list starts empty.",
     pick: "Add only sites that refuse to work over the VPN, and leave the list empty otherwise.",

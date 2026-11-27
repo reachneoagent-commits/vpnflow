@@ -2,6 +2,7 @@ import { ExternalLink } from "lucide-react";
 import { useId, useState } from "react";
 import { Button, InfoTip, Panel, Switch } from "../components/ui";
 import { api } from "../lib/api";
+import { checkSite } from "../lib/sites";
 import { useStore } from "../lib/store";
 import type { Settings, Support, Theme } from "../lib/types";
 
@@ -58,10 +59,20 @@ export function SettingsScreen() {
   const [dnsDraft, setDnsDraft] = useState("");
   const [bypassDraft, setBypassDraft] = useState("");
   const [siteDraft, setSiteDraft] = useState("");
+  const [siteTried, setSiteTried] = useState(false);
   const [trustDraft, setTrustDraft] = useState("");
   const [trustMsg, setTrustMsg] = useState<string | null>(null);
   if (!settings) return null;
   const set = (patch: Partial<Settings>) => saveSettings({ ...settings, ...patch });
+  // Typing shows problems once the entry looks finished (has a dot) or after
+  // pressing Add, so a half-typed name is not flagged at the first letter.
+  const siteCheck = siteDraft.trim() ? checkSite(siteDraft, settings.bypass_sites) : null;
+  const siteError =
+    siteCheck && !siteCheck.ok && (siteTried || siteDraft.includes(".") || /\s|@/.test(siteDraft.trim()))
+      ? siteCheck.error
+      : siteTried && !siteDraft.trim()
+        ? "Type a website name, such as example.com."
+        : null;
   const ksUnsupported = caps?.kill_switch.status !== "supported";
   // The kill switch can only change while fully disconnected.
   const link = snapshot?.state.state;
@@ -385,19 +396,19 @@ export function SettingsScreen() {
               Websites that open without the VPN
             </label>
             <p className="mt-0.5 max-w-[65ch] text-muted">
-              For sites that block VPN users. They see your real address. Add a name like example.com or paste
-              the site's link. Works while connected.
+              For sites that block VPN users. They see your real address. Type a name like example.com (www.
+              and https:// are optional) or paste the site's link. Works while connected.
             </p>
             <form
               className="mt-2 flex gap-2"
               onSubmit={(e) => {
                 e.preventDefault();
-                const entry = siteDraft.trim();
-                if (!entry) return;
-                // The app cleans the entry up (drops https://, www. and paths)
-                // and shows an error toast if it is not a site name.
-                void saveSettings({ ...settings, bypass_sites: [...settings.bypass_sites, entry] });
+                const r = checkSite(siteDraft, settings.bypass_sites);
+                setSiteTried(true);
+                if (!r.ok) return;
+                void saveSettings({ ...settings, bypass_sites: [...settings.bypass_sites, r.host] });
                 setSiteDraft("");
+                setSiteTried(false);
               }}
             >
               <input
@@ -405,10 +416,21 @@ export function SettingsScreen() {
                 value={siteDraft}
                 onChange={(e) => setSiteDraft(e.target.value)}
                 placeholder="example.com"
+                aria-invalid={siteError ? true : undefined}
+                aria-describedby={`${siteId}-msg`}
                 className="w-64 "
               />
               <Button type="submit">Add</Button>
             </form>
+            <p id={`${siteId}-msg`} aria-live="polite" className="mt-1 min-h-[1.25em] text-[12.5px]">
+              {siteError ? (
+                <span className="text-danger">{siteError}</span>
+              ) : siteCheck?.ok && siteCheck.host !== siteDraft.trim().toLowerCase() ? (
+                <span className="text-muted">
+                  Will be added as {siteCheck.host} (its www. name is included).
+                </span>
+              ) : null}
+            </p>
             <ul className="mt-2 flex flex-col gap-1">
               {settings.bypass_sites.map((site) => (
                 <li key={site} className="flex items-center justify-between">
