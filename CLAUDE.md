@@ -1,3 +1,12 @@
+<!-- VPNFlow (rebrand/apply.py) -->
+# VPNFlow
+
+This repository is **VPNFlow**, a fork of Aegis VPN. Before merging upstream or changing branding, read `docs/UPSTREAM.md`. In short:
+
+- Branding (names, ids, links, icons) in files that came from upstream is made only by `rebrand/apply.py` from `rebrand/brand.json`: add an entry there and run the script, never hand-edit it.
+- Features are ordinary commits; resolve their merge conflicts by hand, never with a blanket "take theirs".
+- Crate, service and Polkit names stay `aegis*` / `org.aegisvpn.*` on purpose.
+
 # Claude Code instructions
 
 All project rules, layout and commands live in AGENTS.md (shared with other

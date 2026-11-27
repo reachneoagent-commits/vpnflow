@@ -1,0 +1,155 @@
+{
+  "_comment": "VPNFlow branding over Aegis VPN (mikeholp87/aegis-vpn). Run python3 rebrand/apply.py after every upstream merge; see docs/UPSTREAM.md. Features are ordinary commits, not entries here.",
+  "name": "VPNFlow",
+  "bundle": "org.vpnflow.desktop",
+  "repo": "reachneoagent-commits/vpnflow",
+  "upstream_name": "Aegis VPN",
+  "icons_dir": "apps/desktop/src-tauri/icons",
+  "edits": [
+    {
+      "file": "AGENTS.md",
+      "find": "# Agent instructions: Aegis VPN",
+      "replace": "# Agent instructions: VPNFlow"
+    },
+    {
+      "file": "SECURITY.md",
+      "find": "Aegis VPN is pre-alpha and has not been independently audited.",
+      "replace": "VPNFlow is pre-alpha and has not been independently audited."
+    },
+    {
+      "file": "apps/desktop/index.html",
+      "find": "<title>Aegis VPN</title>",
+      "replace": "<title>VPNFlow</title>"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/lib.rs",
+      "find": "ConnectionState::Failed { .. } => \"VPN connection failed. Open Aegis VPN for details.\",",
+      "replace": "ConnectionState::Failed { .. } => \"VPN connection failed. Open VPNFlow for details.\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/lib.rs",
+      "find": "tracing::error!(\"Aegis VPN exited with an error: {e}\");",
+      "replace": "tracing::error!(\"VPNFlow exited with an error: {e}\");"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/lib.rs",
+      "find": "n.appname(\"Aegis VPN\").summary(\"Aegis VPN\").body(body);",
+      "replace": "n.appname(\"VPNFlow\").summary(\"VPNFlow\").body(body);"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/tray.rs",
+      "find": ".tooltip(\"Aegis VPN\")",
+      "replace": ".tooltip(\"VPNFlow\")"
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/tray.rs",
+      "find": "\"Aegis VPN: {}\",",
+      "replace": "\"VPNFlow: {}\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/src/tray.rs",
+      "find": "\"Open Aegis VPN\"",
+      "replace": "\"Open VPNFlow\""
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"longDescription\": \"Lightweight open-source WireGuard client for Linux and Windows.\",",
+      "replace": "\"longDescription\": \"VPNFlow is a lightweight open-source WireGuard VPN client for Linux, Windows, and macOS.\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"shortDescription\": \"WireGuard VPN client\",",
+      "replace": "\"shortDescription\": \"VPNFlow \\u2014 WireGuard VPN client\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"copyright\": \"Aegis VPN contributors\",",
+      "replace": "\"copyright\": \"VPNFlow contributors\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"identifier\": \"org.aegisvpn.desktop\"",
+      "replace": "\"identifier\": \"org.vpnflow.desktop\""
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"productName\": \"Aegis VPN\",",
+      "replace": "\"productName\": \"VPNFlow\",\n  \"mainBinaryName\": \"vpnflow\","
+    },
+    {
+      "file": "apps/desktop/src-tauri/tauri.conf.json",
+      "find": "\"title\": \"Aegis VPN\",",
+      "replace": "\"title\": \"VPNFlow\","
+    },
+    {
+      "file": "apps/desktop/src/screens/About.tsx",
+      "find": "WireGuard® is a registered trademark of Jason A. Donenfeld. Aegis VPN is not affiliated with or",
+      "replace": "WireGuard® is a registered trademark of Jason A. Donenfeld. VPNFlow is not affiliated with or"
+    },
+    {
+      "file": "apps/desktop/src/screens/About.tsx",
+      "find": "<p>Aegis VPN has not been independently security-audited.</p>",
+      "replace": "<p>VPNFlow has not been independently security-audited.</p>"
+    },
+    {
+      "file": "apps/desktop/src/screens/About.tsx",
+      "find": "github.com/mikeholp87/aegis-vpn",
+      "replace": "github.com/reachneoagent-commits/vpnflow"
+    },
+    {
+      "file": "apps/desktop/src/screens/Dashboard.tsx",
+      "find": "switched; Aegis confirms again",
+      "replace": "switched; VPNFlow confirms again"
+    },
+    {
+      "file": "apps/desktop/src/screens/Locations.tsx",
+      "find": "Pick a server you configure. Aegis connects with the WireGuard profile you imported or created.",
+      "replace": "Pick a server you configure. VPNFlow connects with the WireGuard profile you imported or created."
+    },
+    {
+      "file": "apps/desktop/src/screens/Settings.tsx",
+      "find": "Aegis VPN collects no analytics and needs no account. Connectivity checks contact only the tunnel's",
+      "replace": "VPNFlow collects no analytics and needs no account. Connectivity checks contact only the tunnel's"
+    },
+    {
+      "file": "apps/desktop/src/screens/Settings.tsx",
+      "find": "label=\"Closing the window keeps Aegis VPN in the tray\"",
+      "replace": "label=\"Closing the window keeps VPNFlow in the tray\""
+    },
+    {
+      "file": "apps/desktop/src/screens/Settings.tsx",
+      "find": "label=\"Start Aegis VPN when you sign in\"",
+      "replace": "label=\"Start VPNFlow when you sign in\""
+    }
+  ],
+  "prepend": [
+    {
+      "file": "CLAUDE.md",
+      "marker": "<!-- VPNFlow (rebrand/apply.py) -->",
+      "lines": [
+        "<!-- VPNFlow (rebrand/apply.py) -->",
+        "# VPNFlow",
+        "",
+        "This repository is **VPNFlow**, a fork of Aegis VPN. Before merging upstream or changing branding, read `docs/UPSTREAM.md`. In short:",
+        "",
+        "- Branding (names, ids, links, icons) in files that came from upstream is made only by `rebrand/apply.py` from `rebrand/brand.json`: add an entry there and run the script, never hand-edit it.",
+        "- Features are ordinary commits; resolve their merge conflicts by hand, never with a blanket \"take theirs\".",
+        "- Crate, service and Polkit names stay `aegis*` / `org.aegisvpn.*` on purpose.",
+        ""
+      ]
+    }
+  ],
+  "append": [
+    {
+      "file": ".gitattributes",
+      "marker": "# VPNFlow (rebrand/apply.py)",
+      "lines": [
+        "",
+        "# VPNFlow (rebrand/apply.py): files we replace whole keep our version in a merge.",
+        "# Needs `git config merge.ours.driver true` once per clone (docs/UPSTREAM.md).",
+        "README.md merge=ours",
+        "apps/desktop/src-tauri/icons/** merge=ours"
+      ]
+    }
+  ]
+}
