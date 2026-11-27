@@ -10,7 +10,7 @@ checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
 
 [[package]]
 name = "aegis-android"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
@@ -26,7 +26,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-config"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "base64 0.23.1",
  "getrandom 0.4.3",
@@ -40,7 +40,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-core"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "ipnet",
@@ -58,7 +58,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-desktop"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-android",
  "aegis-config",
@@ -87,7 +87,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-helper"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "libc",
  "tempfile",
@@ -95,7 +95,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-linux"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
@@ -111,7 +111,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-macos"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
@@ -122,7 +122,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-service"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
@@ -140,7 +140,7 @@ dependencies = [
 
 [[package]]
 name = "aegis-windows"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
@@ -5239,7 +5239,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 
 [[package]]
 name = "vpnflow-daemon"
-version = "0.1.16"
+version = "0.1.17"
 dependencies = [
  "aegis-config",
  "aegis-core",
