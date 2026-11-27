@@ -9,3 +9,8 @@
 *.icns binary
 *.woff2 binary
 *.svg text
+
+# VPNFlow (rebrand/apply.py): files we replace whole keep our version in a merge.
+# Needs `git config merge.ours.driver true` once per clone (docs/UPSTREAM.md).
+README.md merge=ours
+apps/desktop/src-tauri/icons/** merge=ours
