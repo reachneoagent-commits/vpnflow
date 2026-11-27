@@ -33,13 +33,13 @@ VPNFlow connects to a WireGuard server and then checks that the tunnel, the DNS 
 
 **Easiest:** install and update it with the [FlowApps launcher](https://github.com/reachneoagent-commits/FlowApps-Launcher/releases/latest), one app that also manages the other FlowApps on Mac and Windows. Or download an installer yourself below.
 
-Download the installer for your system (latest version, 0.1.15).
+Download the installer for your system (latest version, 0.1.17).
 
 | Platform                          | Installer |
 | --------------------------------- | --------- |
-| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_aarch64.dmg) |
-| macOS Intel                       | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_x64.dmg) |
-| Windows x64                       | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.15/VPNFlow_0.1.15_x64_en-US.msi) (preview, cannot connect yet) |
+| macOS Apple Silicon (M1 or newer) | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.17/VPNFlow_0.1.17_aarch64.dmg) |
+| macOS Intel                       | [DMG](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.17/VPNFlow_0.1.17_x64.dmg) |
+| Windows x64                       | [Installer](https://github.com/reachneoagent-commits/vpnflow/releases/download/v0.1.17/VPNFlow_0.1.17_x64_en-US.msi) (preview, cannot connect yet) |
 | Android phone, Google TV, Fire TV | [APK](https://github.com/reachneoagent-commits/vpnflow/releases/download/android-preview-1/vpnflow-android-aarch64.apk) (untested preview; [how to install](#android-google-tv-and-fire-tv)) |
 | Linux                             | [Build from source](#build-it-yourself) |
 
@@ -75,7 +75,7 @@ xattr -cr /Applications/VPNFlow.app
 To check a download against its checksum, run this in the folder with the file:
 
 ```bash
-shasum -a 256 VPNFlow_0.1.1_aarch64.dmg
+shasum -a 256 VPNFlow_0.1.17_aarch64.dmg
 ```
 
 ### Windows
@@ -87,7 +87,7 @@ shasum -a 256 VPNFlow_0.1.1_aarch64.dmg
 To check the download, run this in PowerShell in the folder with the file:
 
 ```powershell
-Get-FileHash .\VPNFlow_0.1.1_x64_en-US.msi -Algorithm SHA256
+Get-FileHash .\VPNFlow_0.1.17_x64_en-US.msi -Algorithm SHA256
 ```
 
 ### Linux
