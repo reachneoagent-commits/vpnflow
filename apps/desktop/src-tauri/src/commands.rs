@@ -156,8 +156,31 @@ pub fn settings(st: State<'_, AppState>) -> Settings {
     st.engine.settings()
 }
 
+/// Clean up the "skip the VPN" site list: one host name per site, sorted, no
+/// duplicates.
+fn normalise_sites(entries: &[String]) -> R<Vec<String>> {
+    if entries.len() > aegis_core::MAX_BYPASS_SITES {
+        return Err(UiError::msg(format!(
+            "at most {} sites can skip the VPN",
+            aegis_core::MAX_BYPASS_SITES
+        )));
+    }
+    let mut out = entries
+        .iter()
+        .map(|e| aegis_core::parse_bypass_site(e))
+        .collect::<Result<Vec<_>, _>>()?;
+    out.sort();
+    out.dedup();
+    Ok(out)
+}
+
 #[tauri::command]
-pub fn set_settings(app: AppHandle, st: State<'_, AppState>, settings: Settings) -> R<Settings> {
+pub fn set_settings(
+    app: AppHandle,
+    st: State<'_, AppState>,
+    mut settings: Settings,
+) -> R<Settings> {
+    settings.bypass_sites = normalise_sites(&settings.bypass_sites)?;
     let before = st.engine.settings();
     let settings = st.engine.set_settings(settings)?;
     #[cfg(desktop)]

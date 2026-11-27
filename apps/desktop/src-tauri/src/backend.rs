@@ -91,6 +91,45 @@ macro_rules! delegate {
     };
 }
 
+impl AnyBackend {
+    /// Per-domain resolver for tailnet names. macOS only; elsewhere no-op.
+    pub async fn apply_tailnet_dns(&self, domain: Option<&str>) -> Result<()> {
+        match self {
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.apply_tailnet_dns(domain).await,
+            _ => {
+                let _ = domain;
+                Ok(())
+            }
+        }
+    }
+
+    /// Addresses of sites that skip the VPN. macOS only; elsewhere no-op.
+    pub async fn apply_site_bypass(&self, addrs: &[std::net::IpAddr]) -> Result<()> {
+        match self {
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.apply_site_bypass(addrs).await,
+            _ => {
+                let _ = addrs;
+                Ok(())
+            }
+        }
+    }
+
+    /// Tailscale relay/sign-in servers that may pass the kill switch. Only the
+    /// macOS daemon supports this; elsewhere it does nothing.
+    pub async fn apply_tailscale_relays(&self, addrs: &[std::net::IpAddr]) -> Result<()> {
+        match self {
+            #[cfg(target_os = "macos")]
+            AnyBackend::Mac(b) => b.apply_tailscale_relays(addrs).await,
+            _ => {
+                let _ = addrs;
+                Ok(())
+            }
+        }
+    }
+}
+
 impl VpnBackend for AnyBackend {
     async fn capabilities(&self) -> Result<Capabilities> {
         if let AnyBackend::Unavailable(reason) = self {

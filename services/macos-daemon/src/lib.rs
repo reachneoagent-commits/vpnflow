@@ -4,6 +4,7 @@
 #[cfg(unix)]
 pub mod handler;
 pub mod netcfg;
+pub mod resolver;
 #[cfg(unix)]
 pub mod server;
 #[cfg(unix)]

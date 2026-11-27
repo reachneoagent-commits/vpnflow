@@ -365,11 +365,20 @@ pub struct Settings {
     /// the default: on wherever the system supports it.
     pub kill_switch_chosen: bool,
     /// While the kill switch blocks, still allow private and link-local
-    /// ranges (printers, NAS, router). Off by default.
+    /// ranges (printers, NAS, router). On by default.
     pub kill_switch_allow_lan: bool,
+    /// While the kill switch blocks, still let the Tailscale app reach its
+    /// relay (DERP) and sign-in servers, so a tailnet keeps working when no
+    /// direct path exists. On by default; it does nothing without
+    /// Tailscale installed. macOS only for now.
+    pub kill_switch_allow_tailscale: bool,
     /// Destinations (IP or CIDR) that skip the VPN and use the normal
     /// connection. Applies from the next connection. Empty by default.
     pub bypass: Vec<String>,
+    /// Websites (host names such as `example.com`) that skip the VPN while
+    /// connected, for sites that block VPN users. Their addresses are looked
+    /// up through the VPN and routed around it. Empty by default.
+    pub bypass_sites: Vec<String>,
     /// Name servers to use inside the tunnel instead of the ones in the
     /// profile (for example an ad-blocking resolver). Empty keeps the
     /// profile's own. Applies from the next connection.
@@ -411,8 +420,10 @@ impl Default for Settings {
             auto_speed_test: true,
             kill_switch: false,
             kill_switch_chosen: false,
-            kill_switch_allow_lan: false,
+            kill_switch_allow_lan: true,
+            kill_switch_allow_tailscale: true,
             bypass: vec![],
+            bypass_sites: vec![],
             dns_servers: vec![],
             trusted_networks_enabled: false,
             trusted_networks: vec![],
@@ -431,6 +442,9 @@ impl Default for Settings {
 /// Events pushed to the UI.
 #[derive(Debug, Clone, Serialize)]
 #[serde(tag = "type", content = "data", rename_all = "snake_case")]
+// Settings is sent unboxed on purpose: events are rare and serialised for
+// the UI, so the size difference costs nothing measurable.
+#[allow(clippy::large_enum_variant)]
 pub enum EngineEvent {
     Snapshot(Box<Snapshot>),
     Log(LogEntry),
@@ -470,6 +484,75 @@ pub fn parse_bypass(entry: &str) -> crate::error::Result<ipnet::IpNet> {
         ));
     }
     Ok(net.trunc())
+}
+
+/// Most websites the "skip the VPN" site list may hold.
+pub const MAX_BYPASS_SITES: usize = 32;
+
+/// Parse one site entry into a lowercase host name. Accepts a pasted link
+/// (`https://www.example.com/path`) and drops the scheme, path, port and a
+/// leading `www.` (both the name and its `www.` form are skipped).
+pub fn parse_bypass_site(entry: &str) -> crate::error::Result<String> {
+    let t = entry.trim();
+    let bad = || {
+        crate::error::CoreError::invalid(format!(
+            "\"{t}\" is not a website name such as example.com"
+        ))
+    };
+    let mut h = t.to_ascii_lowercase();
+    if let Some((_, rest)) = h.split_once("://") {
+        h = rest.to_owned();
+    }
+    let h = h.split(['/', '?', '#']).next().unwrap_or_default();
+    if h.contains('@') {
+        return Err(bad());
+    }
+    let h = h
+        .split(':')
+        .next()
+        .unwrap_or_default()
+        .trim_end_matches('.');
+    let h = h.strip_prefix("www.").unwrap_or(h);
+    let labels: Vec<&str> = h.split('.').collect();
+    let ok = h.len() <= 253
+        && labels.len() >= 2
+        && labels.iter().all(|l| {
+            !l.is_empty()
+                && l.len() <= 63
+                && !l.starts_with('-')
+                && !l.ends_with('-')
+                && l.bytes()
+                    .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        })
+        // A bare address belongs in the address list, not here.
+        && !labels.last().is_some_and(|l| l.bytes().all(|b| b.is_ascii_digit()));
+    if ok { Ok(h.to_owned()) } else { Err(bad()) }
+}
+
+/// Addresses a skipped website may not have: anything local or private would
+/// let a site's DNS answer open a path to the home network or this computer.
+pub fn public_site_addr(ip: &std::net::IpAddr) -> bool {
+    match ip {
+        std::net::IpAddr::V4(v) => {
+            let o = v.octets();
+            !(v.is_private()
+                || v.is_loopback()
+                || v.is_link_local()
+                || v.is_unspecified()
+                || v.is_multicast()
+                || v.is_broadcast()
+                || (o[0] == 100 && (64..128).contains(&o[1])))
+        }
+        std::net::IpAddr::V6(v) => {
+            let s = v.segments()[0];
+            !(v.is_loopback()
+                || v.is_unspecified()
+                || v.is_multicast()
+                || (s & 0xfe00) == 0xfc00
+                || (s & 0xffc0) == 0xfe80
+                || v.to_ipv4_mapped().is_some())
+        }
+    }
 }
 
 /// Most custom DNS servers that may be set.
@@ -529,6 +612,43 @@ mod dns_tests {
 }
 
 #[cfg(test)]
+mod site_tests {
+    use super::parse_bypass_site;
+
+    #[test]
+    fn normalises_pasted_links() {
+        for (input, want) in [
+            ("https://www.metrobyt-mobile.com/", "metrobyt-mobile.com"),
+            (" Example.COM ", "example.com"),
+            ("http://shop.example.co.uk:8443/a?b#c", "shop.example.co.uk"),
+            ("example.com.", "example.com"),
+            ("xn--bcher-kva.example", "xn--bcher-kva.example"),
+        ] {
+            assert_eq!(parse_bypass_site(input).unwrap(), want, "{input}");
+        }
+    }
+
+    #[test]
+    fn refuses_non_names() {
+        for bad in [
+            "",
+            "localhost",
+            "www.",
+            "192.168.1.1",
+            "a..b",
+            "-a.com",
+            "exa mple.com",
+            "user@example.com",
+            "https://user:pw@example.com/",
+            "ex_ample.com",
+            "bücher.example",
+        ] {
+            assert!(parse_bypass_site(bad).is_err(), "{bad}");
+        }
+    }
+}
+
+#[cfg(test)]
 mod bypass_tests {
     use super::parse_bypass;
 
@@ -553,6 +673,34 @@ mod bypass_tests {
             "1.2.3.4 all",
         ] {
             assert!(parse_bypass(bad).is_err(), "{bad}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod site_addr_tests {
+    use super::public_site_addr;
+
+    #[test]
+    fn site_addresses_must_be_public() {
+        for ok in ["198.51.100.7", "23.45.67.89", "2606:4700::1111"] {
+            assert!(public_site_addr(&ok.parse().unwrap()), "{ok}");
+        }
+        for bad in [
+            "192.168.20.4",
+            "10.0.0.1",
+            "172.16.0.1",
+            "127.0.0.1",
+            "169.254.1.1",
+            "100.100.100.100",
+            "0.0.0.0",
+            "224.0.0.1",
+            "::1",
+            "fd7a:115c:a1e0::1",
+            "fe80::1",
+            "::ffff:192.168.1.1",
+        ] {
+            assert!(!public_site_addr(&bad.parse().unwrap()), "{bad}");
         }
     }
 }

@@ -74,9 +74,12 @@ export function Onboarding({ onDone }: { onDone: () => void }) {
       next.kill_switch = true;
       next.kill_switch_allow_lan = true;
     }
-    if (caps.backend === "macos_daemon" && settings.dns_servers.length === 0) {
-      next.dns_servers = ADGUARD_DNS;
+    if (caps.backend === "macos_daemon") {
+      next.kill_switch_allow_tailscale = true;
+      if (settings.dns_servers.length === 0) next.dns_servers = ADGUARD_DNS;
     }
+    next.connect_on_launch = true;
+    next.launch_on_login = true;
     if (JSON.stringify(next) !== JSON.stringify(settings)) void saveSettings(next);
   }, [step, settings, caps, saveSettings]);
 

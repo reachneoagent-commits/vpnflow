@@ -37,6 +37,14 @@ const MAX_ENDPOINTS: usize = 16;
 const LAN4: &str =
     "10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16, 224.0.0.0/4, 255.255.255.255";
 const LAN6: &str = "fc00::/7, fe80::/10, ff00::/8";
+/// Tailscale-style mesh networks (Tailscale, Headscale/TailFlow), which keep
+/// working beside the kill switch: device addresses and MagicDNS, and the home
+/// network over a subnet route (sent with a tailnet source address).
+const TAILNET4: &str = "100.64.0.0/10";
+const TAILNET6: &str = "fd7a:115c:a1e0::/48";
+/// Tailscale's fixed WireGuard port: its direct peer links leave the physical
+/// interface, so they are passed by port (relays over TCP 443 are not).
+const TAILSCALE_PORT: u16 = 41641;
 
 #[derive(Debug, PartialEq, Eq)]
 enum Cmd {
@@ -127,7 +135,12 @@ table inet {TABLE} {{
 \t\ttype filter hook output priority filter - 10; policy drop;
 \t\toifname \"lo\" accept
 \t\toifname \"{iface}\" accept
-{ep}\t\tudp sport 68 udp dport 67 accept
+{ep}\t\tip daddr {TAILNET4} accept
+\t\tip saddr {TAILNET4} accept
+\t\tip6 daddr {TAILNET6} accept
+\t\tip6 saddr {TAILNET6} accept
+\t\tudp sport {TAILSCALE_PORT} accept
+\t\tudp sport 68 udp dport 67 accept
 \t\tudp sport 546 udp dport 547 accept
 \t\ticmpv6 type {{ nd-router-solicit, nd-neighbor-solicit, nd-neighbor-advert, mld2-listener-report }} accept
 {lan_out}\t\treject with icmpx type admin-prohibited
@@ -137,6 +150,9 @@ table inet {TABLE} {{
 \t\tiifname \"lo\" accept
 \t\tiifname \"{iface}\" accept
 \t\tct state established,related accept
+\t\tip saddr {TAILNET4} accept
+\t\tip6 saddr {TAILNET6} accept
+\t\tudp dport {TAILSCALE_PORT} accept
 \t\tudp sport 67 udp dport 68 accept
 \t\tudp sport 547 udp dport 546 accept
 \t\ticmpv6 type {{ nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, nd-redirect }} accept
@@ -449,6 +465,18 @@ mod tests {
         assert!(r.contains("ip6 daddr 2001:db8::1 udp dport 443 accept"));
         assert!(!r.contains("192.168.0.0/16"), "LAN blocked unless asked");
         assert!(ruleset("aegis-0b1e8a3c", true, &eps).contains("192.168.0.0/16"));
+        // Tailscale/TailFlow keep working beside the kill switch.
+        for rule in [
+            "ip daddr 100.64.0.0/10 accept",
+            "ip saddr 100.64.0.0/10 accept",
+            "ip6 daddr fd7a:115c:a1e0::/48 accept",
+        ] {
+            assert!(r.contains(rule), "{rule}");
+        }
+        let input = &r[r.find("chain input").unwrap()..];
+        assert!(input.contains("ip saddr 100.64.0.0/10 accept"));
+        assert!(input.contains("udp dport 41641 accept"));
+        assert!(r[..r.find("chain input").unwrap()].contains("udp sport 41641 accept"));
     }
 
     #[cfg(unix)]

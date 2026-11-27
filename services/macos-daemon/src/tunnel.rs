@@ -42,6 +42,13 @@ struct Active {
     child: Child,
     host_routes: Vec<IpAddr>,
     bypass_routes: Vec<ipnet::IpNet>,
+    /// Physical interface we gave a scoped IPv4 default route.
+    scoped_default: Option<String>,
+    /// Pre-VPN gateways, kept for site routes added while connected.
+    gw4: Option<Gateway>,
+    gw6: Option<Gateway>,
+    /// Host routes we added for skipped websites (via a gateway or reject).
+    site_routes: Vec<IpAddr>,
 }
 
 struct KillSpec {
@@ -56,7 +63,22 @@ struct State {
     kill: Option<KillSpec>,
     bypass: Vec<ipnet::IpNet>,
     dns_override: Vec<IpAddr>,
+    /// Tailscale relay and sign-in servers passed on their web/STUN ports.
+    relays: Vec<IpAddr>,
+    /// Addresses of websites that skip the VPN, from the desktop app.
+    sites: Vec<IpAddr>,
     pf_token: Option<String>,
+}
+
+/// Route one site address around the tunnel, or reject it when its family
+/// has no pre-VPN gateway. True when a route was added (and is ours).
+async fn add_site_route(ip: IpAddr, gw4: &Option<Gateway>, gw6: &Option<Gateway>) -> bool {
+    let gw = if ip.is_ipv4() { gw4 } else { gw6 };
+    let args = match gw {
+        Some(g) => netcfg::route_add_endpoint(ip, g),
+        None => netcfg::route_add_reject(ip),
+    };
+    run(ROUTE, &args).await.is_ok()
 }
 
 pub struct TunnelManager {
@@ -259,9 +281,16 @@ impl TunnelManager {
         }
     }
 
-    fn render(spec: &KillSpec, iface: Option<&str>, bypass: &[ipnet::IpNet]) -> Result<String> {
-        pf::ruleset_with_bypass(iface, &spec.endpoints, spec.allow_lan, bypass).map_err(|e| match e
-        {
+    fn render(spec: &KillSpec, iface: Option<&str>, st: &State) -> Result<String> {
+        pf::ruleset_full(
+            iface,
+            &spec.endpoints,
+            spec.allow_lan,
+            &st.bypass,
+            &st.relays,
+            &st.sites,
+        )
+        .map_err(|e| match e {
             pf::PfError::NoEndpoints => {
                 CoreError::invalid("the kill switch needs at least one server endpoint")
             }
@@ -286,7 +315,7 @@ impl TunnelManager {
             .as_ref()
             .filter(|a| a.id == id)
             .map(|a| a.iface.clone());
-        let rules = Self::render(&spec, iface.as_deref(), &st.bypass)?;
+        let rules = Self::render(&spec, iface.as_deref(), &st)?;
         self.pf_load(&mut st, &rules).await?;
         st.kill = Some(spec);
         Ok(())
@@ -304,6 +333,94 @@ impl TunnelManager {
         }
         self.state.lock().await.bypass = parsed;
         Ok(())
+    }
+
+    /// Replace the Tailscale relay list. Unlike the bypass list this only adds
+    /// pf passes (Tailscale binds its own sockets to the physical interface,
+    /// so no routes are needed), and a live kill switch is updated at once.
+    pub async fn set_tailscale_relays(&self, addrs: &[IpAddr]) -> Result<()> {
+        if addrs.len() > pf::MAX_RELAYS {
+            return Err(CoreError::invalid("too many Tailscale relay addresses"));
+        }
+        if addrs
+            .iter()
+            .any(|a| a.is_unspecified() || a.is_loopback() || a.is_multicast())
+        {
+            return Err(CoreError::invalid("not a usable Tailscale relay address"));
+        }
+        let mut relays = addrs.to_vec();
+        relays.sort_unstable();
+        relays.dedup();
+        let mut st = self.state.lock().await;
+        if st.relays == relays {
+            return Ok(());
+        }
+        let old = std::mem::replace(&mut st.relays, relays);
+        let applied = self.reload_kill_switch(&mut st).await;
+        if applied.is_err() {
+            st.relays = old;
+        }
+        applied
+    }
+
+    /// Re-render a live kill switch after one of its lists changed.
+    async fn reload_kill_switch(&self, st: &mut State) -> Result<()> {
+        let rules = match st.kill.as_ref() {
+            Some(spec) => {
+                let iface = st
+                    .active
+                    .as_ref()
+                    .filter(|a| a.id == spec.id)
+                    .map(|a| a.iface.clone());
+                Some(Self::render(spec, iface.as_deref(), st))
+            }
+            None => None,
+        };
+        match rules {
+            Some(Ok(r)) => self.pf_load(st, &r).await,
+            Some(Err(e)) => Err(e),
+            None => Ok(()),
+        }
+    }
+
+    /// Replace the addresses of websites that skip the VPN. Applies at once:
+    /// while a tunnel is up, routes for removed addresses go first (so they
+    /// fall back into the tunnel), then new ones are added and a live kill
+    /// switch passes them on web ports.
+    pub async fn set_site_bypass(&self, addrs: &[IpAddr]) -> Result<()> {
+        if addrs.len() > pf::MAX_SITE_ADDRS {
+            return Err(CoreError::invalid("too many website addresses"));
+        }
+        if !addrs.iter().all(aegis_core::public_site_addr) {
+            return Err(CoreError::invalid("not a public website address"));
+        }
+        let mut sites = addrs.to_vec();
+        sites.sort_unstable();
+        sites.dedup();
+        let mut st = self.state.lock().await;
+        if st.sites == sites {
+            return Ok(());
+        }
+        if let Some(a) = st.active.as_mut().filter(|a| !a.iface.is_empty()) {
+            let (keep, drop): (Vec<IpAddr>, Vec<IpAddr>) = std::mem::take(&mut a.site_routes)
+                .into_iter()
+                .partition(|ip| sites.contains(ip));
+            for ip in drop {
+                let _ = run(ROUTE, &netcfg::route_delete_host(ip)).await;
+            }
+            a.site_routes = keep;
+            let (gw4, gw6) = (a.gw4.clone(), a.gw6.clone());
+            for ip in &sites {
+                if a.site_routes.contains(ip) || a.host_routes.contains(ip) {
+                    continue;
+                }
+                if add_site_route(*ip, &gw4, &gw6).await {
+                    a.site_routes.push(*ip);
+                }
+            }
+        }
+        st.sites = sites;
+        self.reload_kill_switch(&mut st).await
     }
 
     /// Replace the custom DNS servers. Like the bypass list it takes effect
@@ -387,6 +504,10 @@ impl TunnelManager {
             child,
             host_routes: Vec::new(),
             bypass_routes: Vec::new(),
+            scoped_default: None,
+            gw4: gw4.clone(),
+            gw6: gw6.clone(),
+            site_routes: Vec::new(),
         });
 
         let mut iface = None;
@@ -445,6 +566,36 @@ impl TunnelManager {
                 a.bypass_routes.push(*net);
             }
         }
+        // Websites the user chose to skip, if the app already sent them.
+        let sites = st.sites.clone();
+        for ip in sites {
+            let skip = st
+                .active
+                .as_ref()
+                .is_some_and(|a| a.host_routes.contains(&ip));
+            if !skip
+                && add_site_route(ip, &gw4, &gw6).await
+                && let Some(a) = st.active.as_mut()
+            {
+                a.site_routes.push(ip);
+            }
+        }
+        // Keep Wi-Fi-bound sockets working (Tailscale), before the split
+        // routes go in. If the route already exists it is not ours to remove.
+        if let Some(Gateway::Via(gw @ IpAddr::V4(_))) = &gw4 {
+            let get = ["-n".to_owned(), "get".into(), "default".into()];
+            if let Some(phys) = run(ROUTE, &get)
+                .await
+                .ok()
+                .and_then(|o| netcfg::parse_default_interface(&o))
+                && run(ROUTE, &netcfg::route_add_scoped_default(*gw, &phys))
+                    .await
+                    .is_ok()
+                && let Some(a) = st.active.as_mut()
+            {
+                a.scoped_default = Some(phys);
+            }
+        }
         for peer in &cfg.peers {
             for net in &peer.allowed_ips {
                 for n in netcfg::expand_route(net) {
@@ -462,7 +613,7 @@ impl TunnelManager {
 
         // A kill switch asked for before the interface existed now learns its name.
         if let Some(spec) = st.kill.as_ref().filter(|k| k.id == id) {
-            let rules = Self::render(spec, Some(&iface), &st.bypass)?;
+            let rules = Self::render(spec, Some(&iface), st)?;
             self.pf_load(st, &rules).await?;
         }
         tracing::info!("tunnel up on {iface}");
@@ -480,13 +631,19 @@ impl TunnelManager {
             for net in &a.bypass_routes {
                 let _ = run(ROUTE, &netcfg::route_delete_net(net)).await;
             }
+            for ip in &a.site_routes {
+                let _ = run(ROUTE, &netcfg::route_delete_host(*ip)).await;
+            }
+            if let Some(phys) = &a.scoped_default {
+                let _ = run(ROUTE, &netcfg::route_delete_scoped_default(false, phys)).await;
+            }
             let _ = a.child.start_kill();
             let _ = a.child.wait().await;
             let _ = std::fs::remove_file(NAME_FILE);
             let rules = st
                 .kill
                 .as_ref()
-                .and_then(|k| Self::render(k, None, &st.bypass).ok());
+                .and_then(|k| Self::render(k, None, st).ok());
             if let Some(Err(e)) = match rules {
                 Some(r) => Some(self.pf_load(st, &r).await),
                 None => None,

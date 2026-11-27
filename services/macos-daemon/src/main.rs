@@ -33,6 +33,13 @@ async fn main() {
     };
     // Undo DNS left behind by a crash of a previous run.
     vpnflow_daemon::tunnel::TunnelManager::restore_dns().await;
+    // And a tailnet resolver file left behind the same way.
+    if let Err(e) = vpnflow_daemon::resolver::apply(
+        std::path::Path::new(vpnflow_daemon::resolver::RESOLVER_DIR),
+        None,
+    ) {
+        tracing::warn!("could not remove the tailnet resolver file: {e}");
+    }
 
     let server = match Server::bind(Path::new(aegis_macos::SOCKET_PATH), console_user_policy) {
         Ok(s) => s,

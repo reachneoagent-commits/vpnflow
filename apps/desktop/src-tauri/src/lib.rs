@@ -23,6 +23,8 @@ mod tray {
 
     pub fn refresh(_: &AppHandle, _: &Engine<AnyBackend>) {}
 }
+mod sites;
+mod tailscale;
 mod trusted;
 mod update;
 
@@ -90,6 +92,8 @@ pub fn run() {
             forward_events(app.handle().clone(), Arc::clone(&engine));
             trusted::spawn(Arc::clone(&engine));
             schedule::spawn(Arc::clone(&engine));
+            tailscale::spawn(Arc::clone(&engine), dir.clone());
+            sites::spawn(Arc::clone(&engine));
 
             // Larger text for readability: the UI uses fixed px sizes, so scale the
             // whole page (text and spacing together) like browser zoom.
@@ -102,13 +106,19 @@ pub fn run() {
             }
 
             let s = engine.settings();
-            if s.connect_on_launch
-                && let Some(id) = s.preferred_profile
-                && engine.snapshot().state.is_idle()
-            {
+            if s.connect_on_launch && engine.snapshot().state.is_idle() {
                 let e = Arc::clone(&engine);
                 tauri::async_runtime::spawn(async move {
-                    let _ = e.connect(id).await; // failures surface as state + events
+                    // Failures surface as state + events. Without a preferred
+                    // profile, Quick connect picks a server.
+                    match s.preferred_profile {
+                        Some(id) => {
+                            let _ = e.connect(id).await;
+                        }
+                        None => {
+                            let _ = e.quick_connect().await;
+                        }
+                    }
                 });
             }
             Ok(())

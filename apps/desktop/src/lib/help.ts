@@ -40,7 +40,7 @@ export const HELP = {
     example:
       "Your Wi-Fi hiccups and the VPN disconnects. With the kill switch on, websites stop loading instead of loading without protection.",
     tradeoff:
-      "If the VPN drops, you lose internet until it reconnects or you press Disconnect. It stops leaks but does not hide anything from the VPN provider, who can still see your traffic's destinations.",
+      "If the VPN drops, you lose internet until it reconnects or you press Disconnect. It stops leaks but does not hide anything from the VPN provider, who can still see your traffic's destinations. Tailscale and TailFlow keep working while it is on: their private addresses (100.x) and direct connections are let through, and the rest of the internet stays blocked. Add your TailFlow server's address to Skip the VPN so Tailscale can sign in.",
   },
   allowLan: {
     title: "Allow local network",
@@ -49,7 +49,16 @@ export const HELP = {
     example:
       "Printing to the office printer or opening a shared folder still works while the kill switch is blocking.",
     tradeoff:
-      "Devices on your local network can see and reach your computer outside the VPN. On a shared or public Wi-Fi, leave this off. AirDrop, AirPlay and Handoff work either way; they use a direct link to nearby Apple devices that never touches the internet. Recommended: on at home, off on public Wi-Fi.",
+      "Devices on your local network can see and reach your computer outside the VPN. On a shared or public Wi-Fi, consider turning it off. AirDrop, AirPlay and Handoff work either way; they use a direct link to nearby Apple devices that never touches the internet. On by default. Recommended: on at home, off on public Wi-Fi.",
+  },
+  allowTailscale: {
+    title: "Let Tailscale through",
+    what: "Lets the Tailscale app reach Tailscale's relay and sign-in servers while the kill switch is blocking. Nothing else gets out.",
+    why: "Tailscale connects straight to your other devices when it can. When it can't (strict routers, mobile data), it goes through Tailscale's relays, and the kill switch blocks those. Then your NAS, Proxmox and other home devices stop answering.",
+    example:
+      "You're away from home with the kill switch on and open your home NAS through Tailscale. With this on, it loads even when Tailscale has to use a relay.",
+    tradeoff:
+      "Only Tailscale's published relay and sign-in addresses pass, and only on their web and STUN ports. Anything else sent to those servers outside the VPN would show your real IP address to Tailscale, which already knows it. VPNFlow downloads the relay list from Tailscale and refreshes it every few hours. While you are connected, VPNFlow also turns off Tailscale's \"Use Tailscale DNS\" option, because that would send every lookup outside the VPN and the kill switch would block them all. Tailnet names (like your-nas.your-tailnet.ts.net) still go to Tailscale; everything else uses the VPN's DNS. When you disconnect, Tailscale's DNS option is turned back on. On by default; without Tailscale it does nothing. Recommended: on.",
   },
   dnsProtection: {
     title: "DNS leak protection",
@@ -127,6 +136,16 @@ export const HELP = {
     tradeoff:
       "Traffic to these addresses is not encrypted by the VPN. Your internet provider and the destination can see it, and it shows your real address. DNS lookups for skipped names may still go through the VPN. Only skip devices you trust, such as ones on your home network.",
   },
+  bypassSites: {
+    title: "Skip the VPN for these sites",
+    what: "Websites on this list open over your normal internet connection instead of the VPN. Everything else stays on the VPN.",
+    why: "Some sites, such as phone carriers, banks and streaming services, refuse to work or keep asking you to sign in when they see a VPN.",
+    example:
+      "Add metrobyt-mobile.com. The site then sees you as a normal home visitor and loads, while your other browsing still goes through the VPN.",
+    tradeoff:
+      "These sites see your real internet address and location, and your internet provider can see that you visit them (not what you do there, since the sites use encryption). VPNFlow looks the sites up through the VPN, so the lookups stay private. Big sites share addresses with others, so a few other sites on the same servers may skip the VPN too. Some sites load parts of the page from other names; if one still complains, add that name as well. Works while you are connected; the list starts empty.",
+    pick: "Add only sites that refuse to work over the VPN, and leave the list empty otherwise.",
+  },
   dns: {
     title: "DNS and ad blocking",
     what: "Every time you open a site, your computer first asks a DNS service to turn the name (like news.com) into an address. This setting chooses who answers.",
@@ -198,11 +217,11 @@ export const HELP = {
   },
   connectOnLaunch: {
     title: "Connect on launch",
-    what: "Connects your preferred profile as soon as VPNFlow starts.",
+    what: "Connects as soon as VPNFlow starts: your preferred profile, or Quick connect if you have not picked one.",
     why: "So you are protected without remembering to connect.",
     example: "Turn on with Start VPNFlow at sign-in and you are protected as soon as you log in.",
     tradeoff:
-      "It adds a few seconds at start-up and uses the preferred profile even if you wanted another country.",
+      "It adds a few seconds at start-up and uses the same server or country every time, even if you wanted another. On after setup. Recommended: on.",
   },
   connectivityCheck: {
     title: "Connectivity check",

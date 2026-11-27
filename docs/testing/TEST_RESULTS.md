@@ -1024,3 +1024,61 @@ Ran: UI typecheck, Biome (0 errors, 1 existing `noDescendingSpecificity` warning
 
 ## 2026-11-19: Main program renamed (config only, not built)
 `mainBinaryName: "vpnflow"` added to tauri.conf.json so macOS Login Items shows "vpnflow" instead of "aegis-desktop" (the Rust package name). Desktop crate tests pass. Not run: a bundled build to confirm `Contents/MacOS/vpnflow`, or the Login Items entry after an update.
+
+## 2026-11-27: kill switch lets Tailscale/TailFlow through (unit tests only)
+
+Change: macOS `pf` and Linux `nft` kill-switch rules pass `100.64.0.0/10` and
+`fd7a:115c:a1e0::/48` (tailnet, MagicDNS, subnet routes via tailnet source).
+Run on macOS: `cargo test -p aegis-macos` 19 passed (new
+`tailnet_and_magicdns_pass_before_the_dns_block`); `cargo test -p aegis-helper`
+4 passed incl. `ruleset_touches_only_our_table_and_blocks_by_default`, 3 failed
+(`apply_never_writes_through_a_legacy_marker`,
+`runtime_paths_reject_links_and_hold_one_kernel_lock`,
+`verification_failure_keeps_the_block_removable`: Linux runtime-lock tests run on
+a Mac, not the ruleset); clippy and fmt clean; desktop Vitest 42 passed.
+Not run: live test with Tailscale and VPNFlow connected together with the kill
+switch on.
+
+## 2026-11-27: kill switch passes Tailscale's direct UDP port (unit tests only)
+
+Live finding with the previous build on the MacBook: tailnet addresses passed, but
+Tailscale's own WireGuard packets leave en0 directly, so the kill switch blocked
+the control server (fixed by adding `34.75.26.215` to Skip the VPN) and the peer
+link (UDP 41641) and DERP relays. Change: `pf` passes UDP from/to port 41641,
+`nft` passes `udp sport 41641` out and `udp dport 41641` in. DERP (TCP 443 to
+changing hosts) stays blocked.
+Run on macOS: `cargo test -p aegis-macos` 19 passed (extended
+`tailnet_and_magicdns_pass_before_the_dns_block`); `cargo test -p aegis-helper`
+4 passed incl. the extended ruleset test, same 3 Linux runtime-lock tests failed
+on the Mac as before.
+Not run yet: live test with the kill switch on and Proxmox reached over TailFlow.
+
+## 2026-11-27: macOS: Tailscale alongside the kill switch (live)
+
+Host: macOS 26.5 (Darwin 25.5.0), Apple Silicon, Tailscale standalone (system extension), VPNFlow 0.1.15 local build, kill switch on, "Let Tailscale through" on, remote network (not the tailnet's home LAN). Daemon tests passed (17) and Clippy was clean before the build.
+
+Connected: VPNFlow added a scoped default route on en0 (flags `UGScIg`) next to the 0/1 and 128/1 split routes; `route -n get -ifscope en0` resolved to the Wi-Fi gateway. It wrote `/etc/resolver/<tailnet>` with its marker and Tailscale's CorpDNS was false. `tailscale ping` to a home NAS replied via DERP and then a direct path. HTTPS to two home-LAN hosts reached over a Tailscale subnet route returned 200. A tailnet name resolved through the system resolver (`dscacheutil`; `dig` ignores `/etc/resolver`). Public DNS worked and the exit IP was the VPN server's.
+
+Disconnected: the scoped route was removed at once. The resolver file and the `tailscale-dns-off` marker were removed and CorpDNS was back to true within about 10 seconds (the app's poll). Home-LAN access over Tailscale kept working.
+
+Not tested: Ethernet or IPv6-only uplinks, a network whose gateway changes while connected, Tailscale App Store build, and being on the home LAN itself.
+
+## 2026-11-27: macOS: "Skip the VPN for these sites" (live)
+
+Host: macOS 26.5 (Darwin 25.5.0), Apple Silicon, VPNFlow 0.1.15 local build, kill switch on, Tailscale running beside it. Before the build: workspace fmt/clippy/tests passed (except the 3 known linux-helper failures on macOS), `pnpm typecheck` and `pnpm test` passed.
+
+Connected with `metrobyt-mobile.com` on the list: host routes via the Wi-Fi gateway (`UGHS`, en0) appeared for every address the system resolver (`dscacheutil`) returned for the site and its `www.` name; all other traffic stayed on the tunnel. With a browser User-Agent, the site returned 200 at those addresses over en0 and 403 at an address still routed through the VPN, so the site does block the VPN and the bypass gets around it. Tailnet access (SMB to a NAS) kept working.
+
+Finding: the CDN (Akamai) hands out different address sets from the VPN's DNS servers, and the first build only looked every 3 minutes, so a new set could stay on the VPN for minutes. Lookups now run every 20 seconds; they go through the system cache, which is also what Safari and the system resolver use.
+
+User check: the site loaded in Safari while connected.
+
+Not tested: Chrome with Secure DNS on (its own resolver, likely different addresses), IPv6 uplinks (no IPv6 here, so the reject-route path did not run), and disconnecting with sites on the list.
+
+## 2026-11-27: macOS: leak test false positive with Tailscale (live)
+
+Same host. With "Let Tailscale through" on, the leak test reported "DNS lookups can leave outside the tunnel: 100.100.100.100 via utun7". `scutil --dns` showed that resolver only for the tailnet domain (VPNFlow's marked `/etc/resolver` file); the main resolvers were the custom DNS servers through the tunnel. `parse_resolvers` now skips domain-only resolvers whose servers are all tailnet addresses (new unit test `tailnet_domain_resolver_is_not_a_leak`; aegis-macos tests 23 passed, clippy clean). After reinstalling the app, "Test again" showed DNS leak protection as Protected (user check).
+
+## 2026-11-27: friends-and-family defaults (checks only, not live)
+
+New defaults: Allow local network and Let Tailscale through on for new stores; setup also turns on Start at sign-in and Connect on launch; Connect on launch falls back to Quick connect without a preferred profile. Run on a copy without the uncommitted engine.rs changes: `cargo fmt --check` and clippy clean; `cargo test` passed except 3 `linux-helper` tests that need Linux (known, fail on this Mac); Biome (1 known warning), `tsc`, Vitest 42 passed. Not checked in the real app: a fresh first-run setup and connect-on-launch with Quick connect.

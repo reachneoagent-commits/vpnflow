@@ -131,6 +131,17 @@ impl Handler for Daemon {
             ),
             Request::SetBypass { nets } => done(self.tunnel.set_bypass(&nets).await),
             Request::SetDns { servers } => done(self.tunnel.set_dns_override(&servers).await),
+            Request::SetTailscaleRelays { addrs } => {
+                done(self.tunnel.set_tailscale_relays(&addrs).await)
+            }
+            Request::SetSiteBypass { addrs } => done(self.tunnel.set_site_bypass(&addrs).await),
+            Request::SetTailnetDns { domain } => done(
+                crate::resolver::apply(
+                    std::path::Path::new(crate::resolver::RESOLVER_DIR),
+                    domain.as_deref(),
+                )
+                .map_err(|e| aegis_core::CoreError::backend(format!("tailnet DNS: {e}"))),
+            ),
             Request::RemoveKillSwitch => done(self.tunnel.remove_kill_switch().await),
             Request::KillSwitchActive => match self.tunnel.kill_switch_active().await {
                 Ok(active) => Response::Active { active },

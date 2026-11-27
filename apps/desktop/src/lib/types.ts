@@ -151,7 +151,9 @@ export interface Settings {
   kill_switch: boolean;
   kill_switch_chosen: boolean;
   kill_switch_allow_lan: boolean;
+  kill_switch_allow_tailscale: boolean;
   bypass: string[];
+  bypass_sites: string[];
   dns_servers: string[];
   trusted_networks_enabled: boolean;
   trusted_networks: TrustedNetwork[];

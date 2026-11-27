@@ -51,11 +51,13 @@ export function SettingsScreen() {
   const prefId = useId();
   const attemptsId = useId();
   const bypassId = useId();
+  const siteId = useId();
   const dnsId = useId();
   const dnsCustomId = useId();
   const [dnsCustom, setDnsCustom] = useState(false);
   const [dnsDraft, setDnsDraft] = useState("");
   const [bypassDraft, setBypassDraft] = useState("");
+  const [siteDraft, setSiteDraft] = useState("");
   const [trustDraft, setTrustDraft] = useState("");
   const [trustMsg, setTrustMsg] = useState<string | null>(null);
   if (!settings) return null;
@@ -96,6 +98,14 @@ export function SettingsScreen() {
           disabled={!settings.kill_switch || ksUnsupported || ksLocked}
           onChange={(v) => set({ kill_switch_allow_lan: v })}
         />
+        <Switch
+          label="Let Tailscale through"
+          help="allowTailscale"
+          description="While the kill switch blocks, the Tailscale app can still reach its relay and sign-in servers, so your tailnet keeps working. While connected, tailnet names still resolve and all other lookups use the VPN's DNS. Applies right away. Mac only for now."
+          checked={settings.kill_switch_allow_tailscale}
+          disabled={!settings.kill_switch || ksUnsupported}
+          onChange={(v) => set({ kill_switch_allow_tailscale: v })}
+        />
         <div className="border-t border-line py-3 text-[13px]">
           <div className="font-medium">
             DNS and IPv6
@@ -118,10 +128,9 @@ export function SettingsScreen() {
         <Switch
           label="Connect on launch"
           help="connectOnLaunch"
-          description="Connects the preferred profile when the app starts. Off by default."
+          description="Connects when the app starts: your preferred profile, or Quick connect if you have none."
           checked={settings.connect_on_launch}
           onChange={(v) => set({ connect_on_launch: v })}
-          disabled={!settings.preferred_profile}
         />
         <div className="flex items-center justify-between border-t border-line py-3">
           <label htmlFor={prefId} className="font-medium">
@@ -360,6 +369,55 @@ export function SettingsScreen() {
                 <li key={entry} className="flex items-center justify-between">
                   <code>{entry}</code>
                   <Button onClick={() => void set({ bypass: settings.bypass.filter((b) => b !== entry) })}>
+                    Remove
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </Panel>
+      )}
+
+      {caps?.backend === "macos_daemon" && (
+        <Panel title="Skip the VPN for these sites" help="bypassSites">
+          <div className="py-3 text-[13px]">
+            <label htmlFor={siteId} className="font-medium">
+              Websites that open without the VPN
+            </label>
+            <p className="mt-0.5 max-w-[65ch] text-muted">
+              For sites that block VPN users. They see your real address. Add a name like example.com or paste
+              the site's link. Works while connected.
+            </p>
+            <form
+              className="mt-2 flex gap-2"
+              onSubmit={(e) => {
+                e.preventDefault();
+                const entry = siteDraft.trim();
+                if (!entry) return;
+                // The app cleans the entry up (drops https://, www. and paths)
+                // and shows an error toast if it is not a site name.
+                void saveSettings({ ...settings, bypass_sites: [...settings.bypass_sites, entry] });
+                setSiteDraft("");
+              }}
+            >
+              <input
+                id={siteId}
+                value={siteDraft}
+                onChange={(e) => setSiteDraft(e.target.value)}
+                placeholder="example.com"
+                className="w-64 "
+              />
+              <Button type="submit">Add</Button>
+            </form>
+            <ul className="mt-2 flex flex-col gap-1">
+              {settings.bypass_sites.map((site) => (
+                <li key={site} className="flex items-center justify-between">
+                  <code>{site}</code>
+                  <Button
+                    onClick={() =>
+                      void set({ bypass_sites: settings.bypass_sites.filter((s) => s !== site) })
+                    }
+                  >
                     Remove
                   </Button>
                 </li>

@@ -193,7 +193,19 @@ example.com: 104.20.23.154       -- link: aegis-xxxxxxxx
 ### Using VPNFlow alongside Tailscale
 
 Tailscale and VPNFlow can run at the same time: tailnet traffic keeps its own
-route over `tailscale0`, everything else goes through the VPN.
+route over Tailscale's interface, everything else goes through the VPN. This
+also works with a self-hosted Headscale server such as TailFlow.
+
+The kill switch lets tailnet addresses through (`100.64.0.0/10`, including
+MagicDNS at `100.100.100.100`, and `fd7a:115c:a1e0::/48`). Your home network
+over a Tailscale subnet route works too, because those packets carry a tailnet
+source address. Tailscale's own encrypted packets leave the physical network
+directly, so the kill switch also passes its WireGuard port (UDP `41641`); add
+a self-hosted control server's IP (such as your TailFlow server) to **Skip the
+VPN** so Tailscale can sign in and fetch its network map. On a Mac, **Let
+Tailscale through** (on by default) also passes Tailscale's relay (DERP) and
+sign-in servers, for when no direct path exists. Everything else stays blocked
+when the VPN drops.
 
 DNS needs one thing. If Tailscale started while systemd-resolved was not
 managing `/etc/resolv.conf`, Tailscale writes that file itself (`# resolv.conf(5)

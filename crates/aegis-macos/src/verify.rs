@@ -9,14 +9,30 @@ use std::net::{IpAddr, Ipv4Addr};
 use aegis_config::RouteKind;
 use aegis_core::Feature;
 
+/// A Tailscale/TailFlow device or MagicDNS address (100.64.0.0/10 or
+/// fd7a:115c:a1e0::/48). Lookups sent there stay inside the tailnet.
+fn tailnet_addr(ip: &IpAddr) -> bool {
+    match ip {
+        IpAddr::V4(v) => v.octets()[0] == 100 && (v.octets()[1] & 0xc0) == 64,
+        IpAddr::V6(v) => v.segments()[..3] == [0xfd7a, 0x115c, 0xa1e0],
+    }
+}
+
 /// Name servers of the resolvers that normal lookups use, from `scutil --dns`.
 /// Scoped resolvers (only used by apps that bind to one interface) are skipped.
+/// So is a resolver for one domain whose servers are all tailnet addresses,
+/// such as `/etc/resolver/<tailnet>` pointing at Tailscale's MagicDNS: only
+/// that tailnet's names go there and Tailscale answers them itself. A
+/// tailnet server used for every name (Tailscale's "Use Tailscale DNS") is
+/// still checked, because Tailscale forwards those lookups to public DNS.
 pub fn parse_resolvers(scutil_dns: &str) -> Vec<IpAddr> {
     let mut out: Vec<IpAddr> = Vec::new();
     let mut block: Vec<IpAddr> = Vec::new();
     let mut scoped = false;
-    let mut flush = |block: &mut Vec<IpAddr>, scoped: &mut bool| {
-        if !*scoped {
+    let mut domain = false;
+    let mut flush = |block: &mut Vec<IpAddr>, scoped: &mut bool, domain: &mut bool| {
+        let tailnet_only = *domain && !block.is_empty() && block.iter().all(tailnet_addr);
+        if !*scoped && !tailnet_only {
             for ip in block.drain(..) {
                 if !out.contains(&ip) {
                     out.push(ip);
@@ -25,10 +41,13 @@ pub fn parse_resolvers(scutil_dns: &str) -> Vec<IpAddr> {
         }
         block.clear();
         *scoped = false;
+        *domain = false;
     };
     for line in scutil_dns.lines().map(str::trim) {
         if line.starts_with("resolver #") || line.starts_with("DNS configuration") {
-            flush(&mut block, &mut scoped);
+            flush(&mut block, &mut scoped, &mut domain);
+        } else if line.starts_with("domain") {
+            domain = true;
         } else if line.starts_with("nameserver[") {
             if let Some(ip) = line
                 .split(':')
@@ -46,7 +65,7 @@ pub fn parse_resolvers(scutil_dns: &str) -> Vec<IpAddr> {
             scoped = true;
         }
     }
-    flush(&mut block, &mut scoped);
+    flush(&mut block, &mut scoped, &mut domain);
     out
 }
 
@@ -323,6 +342,19 @@ mod tests {
     #[test]
     fn resolvers_skip_scoped() {
         assert_eq!(parse_resolvers(SCUTIL), vec![ip("10.2.0.1")]);
+    }
+
+    #[test]
+    fn tailnet_domain_resolver_is_not_a_leak() {
+        let tailnet_domain = "resolver #1\n  nameserver[0] : 10.2.0.1\n\nresolver #2\n  domain   : example-tailnet.ts.net\n  nameserver[0] : 100.100.100.100\n  flags    : Request A records\n";
+        assert_eq!(parse_resolvers(tailnet_domain), vec![ip("10.2.0.1")]);
+        // "Use Tailscale DNS": MagicDNS answers every name and forwards
+        // public ones outside the tunnel, so it is still checked.
+        let all_names = "resolver #1\n  nameserver[0] : 100.100.100.100\n";
+        assert_eq!(parse_resolvers(all_names), vec![ip("100.100.100.100")]);
+        // A domain resolver on the LAN still counts.
+        let corp = "resolver #1\n  domain   : corp.example\n  nameserver[0] : 192.168.1.1\n";
+        assert_eq!(parse_resolvers(corp), vec![ip("192.168.1.1")]);
     }
 
     #[test]

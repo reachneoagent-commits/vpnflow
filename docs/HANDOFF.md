@@ -23,6 +23,8 @@ Folder import, merged page, live leak test, bulk delete, IPv4-only auto-fix. Use
 - Old `brand/` files remain in git history (removal needs the user's say-so).
 - GitHub repo still marked "Forked from mikeholp87/aegis-vpn" (detaching is permanent, via GitHub support; left alone).
 - `Config files/` holds private Proton keys: gitignored (`*.conf`), never commit. New Proton configs there are not yet imported. `Config files/PROTON-DOWNLOAD-LIST.md` lists servers to download.
+- Mac "Skip the VPN for these sites" (in 0.1.16, live-tested with metrobyt-mobile.com in Safari): CDN addresses vary per DNS server, so the app re-looks every 20 s; Chrome Secure DNS and IPv6 uplinks (reject-route path) untested. Windows/Linux: not built (Settings panel is Mac-only).
+- Mac install gotcha: `install-daemon.sh` re-bootstrap can fail with "Bootstrap failed: 5" right after bootout; a reboot (or retry) loads it. `hdiutil attach` as root cannot read the SynologyDrive folder; install the .app from the build folder.
 - Roadmap items marked "built, awaiting live test" in ROADMAP.md still need the user's live check.
 
 ## Release recipe

@@ -81,6 +81,23 @@ pub enum Request {
     SetDns {
         servers: Vec<IpAddr>,
     },
+    /// Tailscale's relay (DERP) and sign-in servers that may pass the kill
+    /// switch on their web and STUN ports. Empty turns it off. Applies at once.
+    SetTailscaleRelays {
+        addrs: Vec<IpAddr>,
+    },
+    /// Send names under this tailnet domain to Tailscale's resolver
+    /// (100.100.100.100) through a per-domain resolver file. `None` removes
+    /// it. Applies at once.
+    SetTailnetDns {
+        domain: Option<String>,
+    },
+    /// Addresses of websites the user chose to skip the VPN for. While a
+    /// tunnel is up they are routed via the normal connection and passed by
+    /// the kill switch on web ports. Empty removes them. Applies at once.
+    SetSiteBypass {
+        addrs: Vec<IpAddr>,
+    },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

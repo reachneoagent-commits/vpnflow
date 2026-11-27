@@ -119,6 +119,27 @@ pub fn route_delete_net(net: &IpNet) -> Vec<String> {
     ]
 }
 
+/// A host route that fails at once ("unreachable"). Used for a skipped
+/// site's IPv6 address when there is no IPv6 route around the VPN, so the
+/// browser falls back to IPv4 instead of reaching the site through the VPN.
+pub fn route_add_reject(ip: IpAddr) -> Vec<String> {
+    let (fam, lo) = if ip.is_ipv4() {
+        ("-inet", "127.0.0.1")
+    } else {
+        ("-inet6", "::1")
+    };
+    vec![
+        "-q".into(),
+        "-n".into(),
+        "add".into(),
+        fam.into(),
+        "-host".into(),
+        ip.to_string(),
+        lo.into(),
+        "-reject".into(),
+    ]
+}
+
 pub fn route_delete_host(ip: IpAddr) -> Vec<String> {
     let fam = if ip.is_ipv4() { "-inet" } else { "-inet6" };
     vec![
@@ -160,6 +181,50 @@ pub fn parse_default_gateway(out: &str) -> Option<Gateway> {
     }
 }
 
+/// The physical interface from `route -n get default`, if it is one.
+pub fn parse_default_interface(out: &str) -> Option<String> {
+    out.lines()
+        .filter_map(|l| l.trim().strip_prefix("interface:"))
+        .map(|v| v.trim().to_owned())
+        .find(|i| {
+            !i.is_empty()
+                && !i.starts_with("utun")
+                && i.len() <= 15
+                && i.bytes().all(|b| b.is_ascii_alphanumeric())
+        })
+}
+
+/// A default route scoped to the physical interface. macOS has none for the
+/// primary interface once the tunnel's split routes are in, so apps that bind
+/// their sockets to Wi-Fi themselves (Tailscale) get "network unreachable".
+/// It is used only by sockets bound to that interface; the kill switch still
+/// filters them.
+pub fn route_add_scoped_default(gw: IpAddr, iface: &str) -> Vec<String> {
+    let fam = if gw.is_ipv4() { "-inet" } else { "-inet6" };
+    vec![
+        "-q".into(),
+        "-n".into(),
+        "add".into(),
+        fam.into(),
+        "default".into(),
+        gw.to_string(),
+        "-ifscope".into(),
+        iface.into(),
+    ]
+}
+
+pub fn route_delete_scoped_default(v6: bool, iface: &str) -> Vec<String> {
+    vec![
+        "-q".into(),
+        "-n".into(),
+        "delete".into(),
+        if v6 { "-inet6" } else { "-inet" }.into(),
+        "default".into(),
+        "-ifscope".into(),
+        iface.into(),
+    ]
+}
+
 /// Service names from `networksetup -listallnetworkservices`; skips the
 /// header line and disabled (`*`-prefixed) services.
 pub fn parse_services(out: &str) -> Vec<String> {
@@ -193,6 +258,34 @@ mod tests {
 
     fn net(s: &str) -> IpNet {
         s.parse().unwrap()
+    }
+
+    #[test]
+    fn scoped_default_route() {
+        let out = "   route to: default\n    gateway: 192.168.1.1\n  interface: en0\n";
+        assert_eq!(parse_default_interface(out).as_deref(), Some("en0"));
+        assert_eq!(parse_default_interface("  interface: utun3\n"), None);
+        assert_eq!(parse_default_interface("  interface: en0;rm\n"), None);
+        assert_eq!(
+            route_add_scoped_default("192.168.1.1".parse().unwrap(), "en0").join(" "),
+            "-q -n add -inet default 192.168.1.1 -ifscope en0"
+        );
+        assert_eq!(
+            route_delete_scoped_default(false, "en0").join(" "),
+            "-q -n delete -inet default -ifscope en0"
+        );
+    }
+
+    #[test]
+    fn reject_route() {
+        assert_eq!(
+            route_add_reject("2001:db8::7".parse().unwrap()).join(" "),
+            "-q -n add -inet6 -host 2001:db8::7 ::1 -reject"
+        );
+        assert_eq!(
+            route_add_reject("198.51.100.7".parse().unwrap()).join(" "),
+            "-q -n add -inet -host 198.51.100.7 127.0.0.1 -reject"
+        );
     }
 
     #[test]

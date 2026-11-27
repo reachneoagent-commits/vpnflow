@@ -3,11 +3,12 @@
 //!
 //! Policy (mirrors `Backend::apply_kill_switch`): block everything, then pass
 //! loopback, the tunnel interface, UDP to the WireGuard endpoints, DHCP, IPv6
-//! neighbour discovery and, when `allow_lan`, private/link-local ranges.
+//! neighbour discovery, the Tailscale/TailFlow ranges and, when `allow_lan`,
+//! private/link-local ranges.
 //! DNS (ports 53 and 853) outside the tunnel is blocked even for those ranges.
 //! Every input is validated; nothing user-controlled is interpolated raw.
 
-use std::net::SocketAddr;
+use std::net::{IpAddr, SocketAddr};
 
 use ipnet::IpNet;
 
@@ -17,6 +18,23 @@ pub const ANCHOR: &str = "com.apple/vpnflow";
 
 const LAN_V4: &str = "{ 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 }";
 const LAN_V6: &str = "{ fe80::/10, fc00::/7 }";
+/// Tailscale-style mesh networks (Tailscale, Headscale/TailFlow): device
+/// addresses and MagicDNS (100.100.100.100) live in the CGNAT range, IPv6 in
+/// Tailscale's ULA prefix. Traffic to the home network over a subnet route
+/// leaves with a tailnet source address, so it is covered too. Only these
+/// destinations skip the block; the public internet stays blocked.
+pub const TAILNET_V4: &str = "100.64.0.0/10";
+pub const TAILNET_V6: &str = "fd7a:115c:a1e0::/48";
+/// Tailscale's fixed WireGuard port. Its client sends its encrypted packets
+/// straight out the physical interface, not through our tunnel, so the direct
+/// peer link (Mac to home) is passed by port. Relays (DERP, TCP 443 to many
+/// changing hosts) are not; add the control server to the bypass list.
+pub const TAILSCALE_PORT: u16 = 41641;
+/// Most Tailscale relay/sign-in addresses one ruleset passes. Tailscale's
+/// public relay map lists a few hundred.
+pub const MAX_RELAYS: usize = 512;
+/// Most addresses of "skip the VPN" websites one ruleset passes.
+pub const MAX_SITE_ADDRS: usize = 256;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum PfError {
@@ -45,6 +63,23 @@ pub fn ruleset_with_bypass(
     endpoints: &[SocketAddr],
     allow_lan: bool,
     bypass: &[IpNet],
+) -> Result<String, PfError> {
+    ruleset_full(tunnel_if, endpoints, allow_lan, bypass, &[], &[])
+}
+
+/// Like [`ruleset_with_bypass`], also passing Tailscale's relay (DERP) and
+/// sign-in servers in `relays`, only on the ports Tailscale uses for them:
+/// TCP 80/443 (relayed WireGuard and control over HTTPS) and UDP 3478 (STUN).
+/// Lets the real Tailscale app reach a tailnet when no direct path exists.
+/// `sites` are addresses of websites the user chose to skip the VPN for;
+/// they pass on web ports only (TCP 80/443 and QUIC on UDP 443).
+pub fn ruleset_full(
+    tunnel_if: Option<&str>,
+    endpoints: &[SocketAddr],
+    allow_lan: bool,
+    bypass: &[IpNet],
+    relays: &[IpAddr],
+    sites: &[IpAddr],
 ) -> Result<String, PfError> {
     if tunnel_if.is_some_and(|i| !valid_tunnel_interface(i)) {
         return Err(PfError::BadInterface);
@@ -87,6 +122,51 @@ pub fn ruleset_with_bypass(
         r.push_str(&format!("pass quick {fam} to {net}\n"));
         r.push_str(&format!("pass quick {fam} from {net}\n"));
     }
+    // A mesh VPN (Tailscale, TailFlow) running beside VPNFlow keeps working:
+    // what it carries (tailnet addresses, MagicDNS) passes before the DNS
+    // block, and so do its own encrypted packets on its fixed UDP port.
+    r.push_str(&format!("pass quick inet to {TAILNET_V4}\n"));
+    r.push_str(&format!("pass quick inet from {TAILNET_V4}\n"));
+    r.push_str(&format!("pass quick inet6 to {TAILNET_V6}\n"));
+    r.push_str(&format!("pass quick inet6 from {TAILNET_V6}\n"));
+    r.push_str(&format!(
+        "pass out quick proto udp from any port {TAILSCALE_PORT} to any\n"
+    ));
+    r.push_str(&format!(
+        "pass in quick proto udp from any to any port {TAILSCALE_PORT}\n"
+    ));
+    for (fam, v4) in [("inet", true), ("inet6", false)] {
+        let ips: Vec<String> = relays
+            .iter()
+            .filter(|a| a.is_ipv4() == v4)
+            .take(MAX_RELAYS)
+            .map(IpAddr::to_string)
+            .collect();
+        if ips.is_empty() {
+            continue;
+        }
+        let list = ips.join(", ");
+        r.push_str(&format!(
+            "pass out quick {fam} proto tcp to {{ {list} }} port {{ 80, 443 }}\n"
+        ));
+        r.push_str(&format!(
+            "pass out quick {fam} proto udp to {{ {list} }} port 3478\n"
+        ));
+    }
+    for (fam, v4) in [("inet", true), ("inet6", false)] {
+        let ips: Vec<String> = sites
+            .iter()
+            .filter(|a| a.is_ipv4() == v4)
+            .take(MAX_SITE_ADDRS)
+            .map(IpAddr::to_string)
+            .collect();
+        if !ips.is_empty() {
+            r.push_str(&format!(
+                "pass out quick {fam} proto {{ tcp, udp }} to {{ {} }} port {{ 80, 443 }}\n",
+                ips.join(", ")
+            ));
+        }
+    }
     // DNS (and DNS over TLS) may only travel inside the tunnel. Without this,
     // "allow local network" would let lookups reach the router, which forwards
     // them to the internet provider. Traffic inside the tunnel already passed
@@ -107,6 +187,59 @@ pub fn ruleset_with_bypass(
 mod tests {
     use super::*;
 
+    #[test]
+    fn relays_pass_only_web_and_stun_ports() {
+        let ep: SocketAddr = "203.0.113.9:51820".parse().unwrap();
+        let relays: Vec<IpAddr> = vec![
+            "199.38.181.104".parse().unwrap(),
+            "2606:b740:49::104".parse().unwrap(),
+            "192.200.0.101".parse().unwrap(),
+        ];
+        let r = ruleset_full(Some("utun10"), &[ep], false, &[], &relays, &[]).unwrap();
+        assert!(r.contains(
+            "pass out quick inet proto tcp to { 199.38.181.104, 192.200.0.101 } port { 80, 443 }\n"
+        ));
+        assert!(r.contains(
+            "pass out quick inet proto udp to { 199.38.181.104, 192.200.0.101 } port 3478\n"
+        ));
+        assert!(r.contains(
+            "pass out quick inet6 proto tcp to { 2606:b740:49::104 } port { 80, 443 }\n"
+        ));
+        // Still before the final block, and the block stays last.
+        let pass = r.find("port 3478").unwrap();
+        assert!(pass < r.find("block drop quick all").unwrap());
+        assert!(r.ends_with("block drop quick all\n"));
+    }
+
+    #[test]
+    fn sites_pass_only_web_ports_before_the_block() {
+        let ep: SocketAddr = "203.0.113.9:51820".parse().unwrap();
+        let sites: Vec<IpAddr> = vec![
+            "198.51.100.7".parse().unwrap(),
+            "2001:db8::7".parse().unwrap(),
+        ];
+        let r = ruleset_full(Some("utun10"), &[ep], false, &[], &[], &sites).unwrap();
+        assert!(r.contains(
+            "pass out quick inet proto { tcp, udp } to { 198.51.100.7 } port { 80, 443 }\n"
+        ));
+        assert!(r.contains(
+            "pass out quick inet6 proto { tcp, udp } to { 2001:db8::7 } port { 80, 443 }\n"
+        ));
+        assert!(!r.contains("to 198.51.100.7\n"), "no all-port pass");
+        let pass = r.find("198.51.100.7").unwrap();
+        assert!(pass < r.find("block drop quick all").unwrap());
+        assert!(r.ends_with("block drop quick all\n"));
+    }
+
+    #[test]
+    fn no_relays_adds_nothing() {
+        let ep: SocketAddr = "203.0.113.9:51820".parse().unwrap();
+        let a = ruleset_full(None, &[ep], true, &[], &[], &[]).unwrap();
+        let b = ruleset(None, &[ep], true).unwrap();
+        assert_eq!(a, b);
+        assert!(!a.contains("3478"));
+    }
+
     fn ep(s: &str) -> SocketAddr {
         s.parse().unwrap()
     }
@@ -118,6 +251,30 @@ mod tests {
         assert!(!r.contains("set skip"));
         let r = ruleset(None, &[ep("203.0.113.7:51820")], false).unwrap();
         assert!(r.starts_with("pass quick on lo0 all\n"));
+    }
+
+    #[test]
+    fn tailnet_and_magicdns_pass_before_the_dns_block() {
+        let r = ruleset(Some("utun4"), &[ep("203.0.113.7:51820")], false).unwrap();
+        let pos = |needle: &str| r.find(needle).unwrap();
+        let dns = pos("block drop quick proto { tcp, udp } from any to any port { 53, 853 }\n");
+        for rule in [
+            "pass quick inet to 100.64.0.0/10\n",
+            "pass quick inet from 100.64.0.0/10\n",
+            "pass quick inet6 to fd7a:115c:a1e0::/48\n",
+            "pass quick inet6 from fd7a:115c:a1e0::/48\n",
+        ] {
+            assert!(pos(rule) < dns, "{rule}");
+        }
+        let block = pos("block drop quick all\n");
+        for rule in [
+            "pass out quick proto udp from any port 41641 to any\n",
+            "pass in quick proto udp from any to any port 41641\n",
+        ] {
+            assert!(pos(rule) < block, "{rule}");
+        }
+        // The rest of the private ranges stay blocked unless allow_lan is on.
+        assert!(!r.contains("192.168.0.0/16"));
     }
 
     #[test]

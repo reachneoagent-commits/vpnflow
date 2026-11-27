@@ -36,6 +36,9 @@ fn command_name(req: &Request) -> &'static str {
         Request::KillSwitchActive => "kill_switch_active",
         Request::SetBypass { .. } => "set_bypass",
         Request::SetDns { .. } => "set_dns",
+        Request::SetTailscaleRelays { .. } => "set_tailscale_relays",
+        Request::SetTailnetDns { .. } => "set_tailnet_dns",
+        Request::SetSiteBypass { .. } => "set_site_bypass",
     }
 }
 
@@ -50,6 +53,9 @@ fn is_mutating(req: &Request) -> bool {
             | Request::RemoveKillSwitch
             | Request::SetBypass { .. }
             | Request::SetDns { .. }
+            | Request::SetTailscaleRelays { .. }
+            | Request::SetTailnetDns { .. }
+            | Request::SetSiteBypass { .. }
     )
 }
 

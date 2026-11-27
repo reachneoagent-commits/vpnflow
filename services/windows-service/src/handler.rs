@@ -160,6 +160,9 @@ impl Handler for Skeleton {
             | Request::Activate { .. }
             | Request::SetBypass { .. }
             | Request::SetDns { .. }
+            | Request::SetTailscaleRelays { .. }
+            | Request::SetTailnetDns { .. }
+            | Request::SetSiteBypass { .. }
             | Request::ApplyKillSwitch { .. } => Response::Error {
                 kind: ErrorKind::Unsupported,
                 message: NOT_YET.into(),

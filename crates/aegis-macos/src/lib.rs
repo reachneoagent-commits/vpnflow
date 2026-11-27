@@ -129,6 +129,31 @@ mod imp {
             verify_socket(SOCKET_PATH)?;
             Ok(Self(()))
         }
+
+        /// Tell the daemon which Tailscale relay/sign-in servers may pass the
+        /// kill switch. Empty turns that off.
+        pub async fn apply_tailscale_relays(&self, addrs: &[std::net::IpAddr]) -> Result<()> {
+            expect_ok(Request::SetTailscaleRelays {
+                addrs: addrs.to_vec(),
+            })
+            .await
+        }
+
+        /// Addresses of sites that skip the VPN (empty removes them).
+        pub async fn apply_site_bypass(&self, addrs: &[std::net::IpAddr]) -> Result<()> {
+            expect_ok(Request::SetSiteBypass {
+                addrs: addrs.to_vec(),
+            })
+            .await
+        }
+
+        /// Point tailnet names at Tailscale's resolver (`None` removes it).
+        pub async fn apply_tailnet_dns(&self, domain: Option<&str>) -> Result<()> {
+            expect_ok(Request::SetTailnetDns {
+                domain: domain.map(str::to_owned),
+            })
+            .await
+        }
     }
 
     impl VpnBackend for ServiceBackend {
