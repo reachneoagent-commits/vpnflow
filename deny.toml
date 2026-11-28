@@ -15,6 +15,14 @@ ignore = [
   { id = "RUSTSEC-2026-0372", reason = "zvariant_derive 5 via tauri-plugin-single-instance; no zbus 6 release yet" },
   # Build-time proc macro of glib 0.18 (gtk3 stack used by tauri/tray-icon on Linux).
   { id = "RUSTSEC-2024-0370", reason = "proc-macro-error via glib-macros 0.18 (tauri gtk3 stack)" },
+  # zip 4 via tauri-plugin-updater (Windows builds only). Every updater release,
+  # including 3.0 alphas, requires zip ^4. Archives are minisign-verified first.
+  { id = "RUSTSEC-2026-0367", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
+  { id = "RUSTSEC-2026-0368", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
+  { id = "RUSTSEC-2026-0369", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
+  { id = "RUSTSEC-2026-0429", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
+  { id = "RUSTSEC-2026-0545", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
+  { id = "RUSTSEC-2026-0548", reason = "zip 4.6.1 via tauri-plugin-updater, Windows-only; extracts signature-verified update bundles only; no updater release on zip >=9 yet (reviewed 2026-11-27); revisit on every updater update" },
 ]
 
 [licenses]
