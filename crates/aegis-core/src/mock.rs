@@ -50,6 +50,7 @@ pub struct MockBackend {
     store_dir: Option<PathBuf>,
     pub activate_delay: Duration,
     pub load_delay: Duration,
+    pub(crate) reachability_delay: Duration,
     /// Test-only: report the kill switch as supported. Never set by the app,
     /// so `AEGIS_BACKEND=mock` keeps reporting it unsupported.
     test_kill_switch: bool,
@@ -68,6 +69,7 @@ impl Default for MockBackend {
             store_dir: None,
             activate_delay: Duration::from_millis(700),
             load_delay: Duration::ZERO,
+            reachability_delay: Duration::ZERO,
             test_kill_switch: false,
         }
     }
@@ -326,6 +328,7 @@ impl VpnBackend for MockBackend {
         _status: &TunnelStatus,
     ) -> Feature {
         self.lock().reachability_checks += 1;
+        tokio::time::sleep(self.reachability_delay).await;
         Feature::Unsupported(SIM.into())
     }
 

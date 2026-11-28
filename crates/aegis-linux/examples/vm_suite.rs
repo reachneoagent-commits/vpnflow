@@ -601,6 +601,50 @@ async fn main() {
         &format!("{:?}, {:?}", snap.state, snap.protection.kill_switch),
     );
 
+    let r = engine.connect(id).await;
+    step(
+        "connect before policy-change test",
+        r.is_ok(),
+        &format!("{r:?}"),
+    );
+    let (ok, out) = root(&[
+        "nft",
+        "insert",
+        "rule",
+        "inet",
+        "aegis_vpn",
+        "output",
+        "ip",
+        "daddr",
+        "192.0.2.254",
+        "drop",
+    ]);
+    step(
+        "insert an extra restrictive rule in the owned table",
+        ok,
+        &out,
+    );
+    let deadline = Instant::now() + Duration::from_secs(15);
+    while Instant::now() < deadline
+        && !matches!(engine.snapshot().state, ConnectionState::Failed { .. })
+    {
+        tokio::time::sleep(Duration::from_millis(200)).await;
+    }
+    let snap = engine.snapshot();
+    step(
+        "changed policy revokes verification and stops the tunnel",
+        matches!(snap.state, ConnectionState::Failed { .. })
+            && matches!(snap.protection.kill_switch, Feature::Failed(_))
+            && matches!(engine.backend().status().await, Ok(None)),
+        &format!("{:?}", snap.state),
+    );
+    let r = engine.disconnect().await;
+    step(
+        "explicit cleanup of changed policy",
+        r.is_ok(),
+        &format!("{r:?}"),
+    );
+
     let r = set_ks(true, true);
     step(
         "enable kill switch with local network allowed",

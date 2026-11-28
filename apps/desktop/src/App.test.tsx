@@ -286,6 +286,31 @@ describe("App", () => {
     expect(screen.getByText("203.0.113.50")).toBeInTheDocument();
   });
 
+  it("does not present received tunnel data as a WireGuard handshake", async () => {
+    const since = Date.now() - 5_000;
+    mockApi.capabilities.mockResolvedValueOnce({
+      ...caps(false),
+      exact_handshake_time: { status: "supported" },
+    });
+    setup({
+      snapshot: {
+        ...snap({ state: "connected", profile: "p1", since_ms: since, peer: "confirmed" }, profile),
+        stats: {
+          rx_bytes: 1000,
+          tx_bytes: 500,
+          rx_rate_bps: 0,
+          tx_rate_bps: 0,
+          last_handshake_ms: null,
+          last_response_ms: since,
+          interface: "aegis0",
+          sampled_ms: Date.now(),
+        },
+      },
+    });
+    expect(await screen.findByText("Last handshake")).toBeInTheDocument();
+    expect(screen.getByText("None yet")).toBeInTheDocument();
+  });
+
   it.each(["p1", null])("keeps disconnect available with unknown status and profile %s", async (id) => {
     setup({
       snapshot: snap(

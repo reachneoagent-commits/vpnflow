@@ -1,0 +1,26 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "build": {
+    "beforeBuildCommand": "pnpm build && bash ../../scripts/build-linux-helper.sh"
+  },
+  "bundle": {
+    "linux": {
+      "deb": {
+        "depends": ["network-manager (>= 1.16)", "nftables", "pkexec | policykit-1", "wireguard-tools"],
+        "files": {
+          "/usr/libexec/aegis-vpn/aegis-helper": "../../../target/linux-package/aegis-helper",
+          "/usr/share/polkit-1/actions/org.aegisvpn.helper.policy": "../../../services/linux-helper/org.aegisvpn.helper.policy"
+        },
+        "preRemoveScript": "packaging/deb-prerm.sh"
+      },
+      "rpm": {
+        "depends": ["NetworkManager >= 1.16", "nftables", "polkit", "wireguard-tools"],
+        "files": {
+          "/usr/libexec/aegis-vpn/aegis-helper": "../../../target/linux-package/aegis-helper",
+          "/usr/share/polkit-1/actions/org.aegisvpn.helper.policy": "../../../services/linux-helper/org.aegisvpn.helper.policy"
+        },
+        "preRemoveScript": "packaging/rpm-preun.sh"
+      }
+    }
+  }
+}

@@ -97,3 +97,34 @@ testing. Repeat after a connection failure, DHCP/interface change, DNS
 change, IPv6 route change, country switch, GUI termination, backend restart
 and reboot. Compare routes, rules, resolvers, installed services and owned
 firewall state to the baseline after authorized disconnect and uninstall.
+
+## Firewall policy identity and package recovery
+
+The VM suite inserts an additional restrictive rule into `inet aegis_vpn`.
+The next helper inspection must reject the policy change, withdraw Verified,
+and stop the tunnel. Explicit Disconnect must still remove the changed table.
+The snapshot must be a root-owned regular file with mode 0600. Missing,
+malformed, linked or permissively readable snapshots must fail verification.
+
+For package removal failure testing, use a disposable VM with the package
+installed and an independent console. Back up its helper, temporarily replace
+it with a stub that exits unsuccessfully, and request package removal.
+The package manager must retain the helper and policy. Restore the original
+helper and retry removal, then compare routes, firewall state and user data
+with the baseline. A same-version reinstall exercises the upgrade hook path.
+
+## Debian desktop package smoke test
+
+Use a disposable Debian VM with no Aegis desktop package installed. Keep a
+console available. Record the package hash, `ip -4 route show` and `sudo nft
+list ruleset`. Set a disposable marker in the test user's application data.
+
+1. Install the DEB with `sudo apt-get install /path/to/aegis-preview.deb`.
+   Check the installed version with `dpkg-query`, the launcher and license
+   files, and `ldd /usr/bin/aegis-desktop` for unresolved dependencies.
+2. Reinstall the same file with `sudo dpkg -i /path/to/aegis-preview.deb`.
+   For upgrade testing, start with the previous signed package and a real
+   test profile instead of the marker.
+3. Purge with `sudo dpkg --purge aegis-vpn`. Check that the application
+   binary and launcher are gone, user data remains, and routes and nftables
+   match the saved baseline. Test the separate helper's lifecycle on its own.

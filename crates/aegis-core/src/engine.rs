@@ -27,6 +27,7 @@ pub const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 /// Sent traffic with no reply for this long ⇒ `PeerState::NoResponse`.
 const NO_RESPONSE_AFTER: Duration = Duration::from_secs(20);
 const POLL: Duration = Duration::from_secs(2);
+const FIREWALL_CHECK_TIMEOUT: Duration = Duration::from_secs(5);
 /// Data sent, nothing received, for this long ⇒ the server stopped answering.
 const SILENT_AFTER: Duration = Duration::from_secs(30);
 /// Wait this long after an OS event before reacting, so bursts collapse into one.
@@ -497,9 +498,22 @@ impl<B: VpnBackend> Engine<B> {
                 "disconnect before deleting the active profile",
             ));
         }
-        // Keep the registry entry until the backend confirms deletion.
+        let previous = match self.backend.load(id).await {
+            Ok(config) => Some(config),
+            Err(CoreError::NotFound) => None,
+            Err(error) => return Err(error),
+        };
         self.backend.uninstall(id).await?;
-        self.save_profiles(|v| v.retain(|p| p.id != id))?;
+        if let Err(error) = self.save_profiles(|v| v.retain(|p| p.id != id)) {
+            if let Some(config) = previous
+                && let Err(rollback) = self.backend.install(id, &meta.name, &config).await
+            {
+                return Err(CoreError::storage(format!(
+                    "profile deletion could not be saved and the configuration could not be restored ({rollback}); re-import the profile"
+                )));
+            }
+            return Err(error);
+        }
         if self.live().settings.preferred_profile == Some(id) {
             let mut s = self.settings();
             s.preferred_profile = None;
@@ -528,7 +542,7 @@ impl<B: VpnBackend> Engine<B> {
     // ---------- server registry (profile IDs, no credential copies) ----------
 
     pub async fn update_server(&self, id: ProfileId, update: ServerUpdate) -> Result<ProfileView> {
-        let _g = self.op_lock.try_lock().map_err(|_| CoreError::Busy)?;
+        let _g = self.op_lock.lock().await;
         self.update_server_locked(id, update)
     }
 
@@ -598,7 +612,8 @@ impl<B: VpnBackend> Engine<B> {
         if self.live().state.profile().is_some() {
             let status = self.read_status().await?;
             if let Some(status) = status {
-                self.verify_protection(status.id, &status, false).await;
+                let stop = self.live().monitor_cancel.clone();
+                self.verify_protection(&status, &stop, false).await;
             }
         }
         self.publish();
@@ -1083,13 +1098,14 @@ impl<B: VpnBackend> Engine<B> {
                 && (l.settings.kill_switch || l.blocking != Some(false))
         };
         if expected {
-            let active = tokio::time::timeout(POLL, self.backend.kill_switch_active())
-                .await
-                .map_err(|_| CoreError::Timeout {
-                    what: "checking firewall state".into(),
-                    seconds: POLL.as_secs(),
-                })
-                .and_then(|result| result);
+            let active =
+                tokio::time::timeout(FIREWALL_CHECK_TIMEOUT, self.backend.kill_switch_active())
+                    .await
+                    .map_err(|_| CoreError::Timeout {
+                        what: "checking firewall state".into(),
+                        seconds: FIREWALL_CHECK_TIMEOUT.as_secs(),
+                    })
+                    .and_then(|result| result);
             self.live().blocking = active.as_ref().ok().copied();
             active?;
         }
@@ -1266,22 +1282,31 @@ impl<B: VpnBackend> Engine<B> {
             }
             if let Some(id) = id
                 && self.caps.kill_switch.is_supported()
-                && let Err(e) = self.refresh_firewall().await
             {
-                self.live().session = None;
-                self.log(
-                    Level::Error,
-                    format!(
-                        "Stopping tunnel because firewall protection could not be confirmed: {e}"
-                    ),
-                );
-                if self.teardown(id).await.is_ok() {
-                    self.set_state(ConnectionState::Failed {
+                let mut firewall = self.refresh_firewall().await;
+                if firewall.is_err() && self.live().blocking.is_none() {
+                    // A failed read is inconclusive. Retain any rules and check once more.
+                    self.set_state(ConnectionState::Uncertain {
                         profile: Some(id),
-                        reason: "Firewall protection could not be confirmed. Check the helper and connect again, or retry Disconnect to clear a remaining block.".into(),
+                        reason: "Firewall status is temporarily unknown. Checking again.".into(),
                     });
+                    tokio::time::sleep(Duration::from_millis(500)).await;
+                    firewall = self.refresh_firewall().await;
                 }
-                return;
+                if let Err(e) = firewall {
+                    self.live().session = None;
+                    self.log(
+                        Level::Error,
+                        format!("Stopping tunnel after a firewall check failed: {e}"),
+                    );
+                    if self.teardown(id).await.is_ok() {
+                        self.set_state(ConnectionState::Failed {
+                            profile: Some(id),
+                            reason: format!("Firewall protection could not be confirmed: {e}. Check the helper and connect again, or retry Disconnect to clear a remaining block."),
+                        });
+                    }
+                    return;
+                }
             }
             let Some(id) = id else {
                 match status {
@@ -1420,7 +1445,6 @@ impl<B: VpnBackend> Engine<B> {
                         }
                         _ => {}
                     }
-                    self.verify_protection(id, &s, false).await;
                     let uncertain = matches!(self.live().state, ConnectionState::Uncertain { .. });
                     if uncertain && self.check_session_protection().is_ok() {
                         self.set_state(ConnectionState::Connected {
@@ -1430,6 +1454,12 @@ impl<B: VpnBackend> Engine<B> {
                         });
                     }
                     self.publish();
+                    drop(observation);
+                    tokio::select! {
+                        biased;
+                        _ = stop.cancelled() => return,
+                        _ = self.verify_protection(&s, &stop, false) => self.publish(),
+                    }
                 }
                 Ok(_) => {
                     self.log(Level::Warn, "Tunnel went down unexpectedly");
@@ -1446,15 +1476,26 @@ impl<B: VpnBackend> Engine<B> {
     }
 
     /// Run the backend's active protection check and log changes worth telling the user.
-    async fn verify_protection(&self, id: ProfileId, status: &TunnelStatus, force: bool) {
-        let Some((summary, settings)) = ({
+    async fn verify_protection(
+        &self,
+        status: &TunnelStatus,
+        stop: &CancellationToken,
+        force: bool,
+    ) {
+        let id = status.id;
+        let Some((summary, settings, epoch)) = ({
             let l = self.live();
             l.profiles
                 .iter()
                 .find(|p| p.id == id)
-                .map(|p| (p.summary.clone(), l.settings.clone()))
+                .map(|p| (p.summary.clone(), l.settings.clone(), l.path_epoch))
         }) else {
             return;
+        };
+        let same_path = |l: &Live| {
+            !stop.is_cancelled()
+                && l.path_epoch == epoch
+                && matches!(l.state, ConnectionState::Connected { profile, .. } if profile == id)
         };
         // Probing through the tunnel before the server has answered races the
         // WireGuard handshake (its retry is 5 s), so a healthy server would be
@@ -1468,8 +1509,11 @@ impl<B: VpnBackend> Engine<B> {
         );
         let rechecking = self.live().reachability.is_some();
         if settings.connectivity_check && (confirmed || rechecking) {
-            self.check_reachability(&summary, status, force).await;
-            self.check_public_ip(&summary, status, force).await;
+            let probe_allowed = |l: &Live| same_path(l) && l.settings.connectivity_check;
+            self.check_reachability(&summary, status, &probe_allowed, force)
+                .await;
+            self.check_public_ip(&summary, status, &probe_allowed, force)
+                .await;
         }
         let new = self
             .backend
@@ -1477,7 +1521,7 @@ impl<B: VpnBackend> Engine<B> {
             .await;
         let old = {
             let mut l = self.live();
-            if !matches!(l.state, ConnectionState::Connected { .. }) {
+            if !same_path(&l) {
                 return;
             }
             l.verified.replace(new.clone())
@@ -1506,19 +1550,24 @@ impl<B: VpnBackend> Engine<B> {
         &self,
         summary: &ProfileSummary,
         status: &TunnelStatus,
+        probe_allowed: &impl Fn(&Live) -> bool,
         force: bool,
     ) {
-        let due = force
-            || self.live().reachability.as_ref().is_none_or(|(at, _)| {
-                now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
-            });
+        let due = {
+            let l = self.live();
+            probe_allowed(&l)
+                && (force
+                    || l.reachability.as_ref().is_none_or(|(at, _)| {
+                        now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
+                    }))
+        };
         if !due {
             return;
         }
         let new = self.backend.check_reachability(summary, status).await;
         let old = {
             let mut l = self.live();
-            if !matches!(l.state, ConnectionState::Connected { .. }) {
+            if !probe_allowed(&l) {
                 return;
             }
             l.reachability
@@ -1539,22 +1588,32 @@ impl<B: VpnBackend> Engine<B> {
     }
 
     /// Public egress IP once per connect (retry on the reachability interval after failure).
-    async fn check_public_ip(&self, summary: &ProfileSummary, status: &TunnelStatus, force: bool) {
-        let due = force
-            || match self.live().public_ip.as_ref() {
-                None => true,
-                Some((_, Feature::Verified(_))) => false,
-                Some((at, _)) => {
-                    now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
-                }
-            };
+    async fn check_public_ip(
+        &self,
+        summary: &ProfileSummary,
+        status: &TunnelStatus,
+        probe_allowed: &impl Fn(&Live) -> bool,
+        force: bool,
+    ) {
+        let due = {
+            let l = self.live();
+            probe_allowed(&l)
+                && (force
+                    || match l.public_ip.as_ref() {
+                        None => true,
+                        Some((_, Feature::Verified(_))) => false,
+                        Some((at, _)) => {
+                            now_ms().saturating_sub(*at) >= REACHABILITY_EVERY.as_millis() as u64
+                        }
+                    })
+        };
         if !due {
             return;
         }
         let new = self.backend.check_public_ip(summary, status).await;
         let old = {
             let mut l = self.live();
-            if !matches!(l.state, ConnectionState::Connected { .. }) {
+            if !probe_allowed(&l) {
                 return;
             }
             l.public_ip.replace((now_ms(), new.clone())).map(|(_, f)| f)
@@ -1886,7 +1945,8 @@ impl<B: VpnBackend> Engine<B> {
             return;
         }
         if let Ok(Some(status)) = self.read_status().await {
-            self.verify_protection(status.id, &status, true).await;
+            let stop = self.live().monitor_cancel.clone();
+            self.verify_protection(&status, &stop, true).await;
             self.publish();
         }
     }

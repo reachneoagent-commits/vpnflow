@@ -7,6 +7,9 @@ license.workspace = true
 rust-version.workspace = true
 publish = false
 
+[dependencies]
+serde_json.workspace = true
+
 # libc supplies no-follow opens and the kernel lock on the runtime directory.
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"

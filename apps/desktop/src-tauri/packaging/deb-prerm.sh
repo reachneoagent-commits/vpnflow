@@ -1,11 +1,10 @@
 #!/bin/sh
-# Never leave the kill switch blocking traffic after Aegis is uninstalled.
-# Upgrades keep it: a running tunnel must not lose protection mid-upgrade.
-set -e
-case "$1" in
-remove | purge)
+set -eu
+# dpkg runs prerm on upgrade too. Keep the existing block across upgrades.
+case "${1:-}" in
+remove | deconfigure)
 	/usr/libexec/aegis-vpn/aegis-helper remove || {
-		echo "Aegis firewall cleanup failed. Retry removal after resolving the helper error." >&2
+		echo 'Aegis firewall cleanup failed. Package removal stopped. Retry removal after recovery.' >&2
 		exit 1
 	}
 	;;

@@ -22,6 +22,8 @@
 #[cfg(unix)]
 use std::fs::OpenOptions;
 use std::fs::{self, File};
+#[cfg(unix)]
+use std::io::Read as _;
 use std::io::{self, Write as _};
 use std::net::SocketAddr;
 use std::path::Path;
@@ -212,6 +214,70 @@ fn installed_rules(listed: &str, iface: Option<&str>) -> bool {
         && listed.matches("policy drop").count() == 2
 }
 
+// Handles change when nft recreates objects. Rule order and all expressions count.
+fn policy_identity(text: &str) -> Result<serde_json::Value, String> {
+    let mut value: serde_json::Value = serde_json::from_str(text)
+        .map_err(|_| "cannot parse firewall policy; reinstall nftables".to_owned())?;
+    let objects = value
+        .get_mut("nftables")
+        .and_then(|v| v.as_array_mut())
+        .ok_or("firewall policy has no nftables objects")?;
+    objects.retain(|object| object.get("metainfo").is_none());
+    if objects.is_empty() {
+        return Err("firewall policy is empty".into());
+    }
+    for object in objects {
+        let fields = object
+            .as_object_mut()
+            .ok_or("invalid firewall policy object")?;
+        for body in fields.values_mut() {
+            body.as_object_mut()
+                .ok_or("invalid firewall policy body")?
+                .remove("handle");
+        }
+    }
+    Ok(value)
+}
+
+#[cfg(unix)]
+fn saved_policy(dir: &Path) -> Result<serde_json::Value, String> {
+    use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+    let mut file = OpenOptions::new()
+        .read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+        .open(dir.join("policy.json"))
+        .map_err(|_| "saved firewall policy is unavailable; disconnect and reconnect".to_owned())?;
+    let meta = file.metadata().map_err(|e| e.to_string())?;
+    if !meta.is_file()
+        || Some(meta.uid()) != effective_uid()
+        || meta.nlink() != 1
+        || meta.mode() & 0o077 != 0
+    {
+        return Err("unsafe saved firewall policy; disconnect and reconnect".into());
+    }
+    let mut text = String::new();
+    file.read_to_string(&mut text).map_err(|e| e.to_string())?;
+    policy_identity(&text)
+}
+
+#[cfg(not(unix))]
+fn saved_policy(_dir: &Path) -> Result<serde_json::Value, String> {
+    Err("firewall policy verification requires Linux".into())
+}
+
+#[cfg(unix)]
+fn save_policy(dir: &Path, text: &str) -> Result<(), String> {
+    let mut file = state_file(&dir.join("policy.json"), 0o600).map_err(|e| e.to_string())?;
+    file.set_len(0).map_err(|e| e.to_string())?;
+    file.write_all(text.as_bytes()).map_err(|e| e.to_string())?;
+    file.sync_all().map_err(|e| e.to_string())
+}
+
+#[cfg(not(unix))]
+fn save_policy(_dir: &Path, _text: &str) -> Result<(), String> {
+    Err("firewall policy persistence requires Linux".into())
+}
+
 fn table_exists(
     nft: &mut impl FnMut(&[&str], Option<&str>) -> Result<String, String>,
 ) -> Result<bool, String> {
@@ -316,12 +382,18 @@ fn apply(
     if !installed_rules(&listed, Some(iface)) {
         return Err("rules did not read back as installed; choose Stop blocking".into());
     }
+    let json = nft(&["-j", "list", "table", "inet", TABLE], None)?;
+    policy_identity(&json)?;
+    save_policy(dir, &json)?;
     Ok(())
 }
 
 fn run(cmd: Cmd) -> Result<(), String> {
     match cmd {
         Cmd::Status => {
+            let dir = Path::new(MARKER_DIR);
+            let _lock = lock_runtime(dir)
+                .map_err(|e| format!("cannot inspect helper state; retry: {e}"))?;
             if !table_exists(&mut nft)? {
                 println!("0");
                 return Ok(());
@@ -329,6 +401,12 @@ fn run(cmd: Cmd) -> Result<(), String> {
             let listed = nft(&["list", "table", "inet", TABLE], None)?;
             if !installed_rules(&listed, None) {
                 return Err("the Aegis firewall table could not be verified; choose Disconnect to remove it".into());
+            }
+            let json = nft(&["-j", "list", "table", "inet", TABLE], None)?;
+            if policy_identity(&json)? != saved_policy(dir)? {
+                return Err(
+                    "the installed firewall policy changed; disconnect and reconnect".into(),
+                );
             }
             println!("1");
             Ok(())
@@ -347,6 +425,11 @@ fn run(cmd: Cmd) -> Result<(), String> {
                 .map_err(|e| format!("cannot lock helper state; retry: {e}"))?;
             if table_exists(&mut nft)? {
                 nft(&["delete", "table", "inet", TABLE], None)?;
+            }
+            match fs::remove_file(Path::new(MARKER_DIR).join("policy.json")) {
+                Ok(()) => {}
+                Err(e) if e.kind() == io::ErrorKind::NotFound => {}
+                Err(e) => return Err(format!("cannot remove saved policy: {e}")),
             }
             match std::fs::remove_file(MARKER) {
                 Ok(()) => Ok(()),
@@ -550,12 +633,17 @@ mod tests {
             match call {
                 1 => Ok(String::new()),
                 2 => Ok(ruleset("aegis-0b1e8a3c", false, &[])),
+                3 => Ok(
+                    r#"{"nftables":[{"table":{"family":"inet","name":"aegis_vpn","handle":1}}]}"#
+                        .into(),
+                ),
                 _ => panic!("unexpected nft call"),
             }
         })
         .unwrap();
-        assert_eq!(call, 2);
+        assert_eq!(call, 3);
         assert_eq!(fs::read_to_string(&victim).unwrap(), "unchanged");
+        assert!(saved_policy(&dir).is_ok());
     }
 
     #[test]
@@ -571,5 +659,48 @@ mod tests {
             &rules.replace("policy drop", "policy accept"),
             None
         ));
+    }
+
+    #[test]
+    fn policy_identity_detects_added_accept_rules_and_changed_routes() {
+        let base = r#"{"nftables":[{"metainfo":{"version":"1"}},{"rule":{"handle":1,"expr":[{"accept":null}]}}]}"#;
+        assert_eq!(
+            policy_identity(base).unwrap(),
+            policy_identity(&base.replace("\"handle\":1", "\"handle\":20")).unwrap()
+        );
+        let changed = base.replace("\"accept\":null", "\"drop\":null");
+        assert_ne!(
+            policy_identity(base).unwrap(),
+            policy_identity(&changed).unwrap()
+        );
+        let added = base.replace(
+            "[{\"accept\":null}]",
+            "[{\"accept\":null},{\"accept\":null}]",
+        );
+        assert_ne!(
+            policy_identity(base).unwrap(),
+            policy_identity(&added).unwrap()
+        );
+        assert!(policy_identity(r#"{"nftables":[]}"#).is_err());
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn policy_snapshot_rejects_links_and_permissive_files() {
+        use std::os::unix::fs::{PermissionsExt, symlink};
+        let dir = tempfile::tempdir().unwrap();
+        let text = r#"{"nftables":[{"table":{"name":"aegis_vpn","family":"inet"}}]}"#;
+        save_policy(dir.path(), text).unwrap();
+        assert!(saved_policy(dir.path()).is_ok());
+        let snapshot = dir.path().join("policy.json");
+        fs::set_permissions(&snapshot, fs::Permissions::from_mode(0o644)).unwrap();
+        assert!(saved_policy(dir.path()).is_err());
+        fs::remove_file(&snapshot).unwrap();
+        let victim = dir.path().join("victim");
+        fs::write(&victim, "unchanged").unwrap();
+        symlink(&victim, &snapshot).unwrap();
+        assert!(saved_policy(dir.path()).is_err());
+        assert!(save_policy(dir.path(), text).is_err());
+        assert_eq!(fs::read_to_string(victim).unwrap(), "unchanged");
     }
 }

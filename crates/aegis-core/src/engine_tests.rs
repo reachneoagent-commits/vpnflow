@@ -790,6 +790,50 @@ async fn connectivity_checks_wait_for_peer_confirmation() {
     e.disconnect().await.unwrap();
 }
 
+#[tokio::test(start_paused = true)]
+async fn background_reachability_check_does_not_block_a_server_switch() {
+    let dir = tempfile::tempdir().unwrap();
+    let mut backend = MockBackend::instant();
+    backend.reachability_delay = Duration::from_secs(30);
+    let e = Engine::start(backend, dir.path()).await.unwrap();
+    let mut settings = e.settings();
+    settings.connectivity_check = true;
+    e.set_settings(settings).unwrap();
+    let first = e.import_text("First", CONF).await.unwrap().meta.id;
+    let second = e.duplicate(first).await.unwrap().meta.id;
+    e.connect(first).await.unwrap();
+    tokio::time::sleep(Duration::from_secs(3)).await;
+    assert_eq!(e.backend().reachability_checks(), 1);
+
+    let mut settings = e.settings();
+    settings.connectivity_check = false;
+    e.set_settings(settings).unwrap();
+    e.connect(second).await.unwrap();
+    tokio::time::sleep(Duration::from_secs(31)).await;
+    assert_eq!(e.snapshot().state.profile(), Some(second));
+    assert_eq!(e.snapshot().reachability, Feature::Off);
+    assert_eq!(e.backend().reachability_checks(), 1);
+}
+
+#[tokio::test(start_paused = true)]
+async fn location_edit_waits_for_the_current_connection_operation() {
+    let dir = tempfile::tempdir().unwrap();
+    let backend = MockBackend::with_delay(Duration::from_secs(3));
+    let e = Engine::start(backend, dir.path()).await.unwrap();
+    let id = e.import_text("Work", CONF).await.unwrap().meta.id;
+    let connecting = tokio::spawn({
+        let e = Arc::clone(&e);
+        async move { e.connect(id).await }
+    });
+    wait_for(&e, "activation in progress", |state| {
+        matches!(state, ConnectionState::Connecting { .. })
+    })
+    .await;
+    let edited = e.update_server(id, server_update("DE")).await.unwrap();
+    connecting.await.unwrap().unwrap();
+    assert_eq!(edited.meta.server.location.unwrap().country_code, "DE");
+}
+
 // ---------- kill switch ----------
 
 async fn ks_engine(allow_lan: bool) -> (Arc<Engine<MockBackend>>, tempfile::TempDir, ProfileId) {
@@ -1370,6 +1414,36 @@ async fn externally_removed_firewall_revokes_verified_and_stops_protected_tunnel
     ));
 }
 
+#[tokio::test(start_paused = true)]
+async fn transient_firewall_status_failure_withdraws_verified_and_retries() {
+    let (e, _dir, id) = ks_engine(false).await;
+    e.connect(id).await.unwrap();
+    e.backend().fail_kill_switch_status(true);
+    wait_for(&e, "firewall status unknown", |state| {
+        matches!(state, ConnectionState::Uncertain { .. })
+    })
+    .await;
+    assert!(matches!(
+        e.snapshot().protection.kill_switch,
+        Feature::Failed(_)
+    ));
+    assert!(e.backend().status().await.unwrap().is_some());
+    e.backend().fail_kill_switch_status(false);
+    wait_for(&e, "firewall status restored", is_connected).await;
+    assert!(matches!(
+        e.snapshot().protection.kill_switch,
+        Feature::Verified(_)
+    ));
+
+    e.backend().fail_kill_switch_status(true);
+    wait_for(&e, "repeated firewall status failure", |state| {
+        matches!(state, ConnectionState::Failed { .. })
+    })
+    .await;
+    assert!(e.backend().status().await.unwrap().is_none());
+    assert!(e.backend().blocking().is_some());
+}
+
 #[tokio::test]
 async fn profile_edit_restores_backend_if_metadata_write_fails() {
     let (e, dir) = engine().await;
@@ -1463,4 +1537,17 @@ async fn switching_off_keeps_the_original_failure() {
         e.snapshot().state,
         ConnectionState::Connected { .. }
     ));
+}
+
+#[tokio::test]
+async fn profile_deletion_restores_backend_if_metadata_write_fails() {
+    let (e, dir) = engine().await;
+    let id = e.import_text("Original", CONF).await.unwrap().meta.id;
+    let original = e.backend().load(id).await.unwrap();
+    let path = dir.path().join("profiles.json");
+    std::fs::rename(&path, dir.path().join("profiles.backup")).unwrap();
+    std::fs::create_dir(path).unwrap();
+    assert!(e.delete(id).await.is_err());
+    assert_eq!(e.backend().load(id).await.unwrap(), original);
+    assert_eq!(e.profiles()[0].meta.id, id);
 }

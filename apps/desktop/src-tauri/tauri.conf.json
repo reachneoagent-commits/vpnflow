@@ -42,42 +42,21 @@
     "longDescription": "VPNFlow is a lightweight open-source WireGuard VPN client for Linux, Windows, and macOS.",
     "license": "MIT OR Apache-2.0",
     "copyright": "VPNFlow contributors",
+    "resources": {
+      "../../../LICENSE-MIT": "licenses/Aegis-MIT.txt",
+      "../../../LICENSE-APACHE": "licenses/Aegis-Apache-2.0.txt",
+      "../../../docs/releases/ASSET_LICENSES.txt": "licenses/Fonts-Icons-React.txt",
+      "../../../crates/aegis-core/data/README.md": "licenses/Country-Data.md",
+      "../../../crates/aegis-core/data/COPYING.iso-codes": "licenses/iso-codes-LGPL-2.1.txt",
+      "../public/flags/LICENSE": "licenses/Flags-MIT.txt"
+    },
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.png",
       "icons/icon.ico"
-    ],
-    "linux": {
-      "deb": {
-        "depends": [
-          "network-manager (>= 1.16)",
-          "nftables",
-          "pkexec | policykit-1"
-        ],
-        "recommends": [
-          "wireguard-tools"
-        ],
-        "files": {
-          "/usr/libexec/aegis-vpn/aegis-helper": "../../../target/release/aegis-helper",
-          "/usr/share/polkit-1/actions/org.aegisvpn.helper.policy": "../../../services/linux-helper/org.aegisvpn.helper.policy"
-        },
-        "preRemoveScript": "packaging/deb-prerm.sh"
-      },
-      "rpm": {
-        "depends": [
-          "NetworkManager >= 1.16",
-          "nftables",
-          "polkit"
-        ],
-        "files": {
-          "/usr/libexec/aegis-vpn/aegis-helper": "../../../target/release/aegis-helper",
-          "/usr/share/polkit-1/actions/org.aegisvpn.helper.policy": "../../../services/linux-helper/org.aegisvpn.helper.policy"
-        },
-        "preRemoveScript": "packaging/rpm-preun.sh"
-      }
-    }
+    ]
   },
   "plugins": {
     "updater": {

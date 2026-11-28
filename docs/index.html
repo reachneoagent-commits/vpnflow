@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#edeff5" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1117" media="(prefers-color-scheme: dark)">
+  <title>Aegis VPN: open source WireGuard client for Linux</title>
+  <meta name="description" content="Aegis VPN is a free, open source WireGuard client for Linux. Bring your own config; it shows which protections are verified. Pre-alpha, Rust and Tauri.">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <link rel="canonical" href="https://mikeholp87.github.io/aegis-vpn/">
+  <link rel="icon" href="./aegis-vpn.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./site.css">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Aegis VPN">
+  <meta property="og:title" content="Aegis VPN: open source WireGuard client for Linux">
+  <meta property="og:description" content="Open source WireGuard client for Linux. Bring your own servers. Status shows what is confirmed, not a single green badge. Pre-alpha.">
+  <meta property="og:url" content="https://mikeholp87.github.io/aegis-vpn/">
+  <meta property="og:image" content="https://mikeholp87.github.io/aegis-vpn/og.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_US">
+  <meta property="og:image:alt" content="Aegis VPN dashboard connected to a demo server, with the kill switch, DNS leak and IPv6 protection shown as verified, in the dark theme">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Aegis VPN: open source WireGuard client for Linux">
+  <meta name="twitter:description" content="Open source WireGuard client for Linux, built with Rust and Tauri. Bring your own servers. Pre-alpha.">
+  <meta name="twitter:image" content="https://mikeholp87.github.io/aegis-vpn/og.jpg">
+  <meta name="twitter:image:alt" content="Aegis VPN dashboard connected to a demo server, in the dark theme">
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "Aegis VPN",
+  "description": "A desktop WireGuard client for Linux built with Rust and Tauri. It imports your own WireGuard configurations and reports which protections it has verified.",
+  "applicationCategory": "SecurityApplication",
+  "operatingSystem": "Linux",
+  "softwareVersion": "@VERSION@",
+  "url": "https://mikeholp87.github.io/aegis-vpn/",
+  "sameAs": "https://github.com/mikeholp87/aegis-vpn",
+  "license": "https://github.com/mikeholp87/aegis-vpn#license",
+  "isAccessibleForFree": true,
+  "author": {
+    "@type": "Person",
+    "name": "Mike Holp",
+    "url": "https://www.ai-automation-station.com/about.html",
+    "sameAs": [
+      "https://github.com/mikeholp87",
+      "https://www.ai-automation-station.com/"
+    ]
+  },
+  "dateModified": "@DATE@",
+  "downloadUrl": "https://github.com/mikeholp87/aegis-vpn#install"
+}
+</script>
+    <style>.hero{grid-template-columns:minmax(0,1fr)!important;gap:28px!important}.demo-frame{width:100%;margin:0}.demo-frame iframe{display:block;width:100%;border:0;background:transparent}.demo-caption{margin:12px 0 0;font-size:13px;line-height:1.5;opacity:.75}</style>
+  </head>
+<body>
+  <a class="skip" href="#content">Skip to content</a>
+  <div class="wrap">
+    <header class="site-header">
+      <a class="brand" href="./" aria-label="Aegis VPN home"><img src="./aegis-vpn.svg" alt="" width="36" height="36">Aegis VPN</a>
+      <nav class="nav" aria-label="Main navigation">
+        <a class="hide-small" href="#features">Features</a>
+        <a class="hide-small" href="#screenshots">Screenshots</a>
+        <a href="#install">Install</a>
+        <a class="pill" href="https://github.com/mikeholp87/aegis-vpn">GitHub</a>
+        <a class="pill sponsor" href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor</a>
+      </nav>
+    </header>
+    <main id="content">
+      <section class="hero" aria-labelledby="hero-title">
+        <p class="status">Free and open source WireGuard client for Linux. Version 0.1.0 pre-alpha.</p>
+        <h1 id="hero-title">A WireGuard client that shows what is protected.</h1>
+        <p class="lead">Aegis connects the WireGuard configuration you already have and tells you, step by step, what it has confirmed: the tunnel is up, the server answered, DNS and IPv6 do not leak, the kill switch is blocking. It brings no servers of its own and uses no account.</p>
+        <div class="actions">
+          <a class="button" href="#install">Install on Linux</a>
+          <a class="button secondary" href="https://github.com/mikeholp87/aegis-vpn">View on GitHub</a>
+        </div>
+        <ul class="badges" aria-label="Project highlights">
+          <li>Rust and Tauri 2</li><li>Official WireGuard, no custom crypto</li><li>No telemetry or account</li><li>MIT or Apache-2.0</li>
+        </ul>
+        <div class="demo-frame"><iframe id="demo-frame" src="./embed/" title="Interactive Aegis VPN demo with sample data" loading="lazy" height="780" data-fixed></iframe></div>
+          <p class="demo-caption">Interactive demo with made-up servers. No VPN is created and nothing leaves this page.</p>
+      </section>
+<section id="what-is" class="section" aria-labelledby="what-is-title">
+<div class="section-head">
+<h2 id="what-is-title">What is Aegis VPN?</h2>
+<p>Aegis VPN is a free, open source WireGuard client for Linux, built with Rust and Tauri 2. You import the WireGuard configuration you already have; Aegis brings no servers of its own and needs no account. Instead of one green badge, it shows each protection as Off, Unsupported, Configured, Verified or Failed, and reports Verified only after a real check: the tunnel is up, the server answered, and DNS and IPv6 do not leak. An optional kill switch uses a small Polkit-started helper that installs an nftables table blocking everything except the tunnel and its server. Config files containing PostUp-style scripts are rejected instead of run. Aegis uses the official WireGuard protocol with no custom cryptography, collects no telemetry and is licensed MIT or Apache-2.0. It is version 0.1.0, a pre-alpha Linux preview that has not been independently audited, and there is no Windows build yet.</p>
+<p><small>Version @VERSION@ · Released @DATE_HUMAN@</small></p>
+</div>
+</section>
+
+
+      <section class="section" id="features" aria-labelledby="features-title">
+        <div class="section-head">
+          <h2 id="features-title">Status you can check, not a green badge</h2>
+          <p>Each protection is Off, Unsupported, Configured, Verified or Failed. Aegis never reports one from a setting alone, and it will not connect if a protection you asked for is unavailable.</p>
+        </div>
+        <div class="feature-grid">
+          <article class="card"><h3>Bring your own configuration</h3><p>Import a standard WireGuard <code>.conf</code> by file picker or drag and drop. Files with <code>PostUp</code>-style scripts are rejected instead of run. Private keys stay out of the interface.</p></article>
+          <article class="card"><h3>Three separate answers</h3><p>“Tunnel up” only means the interface exists. Aegis then waits for the server to answer, and checks that the tunnel’s DNS server resolves a name before it calls the internet reachable.</p></article>
+          <article class="card"><h3>DNS and IPv6 checks</h3><p>After connecting, Aegis inspects the routes and resolver and shows Verified or Failed. IPv4-only tunnels get an IPv6 block so nothing leaves outside the tunnel.</p></article>
+          <article class="card"><h3>Kill switch on Linux</h3><p>Optional. A small helper, started through Polkit, installs an nftables table that blocks everything except the tunnel and its server. Local network access is off by default and the block is removed on disconnect.</p></article>
+          <article class="card"><h3>Locations for your servers</h3><p>Group the servers you configure by country, mark favorites, and use Quick Connect. Locations are labels you assign. Aegis never invents a distance, speed or load.</p></article>
+          <article class="card"><h3>Sleep and network changes</h3><p>After a resume or a change of network, Aegis asks the server again and shows “No reply from the server” until it answers. It does not leave a stale confirmation on screen.</p></article>
+        </div>
+      </section>
+
+      <section class="section" id="screenshots" aria-labelledby="screenshots-title">
+        <div class="section-head"><h2 id="screenshots-title">Light and dark, one design</h2><p>The interface follows your system theme. Both screens below use demo data only.</p></div>
+        <div class="shots-grid">
+          <figure class="shot"><a href="./screenshot-light.webp"><img src="./screenshot-light.webp" width="1800" height="1161" loading="lazy" alt="Aegis VPN dashboard in the light theme, connected to a demo server"></a><figcaption>Dashboard in the light theme. Open the image for a full-size view.</figcaption></figure>
+          <figure class="shot"><a href="./screenshot-locations.webp"><img src="./screenshot-locations.webp" width="1800" height="1161" loading="lazy" alt="Aegis VPN Locations screen in the dark theme, listing five demo countries with one server each"></a><figcaption>Locations in the dark theme, with a country list and the selected server.</figcaption></figure>
+        </div>
+        <p class="note">The app runs in the system tray, reconnects automatically with a bounded back-off, and exports a diagnostics bundle with keys removed.</p>
+      </section>
+
+      <section class="section" id="platforms" aria-labelledby="platforms-title">
+        <div class="section-head"><h2 id="platforms-title">A Linux preview, no Windows yet</h2><p>This is pre-alpha software and has not been independently audited. The table lists what has actually been run.</p></div>
+        <div class="table-wrap" tabindex="0" role="region" aria-label="Platform status, horizontally scrollable">
+          <table aria-labelledby="platforms-title">
+            <thead><tr><th scope="col">Platform</th><th scope="col">Status</th></tr></thead>
+            <tbody>
+              <tr><th scope="row">Linux with NetworkManager</th><td>Works. Full tunnel, DNS and IPv6 leak tests, the kill switch and reconnect passed in a Debian 13 virtual machine, and a split-route test passed on a Debian/KDE desktop. Not yet run on hardware: real suspend and resume, Wi-Fi roaming, and the Ubuntu and Fedora resolver setups.</td></tr>
+              <tr><th scope="row">Linux without NetworkManager</th><td>Not supported. The app shows the backend as unavailable.</td></tr>
+              <tr><th scope="row">Windows 11</th><td>Not usable. The service and tunnel are not implemented, so the app reports the backend as unavailable instead of pretending to connect.</td></tr>
+              <tr><th scope="row">macOS</th><td>Not planned.</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p class="note">Test results, including failures, are kept in <a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/testing/TEST_RESULTS.md">TEST_RESULTS.md</a>.</p>
+      </section>
+
+      <section class="section" id="install" aria-labelledby="install-title">
+        <div class="build-panel">
+          <div class="section-head"><h2 id="install-title">Install on Linux</h2><p>There is no published release yet, so you build it from source. You need NetworkManager, Rust, Node 24 and pnpm. The commands below are for Debian and Ubuntu; <a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/development/LINUX.md">the Linux guide</a> lists the Fedora package names.</p></div>
+          <h3>1. Install the build dependencies</h3>
+          <pre tabindex="0" role="region" aria-label="Install build dependencies"><code>sudo apt install build-essential pkg-config libwebkit2gtk-4.1-dev \
+  libayatana-appindicator3-dev librsvg2-dev libssl-dev network-manager \
+  wireguard-tools systemd-resolved</code></pre>
+          <h3>2. Get the code and run it</h3>
+          <pre tabindex="0" role="region" aria-label="Clone and run Aegis VPN"><code>git clone https://github.com/mikeholp87/aegis-vpn.git
+cd aegis-vpn/apps/desktop
+pnpm install
+pnpm tauri dev</code></pre>
+          <p>Aegis creates tunnels in NetworkManager named <code>Aegis: &lt;name&gt;</code>. Then use <strong>Locations → Add server → Import WireGuard Configuration</strong>, pick your <code>.conf</code>, and click <strong>Connect</strong>. Wait for “Server answered”.</p>
+          <details><summary>Turn on the kill switch</summary><p>The kill switch needs the root helper and its Polkit policy. Install them from the repository root, then reopen Aegis. Your server endpoint must be an IP address, not a host name.</p>
+            <pre tabindex="0" role="region" aria-label="Install the kill switch helper"><code>cargo build --release -p aegis-helper --locked
+sudo scripts/install-helper.sh install target/release/aegis-helper</code></pre>
+            <p>To remove it, run <code>sudo scripts/install-helper.sh uninstall</code>. That also removes any firewall block first.</p>
+          </details>
+          <details><summary>Protect your config file</summary><p>A downloaded <code>.conf</code> contains your private key, and browsers often save it readable by every user on the machine. Restrict it before you import it.</p>
+            <pre tabindex="0" role="region" aria-label="Restrict the config file"><code>chmod 600 ~/Downloads/your-file.conf</code></pre>
+          </details>
+          <details><summary>Try the interface without a tunnel</summary><p>The simulated backend creates no tunnel and protects nothing. The app shows a permanent banner while it is on.</p>
+            <pre tabindex="0" role="region" aria-label="Run with the simulated backend"><code>AEGIS_BACKEND=mock pnpm tauri dev</code></pre>
+          </details>
+          <p class="build-links"><a href="https://github.com/mikeholp87/aegis-vpn#readme">Full guide and troubleshooting</a><a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/ROADMAP.md">Roadmap</a></p>
+        </div>
+      </section>
+
+      <section class="section" id="limits" aria-labelledby="limits-title">
+        <div class="section-head"><h2 id="limits-title">Know the preview’s boundaries</h2><p>Aegis lists its gaps. Please read them before you rely on it.</p></div>
+        <div class="limits-grid">
+          <div><h3>Protection</h3><p>Switching servers while the kill switch is on is refused for now. The kill switch covers this computer’s own traffic, not traffic forwarded for containers or virtual machines. DNS protection needs systemd-resolved to manage <code>/etc/resolv.conf</code>. The checks look at routes and the resolver and do not replace a packet capture.</p></div>
+          <div><h3>Scope</h3><p>Aegis is a client. You supply a configuration from a provider or from a server you run. Handshake times need the root helper; without it Aegis infers a reply from received data. Restarting NetworkManager while a full tunnel is up can leave a firewall rule behind until reboot.</p></div>
+        </div>
+        <p><a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/security/THREAT_MODEL.md">Read the threat model</a> or see the <a href="https://github.com/mikeholp87/aegis-vpn/blob/main/SECURITY.md">security policy</a>.</p>
+      </section>
+
+      <section class="section faq" id="faq" aria-labelledby="faq-title">
+        <div class="section-head"><h2 id="faq-title">Questions</h2></div>
+        <details><summary>Does Aegis include VPN servers?</summary><p>No. You bring a WireGuard configuration from any provider that offers one, or from your own server. Aegis only connects and checks it.</p></details>
+        <details><summary>Does it send data anywhere?</summary><p>There is no telemetry or account. The optional connectivity checks do their lookups through the tunnel’s own DNS server, and Settings explains what they do. Update checks are off by default.</p></details>
+        <details><summary>Where are my keys stored?</summary><p>Private keys are kept by NetworkManager in its root-owned store and never reach the interface, the logs or the diagnostics export. The interface only learns whether a key exists.</p></details>
+        <details><summary>Is it safe to rely on?</summary><p>Not yet. It is pre-alpha, it has not been independently audited, and parts of it have only been tested in a virtual machine. Use it with a server you control and verify the result yourself.</p></details>
+        <details><summary>When will Windows work?</summary><p>There is no date. The Windows service that creates tunnels with the official WireGuard component is still to be built and tested on a Windows 11 machine. The <a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/ROADMAP.md">roadmap</a> tracks it.</p></details>
+      </section>
+    
+      <section id="support" class="support" aria-labelledby="support-title">
+        <h2 id="support-title"><span class="sponsor-heart" aria-hidden="true">♥</span> Support Aegis VPN</h2>
+        <p>Aegis VPN is free and open source. If it saves you time, sponsoring helps me keep fixing bugs, answering issues and shipping updates. Every bit helps, and you can stop any time.</p>
+        <a class="button secondary sponsor-cta" href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor on GitHub</a>
+        <p class="small">Can't sponsor? A star on <a href="https://github.com/mikeholp87/aegis-vpn">GitHub</a> also helps other people find it.</p>
+      </section>
+      </main>
+    <footer class="site-footer"><p>Aegis VPN by Mike Holp. Licensed MIT or Apache-2.0. WireGuard is a registered trademark of Jason A. Donenfeld; this project is not affiliated with the WireGuard project.</p><nav aria-label="Footer"><a href="https://github.com/mikeholp87/aegis-vpn">GitHub</a>
+          <a href="https://github.com/sponsors/mikeholp87"><span class="sponsor-heart" aria-hidden="true">♥</span> Sponsor</a><a href="https://github.com/mikeholp87/aegis-vpn/blob/main/docs/testing/TEST_RESULTS.md">Test results</a><a href="https://github.com/mikeholp87/aegis-vpn/blob/main/SECURITY.md">Security</a><a href="https://github.com/mikeholp87/aegis-vpn/issues">Issues</a><a href="https://www.ai-automation-station.com/guides/aegis-vpn-claude-code.html">Build guide</a><a href="https://www.ai-automation-station.com/">AI Automation Station</a></nav></footer>
+  </div>
+<style data-lightbox>
+  .lb-trigger { cursor: zoom-in; }
+  .lb-trigger:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+  html.lb-open { overflow: hidden; }
+  dialog.lb { border: 0; padding: 0; background: transparent; color: #fff; width: 100vw; height: 100vh; max-width: none; max-height: none; overflow: hidden; }
+  dialog.lb::backdrop { background: rgba(0, 0, 0, 0.88); }
+  .lb-stage { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; width: 100%; height: 100%; padding: 56px 16px 20px; box-sizing: border-box; }
+  .lb-img { display: block; max-width: min(96vw, 1800px); max-height: calc(100vh - 128px); width: auto; height: auto; object-fit: contain; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); background: #111; }
+  .lb-caption { max-width: min(92vw, 900px); margin: 0; text-align: center; font-size: 15px; line-height: 1.45; color: #eee; }
+  .lb-count { font-size: 13px; color: #bbb; }
+  .lb-btn { position: absolute; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.16); color: #fff; font: 28px/1 system-ui, sans-serif; cursor: pointer; }
+  .lb-btn:hover { background: rgba(255, 255, 255, 0.28); }
+  .lb-btn:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .lb-close { top: 12px; right: 12px; }
+  .lb-prev { left: 12px; top: 50%; transform: translateY(-50%); }
+  .lb-next { right: 12px; top: 50%; transform: translateY(-50%); }
+  .lb-single .lb-prev, .lb-single .lb-next, .lb-single .lb-count { display: none; }
+  @media (max-width: 640px) { .lb-prev, .lb-next { top: auto; bottom: 12px; transform: none; } .lb-stage { padding-bottom: 68px; } }
+</style>
+<script data-lightbox>
+  (() => {
+    const imgs = [...document.querySelectorAll('figure.shot img, figure.workspace img')];
+    if (!imgs.length || typeof HTMLDialogElement !== 'function') return;
+
+    // Largest image available for a screenshot: the biggest srcset candidate that applies, else the plain src.
+    const largest = (img) => {
+      const link = img.closest('a[href]');
+      if (link && /\.(png|jpe?g|webp|avif|gif)(\?|$)/i.test(link.getAttribute('href'))) return link.href;
+      const sets = [];
+      const pic = img.closest('picture');
+      if (pic) for (const s of pic.querySelectorAll('source[srcset]')) if (!s.media || matchMedia(s.media).matches) sets.push(s.getAttribute('srcset'));
+      if (img.getAttribute('srcset')) sets.push(img.getAttribute('srcset'));
+      let best = { w: 0, url: img.currentSrc || img.src };
+      for (const set of sets) for (const part of set.split(',')) {
+        const [url, size] = part.trim().split(/\s+/);
+        const w = parseInt(size, 10) || 0;
+        if (url && w > best.w) best = { w, url: new URL(url, document.baseURI).href };
+      }
+      return best.url;
+    };
+    const captionOf = (img) => img.closest('figure')?.querySelector('figcaption')?.textContent.trim() || '';
+
+    const dlg = document.createElement('dialog');
+    dlg.className = 'lb';
+    dlg.setAttribute('aria-label', 'Screenshot viewer');
+    dlg.innerHTML = '<div class="lb-stage"><button type="button" class="lb-btn lb-close" aria-label="Close">&times;</button><button type="button" class="lb-btn lb-prev" aria-label="Previous screenshot">&lsaquo;</button><img class="lb-img" alt=""><p class="lb-caption"></p><span class="lb-count" aria-live="polite"></span><button type="button" class="lb-btn lb-next" aria-label="Next screenshot">&rsaquo;</button></div>';
+    document.body.append(dlg);
+    const $ = (s) => dlg.querySelector(s);
+    const view = $('.lb-img'), cap = $('.lb-caption'), count = $('.lb-count');
+    let index = 0, opener = null, token = 0;
+    dlg.classList.toggle('lb-single', imgs.length < 2);
+
+    const show = (i) => {
+      index = (i + imgs.length) % imgs.length;
+      const img = imgs[index], url = largest(img), mine = ++token;
+      view.alt = img.alt;
+      view.src = img.currentSrc || img.src; // thumbnail first, so the box opens instantly
+      const hi = new Image();
+      hi.onload = () => { if (mine === token) view.src = url; };
+      hi.src = url;
+      cap.textContent = captionOf(img);
+      cap.hidden = !cap.textContent;
+      count.textContent = imgs.length > 1 ? `${index + 1} / ${imgs.length}` : '';
+      for (const n of [imgs[(index + 1) % imgs.length], imgs[(index - 1 + imgs.length) % imgs.length]]) new Image().src = largest(n);
+    };
+    const open = (i, from) => { opener = from; show(i); document.documentElement.classList.add('lb-open'); dlg.showModal(); $('.lb-close').focus(); };
+
+    imgs.forEach((img, i) => {
+      img.classList.add('lb-trigger');
+      img.tabIndex = 0;
+      img.setAttribute('role', 'button');
+      img.setAttribute('aria-haspopup', 'dialog');
+      img.setAttribute('aria-label', 'View larger: ' + (img.alt || 'screenshot'));
+      img.addEventListener('click', (e) => { e.preventDefault(); open(i, img); });
+      img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(i, img); } });
+    });
+    $('.lb-close').addEventListener('click', () => dlg.close());
+    $('.lb-prev').addEventListener('click', () => show(index - 1));
+    $('.lb-next').addEventListener('click', () => show(index + 1));
+    dlg.addEventListener('click', (e) => { if (e.target === dlg || e.target.classList.contains('lb-stage')) dlg.close(); });
+    dlg.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft') { e.preventDefault(); show(index - 1); }
+      if (e.key === 'ArrowRight') { e.preventDefault(); show(index + 1); }
+    });
+    dlg.addEventListener('close', () => { document.documentElement.classList.remove('lb-open'); view.removeAttribute('src'); opener?.focus(); });
+  })();
+</script>
+      <script>(function(){var f=document.getElementById("demo-frame");if(!f||f.hasAttribute("data-fixed"))return;function fit(){try{f.style.height=f.contentDocument.body.offsetHeight+2+"px"}catch(e){}}f.addEventListener("load",function(){fit();try{new ResizeObserver(fit).observe(f.contentDocument.body)}catch(e){}})})();</script>
+  </body>
+</html>
