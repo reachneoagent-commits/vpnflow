@@ -39,6 +39,9 @@ jobs:
       - run: shfmt -d scripts/test-netns-peer.sh scripts/test-netns-peer.test.sh scripts/vm/run-vm-tests.sh scripts/install-helper.sh scripts/install-helper.test.sh
       - run: bash scripts/test-netns-peer.test.sh
       - run: bash scripts/install-helper.test.sh
+      - run: shellcheck scripts/build-linux-helper.sh apps/desktop/src-tauri/packaging/deb-prerm.sh apps/desktop/src-tauri/packaging/rpm-preun.sh scripts/package-hooks.test.sh
+      - run: shfmt -d scripts/build-linux-helper.sh apps/desktop/src-tauri/packaging/deb-prerm.sh apps/desktop/src-tauri/packaging/rpm-preun.sh scripts/package-hooks.test.sh
+      - run: bash scripts/package-hooks.test.sh
 
   frontend:
     name: Frontend lint, typecheck, tests

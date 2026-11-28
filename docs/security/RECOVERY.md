@@ -15,7 +15,9 @@
 4. If local metadata goes missing, restore the registry backup or inspect the
    system profiles. Startup preserves backend profiles absent from the local
    registry. Keep an original protected copy of your WireGuard configuration.
-5. To uninstall the separately installed helper, use
+5. DEB/RPM package removal runs helper cleanup before removing its recovery
+   components. If cleanup fails, fix the reported issue and retry removal.
+   An upgrade retains the existing block. To uninstall a source-installed helper, use
    `sudo scripts/install-helper.sh uninstall`. It keeps the helper and policy
    available if firewall cleanup fails. Remove the desktop package using the
    package manager after disconnecting and removing any remaining Aegis block.

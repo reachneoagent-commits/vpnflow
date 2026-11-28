@@ -10,7 +10,7 @@ status, DNS probe routing, profile persistence and desktop integration.
 
 ## 2. Findings
 
-The [gap register](FULL_GAP_AUDIT.md) tracks 20 findings: 3 P0, 7 P1, 9 P2 and
+The [gap register](FULL_GAP_AUDIT.md) tracks 21 findings: 3 P0, 7 P1, 10 P2 and
 1 P3. A mitigation that disables an unfinished feature is listed separately
 from its implementation and platform acceptance.
 
@@ -19,8 +19,9 @@ from its implementation and platform acceptance.
 - A01: Windows production selection returns Unavailable before opening an
   unauthenticated pipe. The portable protocol and Windows compile checks stay.
 - A02: protected activation checks kernel state before and after backend
-  activation. Monitoring revokes the claim and stops the tunnel if the
-  observed firewall block disappears or cannot be checked.
+  activation. Monitoring revokes verification on a missing or unreadable
+  block. A confirmed absence stops the tunnel immediately. An unreadable block
+  gets one bounded retry with the installed rules left in place.
 - A03/A08: Linux binds each DNS probe to the owned tunnel device and a tunnel
   source address. DNS verification checks the live resolved link's servers.
   The IPv6 fallback applies only to the intended IPv4-only profile case.
@@ -33,8 +34,21 @@ from its implementation and platform acceptance.
 - A20: NetworkManager caches handshake samples by activation and interface.
   Rust and the Dashboard distinguish a handshake from received tunnel data.
 - A15/A19: the manual Linux preview workflow requires installer outputs and
-  uploads verified checksums and the locked Cargo inventory. The desktop
+  uploads verified checksums and Rust and frontend dependency inventories. The desktop
   library uses the Rust library type it needs, avoiding extra link outputs.
+- A16: background network observations release the connection lock so a
+  slow DNS check cannot block a server switch. Results are discarded when
+  the session, network path, or permission to probe changes. Location edits
+  wait for the current operation and are validated against the resulting state.
+- A21: installers include the project and redistributed asset notices.
+- A02 follow-up: the helper compares complete kernel JSON policy against a
+  root-owned snapshot. Changed expressions, rule order or rules revoke
+  verification. Existing installations without a snapshot must reconnect.
+- A06 follow-up: Linux build hooks compile the helper for the package target.
+  DEB/RPM bundles install it with its Polkit policy and cleanup hooks.
+  Upgrade retains the firewall block. Failed cleanup stops package removal.
+  Debian VM install, reinstall, failed-cleanup retention, recovery and purge
+  passed. The live IPv4-only policy suite passed all 118 assertions.
 
 ## 4. Remaining issues
 
@@ -46,18 +60,27 @@ helper packaging and clean lifecycle tests, and complete native evidence.
 
 - **Linux:** NetworkManager path with Debian 13 VM coverage. Unsigned debug
   amd64 DEB and x86-64 RPM artifacts were built, inspected and checksummed.
-  Native clean install/upgrade/removal, Ubuntu, Fedora, GNOME and physical
-  suspend/roaming remain unverified.
+  Desktop DEB clean installation, same-version reinstall and purge passed
+  in a Debian VM. Distinct-version upgrade, RPM installation, desktop-native
+  testing, Ubuntu, Fedora and physical suspend/roaming remain unverified.
 - **Windows:** MSVC-target compile check and portable protocol tests. Production
   VPN backend unavailable pending an authenticated service and native validation.
 
 ## 6. VPN functionality
 
-Linux tests separate activation, real WireGuard handshake, IPv4 and IPv6
-sentinel routing, DNS/resolver checks, uplink captures, unprotected profile
-switching, protected tunnel drop, reconnection and cleanup. See the per-run
-results for exact scope. Country-labelled VM profiles use a controlled peer.
-Protected switching remains refused.
+| Capability | Debian 13 VM evidence |
+|---|---|
+| Configuration and tunnel creation | Native WireGuard configuration import and NetworkManager activation passed. The controlled peer was in a guest network namespace. |
+| Handshake and traffic | Real recent handshake and sentinel replies passed. Separate peer silence and recovery were exercised. |
+| IPv4 routing | Full-tunnel sentinel and default route used WireGuard. The WireGuard UDP endpoint remained reachable through its transport route. |
+| IPv6 routing | Dual-stack tunnel passed a real IPv6 sentinel probe. The IPv4-only profile sent IPv6 into the tunnel to be dropped. Captures checked for physical-interface bypass. |
+| DNS | Resolver answers matched the tunnel server. Ordinary DNS uplink captures showed zero packets after a positive control. A silent tunnel DNS server failed the reachability check. |
+| Kill switch | Uplink captures confirmed ordinary traffic blocking and retained rules after tunnel loss. Deliberate removal revoked verification and stopped the tunnel. The tested protection is session-scoped. |
+| Country switching | Controlled country-labelled profiles exercised unprotected switching and active-profile updates. Protected switching remains refused. |
+| Reconnection and cleanup | External tunnel loss, simulated upstream link change and NetworkManager restart were exercised. Cleanup compared routes, rules, DNS and nftables against the guest baseline. |
+
+See [TEST_RESULTS.md](../testing/TEST_RESULTS.md) for the assertions and software
+snapshot involved in each run.
 
 ## 7. Security results
 
@@ -69,12 +92,13 @@ The release checklist requires direct verification of the claimed policy.
 
 ## 8. Performance
 
-Pre- and post-remediation frontend gzip JavaScript output was 90.09 and
-90.14 kB using the same Vite build information. This measures artifact size.
-The isolated Xvfb desktop startup measurement timed out after eight seconds
-waiting for a visible window, with desktop portal and runtime socket errors.
-There is no valid startup, CPU, memory or native active-load comparison.
-No performance improvement is claimed.
+Both debug binaries reached a visible window in about 1.01 s at the median
+under Xvfb and mock mode. The full launch wrapper averaged 1.310 s before and
+1.214 s after, including display and session setup. One idle main-process
+sample gave 276 MiB and 0.00% CPU before, 275 MiB and 0.50% CPU after. These
+samples exclude the WebKit child processes and real connected workloads.
+The pre-audit binary has no recorded revision. See the measured commands,
+timing spread and failed attempts in [TEST_RESULTS.md](../testing/TEST_RESULTS.md).
 
 ## 9. Build and test commands
 

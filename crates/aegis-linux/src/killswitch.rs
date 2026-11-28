@@ -28,7 +28,7 @@ pub fn support() -> Support {
         Support::Supported
     } else {
         Support::Unsupported(format!(
-            "missing {}. Packages install the helper; from source run \
+            "missing {}. Reinstall the Linux package, or from source run \
              `cargo build --release -p aegis-helper && sudo scripts/install-helper.sh install target/release/aegis-helper`",
             missing.join(", ")
         ))

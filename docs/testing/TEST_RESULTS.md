@@ -6,6 +6,44 @@ Only what was actually executed. Newest first.
 
 Ported the v4 mockup into `apps/desktop`: dark hero with connection check and leak section, merged Locations and Advanced WireGuard tabs, single favorites-first server list with Recently used, one Settings page ordered by importance, themed top bar, and X/click-outside/Esc on modals. Under `apps/desktop`, `pnpm typecheck` passed, `pnpm test` passed (33 tests) and `biome lint` reported one `noDescendingSpecificity` warning. Not run: Rust checks, `pnpm build`, and any visual check of the real app (no screenshots per project rules).
 
+## 2026-11-18 — Firewall policy comparison and bundled helper
+
+`cargo test --workspace --all-targets --locked --offline` passed **142 tests**.
+Workspace Clippy with warnings denied, Rust formatting, ShellCheck and shfmt
+passed. The helper also compiled for the Windows MSVC target, which is a
+portability check for its unavailable-platform path. New regressions exercise
+policy expression changes, extra rules, handle normalization, unsafe snapshot
+permissions and symlink rejection. Package hook tests confirmed that upgrade
+skips cleanup, final removal calls cleanup, and failed cleanup fails removal.
+
+Both unsigned debug Linux bundles built with Tauri's automatically loaded
+Linux configuration. `dpkg-deb` and RPM CPIO inspection confirmed the helper
+at `/usr/libexec/aegis-vpn/aegis-helper` and matching Polkit policy. Debian
+control inspection confirmed the pre-removal hook. The tested DEB hash is
+`69a1d0f4ff67febc4513524b284b3e2014a419b111abb34cb81b5101a2c92faf`.
+The Debian 13 VM (`6.12.117+deb13-cloud-amd64`, NetworkManager 1.52.1,
+systemd 257.13, QEMU software emulation) passed **118 live IPv4-only assertions**.
+They include real handshake and routing, DNS and IPv6 uplink checks, a modified
+firewall policy revoking Verified and stopping the tunnel, explicit cleanup,
+uplink changes, silent-peer recovery and final restoration of network state.
+
+A separate Debian 13 VM installed the checksum-verified DEB with its helper
+and policy, passed linkage and file checks and reinstalled the same version.
+Replacing the helper with a failing stub caused `dpkg --purge` to fail at
+prerm while retaining the helper and policy. Restoring the real helper allowed
+purge to complete. User data, IPv4 routes and nftables matched the baseline.
+No host network changes were performed. Native RPM installation, a
+distinct-version upgrade and the wider OS matrix remain open release gates.
+
+## 2026-11-18 — Profile deletion rollback
+
+The core regression `profile_deletion_restores_backend_if_metadata_write_fails`
+passed after forcing a metadata write failure. The original backend configuration
+and registry entry were retained. `cargo fmt --all -- --check` and core Clippy
+with warnings denied passed. This does not establish crash atomicity across
+NetworkManager and the local store. `cargo test --workspace --all-targets
+--locked --offline` passed all 140 tests.
+
 ## 2026-11-18 — Main branch integration
 
 Integrated the audit changes with GitHub main at `2854b28`. The integrated
@@ -34,9 +72,10 @@ Frontend lint, types, 29 tests and production build passed.
 | `cargo fmt --all -- --check` | Passed |
 | `cargo check --workspace --all-targets --locked --offline` | Passed |
 | `cargo clippy --workspace --all-targets --locked --offline -- -D warnings` | Passed |
-| `cargo test --workspace --all-targets --locked --offline` | 136 passed in 14 test binaries, including empty example harnesses |
+| `cargo test --workspace --all-targets --locked --offline` | 139 passed in 14 test binaries, including empty example harnesses |
 | `cargo check -p aegis-windows --all-targets --target x86_64-pc-windows-msvc --locked --offline` | Passed, source and test compilation only |
-| `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` | Passed under `apps/desktop`. 30 tests passed. Biome reported the pre-existing preset deprecation |
+| `cargo test -p aegis-desktop --test glib_security --release --locked --offline` | 2 passed with the ordinary Rust library target |
+| `pnpm lint`, `pnpm typecheck`, `pnpm test`, `pnpm build` | Passed under `apps/desktop`. 31 tests passed. Biome reported the pre-existing preset deprecation |
 | `pnpm audit --prod` | No known vulnerabilities found |
 | `cargo audit --db "$advisory_db" --no-fetch --no-yanked` | Passed using a fresh RustSec checkout at `233155b` (2026-11-17). Five unmaintained dependency warnings (`chrono`, `proc-macro-error`, `zbus_names`, `zvariant`, `zvariant_derive`). Yanked-version checks were excluded |
 | `cargo deny --offline check` | Advisories, bans, licenses and sources passed with a writable scratch copy of the configured database and policy path. The normal invocation initially failed to lock the read-only cache |
@@ -50,18 +89,70 @@ command grants and Rust-to-UI settings synchronization.
 
 Local artifact hashes:
 
-- DEB `171e5475c7efa92f8202d0d66d77a498fa59b387ac7a118bc6b3afb85725a0be`
-- RPM `747e17351366c08dc264843d38f1cef9bcc8958b6f556f66cfa8b0f0a5b0ade6`
+- DEB `85d685f1f2867b5b747460c5a9cdc0231837b1a2855ee3a23d044bb509f6cb30`
+- RPM `c48e760133886bd629af4601becb9abd9bc90c31e5db8881175641e5c9c1d058`
 
-Both archives contain the desktop binary, launcher and icons. The separate
-helper and Polkit policy are needed for protected mode. Neither package was
-installed. The hosted preview workflow was not triggered.
+These archives precede the final queued-metadata change. Both contain the
+desktop binary, launcher, icons and the six license
+and attribution files. The separate helper and Polkit policy are needed for
+protected mode. The hosted preview workflow was not triggered. The local
+`cargo metadata --locked --offline --format-version 1` and
+`pnpm list --prod --depth Infinity --json` inventory commands passed.
 
-The attempted baseline and current desktop startup measurements under Xvfb
-timed out after eight seconds waiting for a visible window. Desktop portal
-and runtime socket errors were observed. Startup, idle and connected resource
-measurements remain unavailable. Gzip JS artifact size was 90.09 kB at
-baseline and 90.14 kB after remediation.
+- Debian 13 package smoke test on the checksum-verified DEB above: clean
+  `apt-get install`, executable/desktop launcher/license checks, `ldd`,
+  same-version `dpkg -i` reinstall and `dpkg --purge` passed. The application
+  data marker, IPv4 routes and nftables matched the preinstall baseline after
+  purge. A prior run used a concurrently replaced archive and stopped at the
+  expected notice check. The successful rerun used a checksum-verified copy.
+  Distinct-version upgrade, RPM installation, native GUI launch and the
+  separate helper's package lifecycle remain pending.
+
+The VM suite ran through `scripts/vm/run-vm-tests.sh` with offline Cargo and a
+writable `XDG_CACHE_HOME` under `/tmp`. The first cache setup attempt failed
+because the default home cache was read-only. The guest was Debian 13, kernel
+6.12.117+deb13-cloud-amd64, NetworkManager 1.52.1 and systemd 257.13. QEMU
+11.1.3 used software emulation because `/dev/kvm` was absent.
+
+- The initial remediation snapshot passed `full` and `full4`. The run covered
+  real tunnels, protected failure, DNS and IPv6 uplink captures, unprotected
+  location switching, recovery and exact restoration of owned network state.
+- After adding the live resolver address and firewall-removal regressions,
+  `AEGIS_VM_MODES=full` recorded **105 passed, 8 failed**. Confirmed firewall
+  removal revoked verification and stopped the tunnel. The subsequent uplink
+  change produced an unreadable firewall result. The engine stopped the
+  tunnel even though the packet capture showed the retained block. The
+  remaining peer and reconnect assertions then failed. A deterministic
+  regression checks the bounded retry and teardown on repeated failure.
+- An intermediate rerun passed the dual-stack suite. In `full4`, background
+  network verification held the operation lock during a country edit and
+  switch. The switch returned `Busy` and left the original VPN active. The
+  new deterministic slow-probe regression verifies that the operation can
+  proceed and that a cancelled probe publishes no stale result.
+- The bounded-firewall-retry snapshot completed **227 assertions**, 113
+  `full` and 114 `full4`, with zero failures. With slow probes moved out of
+  the operation lock, a subsequent IPv4-only switch succeeded, but the
+  preceding location edit still collided with a short critical section. That
+  run recorded **112 passed, 2 failed**. The queued-edit regression covers
+  the remaining race.
+- The final `AEGIS_VM_MODES=full4` run passed **114 assertions with zero
+  failures**. This included country assignment, real switching and active
+  metadata, DNS and IPv6 uplink checks, external firewall removal, uplink
+  change with the retained block, silent-peer recovery and cleanup. The
+  dual-stack suite passed on the bounded-firewall-retry snapshot above.
+
+The first Xvfb startup attempts timed out with desktop portal and runtime
+socket errors. Giving the launch session its own XDG directories and local
+GIO VFS allowed both debug binaries to open in mock mode. `hyperfine --warmup
+2 --runs 5` measured the full launch wrapper, including Xvfb and D-Bus startup
+and cleanup. It reported **1.310 ± 0.204 s** for the saved pre-audit executable
+and **1.214 ± 0.009 s** for the rebuilt executable. The five measured
+launch-to-window medians were both approximately **1.01 s**. One four-second
+idle observation per binary gave **276 MiB / 0.00% CPU** and **275 MiB / 0.50%
+CPU** for the main process. A second current idle run failed to reach a visible
+window. The exact revision of the pre-audit executable was not recorded, and
+these samples do not establish a performance improvement or include WebKit
+child processes or real connected workloads. Gzip JS was 90.09 and 90.14 kB.
 
 ## 2026-11-18 — Live validation of the hardened Linux helper
 
